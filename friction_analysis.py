@@ -73,7 +73,7 @@ def find_slide(t, f_along, f_norm, f_lat, min_len=0.12, thresh_frac=0.5):
     Locate the free-slide window.  Strategy: the push produces a large positive f_along
     (sled accelerated by the paddle); the slide is the following stretch where f_along is
     negative and roughly constant; the stop is where |f_along| drops to rest level.
-    Returns (i0, i1) indices, or None.
+    Returns (i0, i1, i_stop): the trimmed window and the untrimmed end of the slide, or None.
     """
     dt = np.median(np.diff(t))
     # smooth lightly (5-sample moving average)
@@ -106,7 +106,7 @@ def find_slide(t, f_along, f_norm, f_lat, min_len=0.12, thresh_frac=0.5):
     i0 += trim; i1 -= trim
     if (i1 - i0)*dt < min_len:
         return None
-    return i0, i1
+    return i0, i1, j
 
 def analyse_run(t, ax, ay, az, gyaw=None, along="y", normal="z", lateral="x", direction=+1):
     comp = {"x": ax, "y": ay, "z": az}
@@ -121,19 +121,19 @@ def analyse_run(t, ax, ay, az, gyaw=None, along="y", normal="z", lateral="x", di
     win = find_slide(t, f_al, f_no, f_la)
     if win is None:
         return {"ok": False, "reason": "no slide segment found"}
-    i0, i1 = win
+    i0, i1, istop = win
     seg_al, seg_no, seg_la = f_al[i0:i1], f_no[i0:i1], f_la[i0:i1]
     mu_raw = -np.mean(seg_al)/np.mean(seg_no)
-    # speed profile by backward integration from the stop (v=0 at i1):
+    # speed profile by backward integration from the stop (v=0 at istop, not at the trimmed i1):
     # true acceleration along the slide = f_al + g_al, where g_al = -rest_al (gravity
     # component along the plane, from the rest reading) -- valid when delta is mostly tilt.
-    a_true = seg_al - rest_al
-    v = -np.cumsum(a_true[::-1])[::-1]*dt   # v(t) = -integral_t^stop a dt'  (v=0 at the stop)
-    v_start, v_end = float(v[0]), float(v[max(0, len(v)-1)])
+    a_true = f_al[i0:istop] - rest_al
+    v = (-np.cumsum(a_true[::-1])[::-1]*dt)[:i1-i0]   # v(t) = -integral_t^stop a dt'
+    v_start = float(v[0])
     # per-sample mu against speed (for speed dependence)
     mu_t = -seg_al/seg_no
-    # quality flags
-    lat_rms = float(np.sqrt(np.mean(seg_la**2)))
+    # quality flags (lateral relative to its rest level, so board tilt and bias don't count)
+    lat_rms = float(np.sqrt(np.mean((seg_la - np.mean(f_la[:n0]))**2)))
     yaw_max = float(np.max(np.abs(gyaw[i0:i1]))*180/math.pi) if gyaw is not None else float("nan")
     dur = float(t[i1]-t[i0])
     return {"ok": True, "mu": float(mu_raw), "mu_sd_within": float(np.std(mu_t)/math.sqrt(len(mu_t))),
@@ -168,8 +168,8 @@ def synth_run(mu=0.30, tilt_deg=0.0, delta_deg=0.0, v0=1.2, fs=100, noise=0.03, 
     slide = (t >= t_rest+t_push) & (t < t_rest+t_push+t_slide)
     f_al[push] = rest[0] + a_push
     f_al[slide] = -mu*G*math.cos(phi)      # specific force along plane during slide
-    if reverse:                            # same phone mounting, sled travelling toward -along
-        f_al = 2*rest[0] - f_al            # push and friction flip sign about the rest level
+    if reverse:                            # sled turned 180 deg, same travel direction on the board:
+        f_al = -f_al                       # phone's along axis points against travel, so every reading flips
     # misalignment rotation by delta about the lateral axis
     d = math.radians(delta_deg)
     fa = f_al*math.cos(d) + f_no*math.sin(d)
@@ -184,12 +184,12 @@ def selftest():
         t, ax, ay, az = synth_run(mu=0.30, tilt_deg=tilt, delta_deg=delta)
         r = analyse_run(t, ax, ay, az)
         print(f" tilt={tilt:+.0f} deg  misalign={delta:+.0f} deg -> mu={r['mu']:.4f}  dur={r['dur_s']:.2f}s  v0~{r['v_start']:.2f} m/s")
-    # two-direction average cancels misalignment
-    t1, ax1, ay1, az1 = synth_run(mu=0.30, delta_deg=1.0, seed=1)
-    t2, ax2, ay2, az2 = synth_run(mu=0.30, delta_deg=1.0, seed=2, reverse=True)
+    # two-direction average cancels misalignment (on a tilted board too)
+    t1, ax1, ay1, az1 = synth_run(mu=0.30, tilt_deg=2, delta_deg=1.0, seed=1)
+    t2, ax2, ay2, az2 = synth_run(mu=0.30, tilt_deg=2, delta_deg=1.0, seed=2, reverse=True)
     r1 = analyse_run(t1, ax1, ay1, az1, direction=+1)
     r2 = analyse_run(t2, ax2, ay2, az2, direction=-1)
-    print(f" misalign 1 deg: +x {r1['mu']:.4f}, -x {r2['mu']:.4f}, mean {(r1['mu']+r2['mu'])/2:.4f}")
+    print(f" tilt 2 deg, misalign 1 deg: fwd {r1['mu']:.4f}, rev {r2['mu']:.4f}, mean {(r1['mu']+r2['mu'])/2:.4f}")
 
 def main():
     ap = argparse.ArgumentParser()
