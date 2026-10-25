@@ -1,5 +1,5 @@
 """Builds the friction lookup table (CSV + LaTeX rows) from one data structure.
-Run: python3 build_table.py  -> writes friction_lookup.csv and rows_*.tex
+Run: python3 lookup_table.py  -> writes friction_lookup.csv and rows_*.tex
 """
 import csv, math
 
@@ -142,7 +142,7 @@ def main():
             il,ih=interval(mu,s)
             rng = "single value" if lo is None else f"{lo:.2f}--{hi:.2f}"
             cites = ",".join(f"{SRC[k]}" for k in src)
-            flag = "speed-dep." if "FLAG" in note else ("3 sources" if "disagree" in note else ("measured" if "measured" in note else ""))
+            flag = "speed-dep." if "FLAG" in note else ("3 sources" if "disagree" in note else ("measured" if note.startswith("measured") else ""))
             f.write(f"{pid} & {obj} & {surf} & {mu:.2f} & {rng} & {il:.2f}--{ih:.2f} & {s:.2f} & [{cites}] & {flag}\\\\\n")
     # LaTeX rows for excluded
     with open("rows_excluded.tex","w") as f:
