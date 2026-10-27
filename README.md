@@ -16,6 +16,7 @@ Phase 1, Oct 25 – Nov 1: measuring ground-truth kinetic friction for 27 object
 | `lookup_table.py` | Builds the published-value friction lookup table (baseline C2): `friction_lookup.csv` plus LaTeX rows `rows_*.tex`. |
 | `check_drake.py` | Smoke test for the Drake install: loads the iiwa 14 and checks a hydroelastic box slide against `d = v² / (2 μ g)`. |
 | `scene.py` | The Drake scene: patchy table, object, iiwa 14 with paddle. Also runs passive slides against the predicted stopping distance. |
+| `e0_sweep.py` | E0 contact-model study: passive slides across shapes and contact settings, checked against `d = v² / (2 μ g)`. |
 | `ground_truth_placeholder.csv` | Synthetic friction values in the `measured_friction.csv` columns, used until the measured file exists. **Not friction estimates.** |
 
 ## Setup
@@ -84,7 +85,7 @@ The script prints `μ_k` for each run and flags rejects: a short slide, lateral 
   - Each strip's friction is the pair's `mu_k_nominal × exp(patchiness · s_tab_log · z)`, sampled per seed.
   - `--bimodal` uses two levels instead.
 - **Object:** compliant hydroelastic.
-  - Shapes: box, disc, or block on 3 or 4 feet.
+  - Shapes: box, disc, ring, or block on 3 or 4 feet. The ring's volume mesh is generated on the fly; Meshcat can't draw it yet.
   - For robustness cases: an optional centre-of-mass offset, or one longer foot.
 - **iiwa 14:** base at the origin on the table, with a flat rigid paddle welded to the flange.
   - No controller is included: connect one to the plant's actuation input.
@@ -100,6 +101,27 @@ python3 scene.py --pair M07 --slide 0.8 --shape footed --foot-error 0.001 --patc
 **What `--slide` does:** it gives the object a speed and lets it slide to rest. It compares the stopping distance with the prediction `g ∫ μ̄ dx = v₀²/2`, where `μ̄` is the strip friction averaged over the object's footprint. It prints PASS within 2% in distance and 2° in yaw.
 
 **From another script:** use `build_scene(builder, pair, obj, table, contact, arm=True, seed=...)`, which returns the plant, the object body, the iiwa model instance and the paddle body.
+
+### E0 contact-model sweep
+
+```bash
+python3 e0_sweep.py                            # about 2,700 slides, ~7 min on 10 cores
+python3 e0_sweep.py --quick                    # a few slides, to check it runs
+python3 e0_sweep.py --summarize e0_results.csv # reprint the summary from a saved run
+```
+
+The sweep has three stages:
+- **grid:** shape × approximation × time step (1, 2, 5 ms) × modulus (10⁵–10⁷ Pa) × damping. Damping is Hunt–Crossley dissipation 0–100 s/m, or relaxation time 0–1 s for SAP, which ignores Hunt–Crossley.
+- **resolution:** mesh resolution 0.5–2 cm.
+- **robust:** uneven feet and centre-of-mass offsets.
+
+Every slide is on a uniform table and is checked against `d = v² / (2 μ g)` with the 2% / 2° bar.
+
+The scene's defaults passed on every shape: `lagged`, 1 ms, 10⁷ Pa, 1 s/m, 1 cm. Avoid:
+- 5 ms steps
+- Similar with stiff objects
+- SAP relaxation times of 0.1 s or more
+- dissipation of 100 s/m
 
 ## Lookup table
 

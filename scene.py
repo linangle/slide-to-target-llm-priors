@@ -5,8 +5,8 @@ scene.py -- the Drake scene for Slide-to-Target.
 One MultibodyPlant holds:
   * a table whose top (z = 0) is tiled with strips across the travel direction (+x).  Each
     strip's friction is the pair's mu perturbed in log space (the "patchy table"), sampled per seed;
-  * the object, a compliant-hydroelastic body: box, disc, or block on 3-4 feet, optionally with a
-    centre-of-mass offset or one long foot (the E0 robustness cases);
+  * the object, a compliant-hydroelastic body: box, disc, ring, or block on 3-4 feet, optionally with
+    a centre-of-mass offset or one long foot (the E0 robustness cases);
   * optionally the iiwa 14, base at the origin on the table, with a flat paddle welded to its flange
     (rigid hydroelastic).  No controller is added: connect one to the plant's actuation input.
 
@@ -23,13 +23,13 @@ Usage:
     python3 scene.py --pair M07 --slide 0.8                   # passive slide vs prediction
     python3 scene.py --pair M07 --slide 0.8 --shape disc --patchiness 2 --seed 3
 """
-import argparse, csv, math, sys
+import argparse, csv, math, os, sys, tempfile
 from dataclasses import dataclass
 import numpy as np
 from pydrake.all import (AddCompliantHydroelasticProperties, AddContactMaterial, AddDefaultVisualization,
                          AddMultibodyPlant, AddRigidHydroelasticProperties, Box, CoulombFriction, Cylinder,
-                         DiagramBuilder, MultibodyPlantConfig, Parser, ProximityProperties, RigidTransform,
-                         RollPitchYaw, Simulator, SpatialInertia, SpatialVelocity, StartMeshcat)
+                         DiagramBuilder, Mesh, MultibodyPlantConfig, Parser, ProximityProperties, RigidTransform,
+                         RollPitchYaw, RotationalInertia, Simulator, SpatialInertia, SpatialVelocity, StartMeshcat)
 
 G = 9.81
 DEFAULT_PAIRS = "ground_truth_placeholder.csv"   # switch to measured_friction.csv once it exists
@@ -45,7 +45,8 @@ class Contact:
     time_step: float = 1e-3
     approx: str = "lagged"     # discrete contact approximation: lagged | similar | sap
     modulus: float = 1e7       # object hydroelastic modulus, Pa
-    dissipation: float = 1.0   # Hunt-Crossley dissipation, s/m
+    dissipation: float = 1.0   # Hunt-Crossley dissipation, s/m (lagged, similar)
+    relaxation: float = None   # SAP relaxation time, s; None = Drake's default
     resolution: float = 0.01   # object mesh resolution hint, m
 
 @dataclass
@@ -59,8 +60,9 @@ class Table:
 
 @dataclass
 class Obj:
-    shape: str = "box"                    # box | disc | footed
-    size: tuple = (0.10, 0.10, 0.05)      # x, y, z; disc uses size[0] as diameter
+    shape: str = "box"                    # box | disc | ring | footed
+    size: tuple = (0.10, 0.10, 0.05)      # x, y, z; disc and ring use size[0] as the outer diameter
+    inner: float = 0.06                   # ring: inner diameter, m
     mass: float = 0.5                     # kg
     com_offset: tuple = (0.0, 0.0, 0.0)   # CoM from the body's geometric centre, m
     n_feet: int = 4                       # footed: 3 or 4
@@ -100,6 +102,8 @@ def proximity(compliant, mu, contact, resolution=None):
     else:
         AddRigidHydroelasticProperties(props)
     AddContactMaterial(contact.dissipation, None, CoulombFriction(mu, mu), props)
+    if contact.relaxation is not None:
+        props.AddProperty("material", "relaxation_time", contact.relaxation)
     return props
 
 def foot_xy(obj):
@@ -109,15 +113,54 @@ def foot_xy(obj):
         return [(ax, 0.0), (-ax, ay), (-ax, -ay)]
     return [(ax, ay), (ax, -ay), (-ax, ay), (-ax, -ay)]
 
+def ring_mesh(r_in, r_out, h, res):
+    """Tetrahedral annulus as a .vtk file (a compliant Mesh needs a volume mesh), cached in the temp dir.
+    At least two cells across the wall and the height, so the mesh has interior vertices for the pressure field."""
+    n_t = max(12, math.ceil(2*math.pi*r_out/res))
+    n_r, n_z = max(2, math.ceil((r_out - r_in)/res)), max(2, math.ceil(h/res))
+    path = os.path.join(tempfile.gettempdir(), f"slide_ring_{r_in:.4f}_{r_out:.4f}_{h:.4f}_{n_t}_{n_r}_{n_z}.vtk")
+    if os.path.exists(path):
+        return path
+    rs, zs, th = np.linspace(r_in, r_out, n_r + 1), np.linspace(-h/2, h/2, n_z + 1), 2*math.pi*np.arange(n_t)/n_t
+    pts = np.array([(r*math.cos(t), r*math.sin(t), z) for t in th for r in rs for z in zs])
+    vid = lambda i, j, k: ((i % n_t)*(n_r + 1) + j)*(n_z + 1) + k
+    tets = []
+    for i in range(n_t):
+        for j in range(n_r):
+            for k in range(n_z):
+                for a, b, _ in ((0, 1, 2), (0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0)):
+                    e1 = [int(a == 0), int(a == 1), int(a == 2)]   # Kuhn split of each cell into 6 tets,
+                    e2 = [e1[n] + int(b == n) for n in range(3)]   # all along the (0,0,0)-(1,1,1) diagonal
+                    t = [vid(i, j, k), vid(i + e1[0], j + e1[1], k + e1[2]), vid(i + e2[0], j + e2[1], k + e2[2]),
+                         vid(i + 1, j + 1, k + 1)]
+                    q = pts[t]
+                    if np.dot(np.cross(q[1] - q[0], q[2] - q[0]), q[3] - q[0]) < 0:
+                        t[1], t[2] = t[2], t[1]
+                    tets.append(t)
+    tmp = f"{path}.{os.getpid()}"
+    with open(tmp, "w") as f:
+        f.write("# vtk DataFile Version 3.0\nring\nASCII\nDATASET UNSTRUCTURED_GRID\n")
+        f.write(f"POINTS {len(pts)} double\n" + "".join(f"{x:.9f} {y:.9f} {z:.9f}\n" for x, y, z in pts))
+        f.write(f"CELLS {len(tets)} {5*len(tets)}\n" + "".join("4 " + " ".join(map(str, t)) + "\n" for t in tets))
+        f.write(f"CELL_TYPES {len(tets)}\n" + "10\n"*len(tets))
+    os.replace(tmp, path)   # atomic, so parallel sweep workers never read a half-written file
+    return path
+
 def add_object(plant, obj, contact):
     """Adds the object; returns (body, height of the body origin above the table when resting)."""
     sx, sy, sz = obj.size
-    if obj.shape == "disc":
-        M = SpatialInertia.SolidCylinderWithMass(obj.mass, sx/2, sz, [0, 0, 1])
+    com = np.asarray(obj.com_offset, float)
+    if obj.shape == "ring":
+        r2 = (obj.inner/2)**2 + (sx/2)**2
+        I = RotationalInertia(obj.mass*(3*r2 + sz*sz)/12, obj.mass*(3*r2 + sz*sz)/12, obj.mass*r2/2)
+        body = plant.AddRigidBody("object", SpatialInertia.MakeFromCentralInertia(obj.mass, com, I))
+        shape = Mesh(ring_mesh(obj.inner/2, sx/2, sz, contact.resolution))
     else:
-        M = SpatialInertia.SolidBoxWithMass(obj.mass, sx, sy, sz)
-    body = plant.AddRigidBody("object", M.Shift(-np.asarray(obj.com_offset, float)))
-    shapes = [(RigidTransform(), Cylinder(sx/2, sz) if obj.shape == "disc" else Box(sx, sy, sz), None)]
+        M = (SpatialInertia.SolidCylinderWithMass(obj.mass, sx/2, sz, [0, 0, 1]) if obj.shape == "disc"
+             else SpatialInertia.SolidBoxWithMass(obj.mass, sx, sy, sz))
+        body = plant.AddRigidBody("object", M.Shift(-com))
+        shape = Cylinder(sx/2, sz) if obj.shape == "disc" else Box(sx, sy, sz)
+    shapes = [(RigidTransform(), shape, None)]
     z0 = sz/2
     if obj.shape == "footed":
         d, h = obj.foot
@@ -125,11 +168,11 @@ def add_object(plant, obj, contact):
             hi = h + (obj.foot_error if i == 0 else 0.0)
             shapes.append((RigidTransform([x, y, -sz/2 - hi/2]), Cylinder(d/2, hi), d/4))
         z0 += h + max(obj.foot_error, 0.0)
-    props = {}
     for i, (X, shape, res) in enumerate(shapes):
         props = proximity(True, OBJECT_MU, contact, res)
         plant.RegisterCollisionGeometry(body, X, shape, f"object_{i}", props)
-        plant.RegisterVisualGeometry(body, X, shape, f"object_{i}", [0.3, 0.5, 0.9, 1.0])
+        if not isinstance(shape, Mesh):   # Meshcat can't draw .vtk, so the ring has no visual yet
+            plant.RegisterVisualGeometry(body, X, shape, f"object_{i}", [0.3, 0.5, 0.9, 1.0])
     return body, z0
 
 def add_arm(plant, contact):
@@ -174,7 +217,12 @@ def footprint_x(obj):
         px = np.concatenate([x + u for x, _ in foot_xy(obj)])
         return px, np.tile(np.sqrt(np.maximum(r*r - u*u, 0)), len(foot_xy(obj)))
     px = np.linspace(-sx/2, sx/2, 101)
-    return px, (np.sqrt(np.maximum(sx*sx/4 - px*px, 0)) if obj.shape == "disc" else np.ones_like(px))
+    chord = lambda r: np.sqrt(np.maximum(r*r - px*px, 0))
+    if obj.shape == "disc":
+        return px, chord(sx/2)
+    if obj.shape == "ring":
+        return px, chord(sx/2) - chord(obj.inner/2)
+    return px, np.ones_like(px)
 
 def predicted_distance(sc, obj, v0):
     """Stopping distance if friction is the strip mu averaged over the footprint: g*int(mu) = v0^2/2."""
@@ -218,7 +266,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--pairs", default=DEFAULT_PAIRS)
     ap.add_argument("--pair", default="M01")
-    ap.add_argument("--shape", default="box", choices=["box", "disc", "footed"])
+    ap.add_argument("--shape", default="box", choices=["box", "disc", "ring", "footed"])
     ap.add_argument("--n-feet", type=int, default=4, choices=[3, 4])
     ap.add_argument("--foot-error", type=float, default=0.0, help="first foot this much longer, m")
     ap.add_argument("--com-offset", type=float, nargs=3, default=(0.0, 0.0, 0.0), metavar=("X", "Y", "Z"))
