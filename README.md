@@ -15,6 +15,8 @@ Phase 1, Oct 25 – Nov 1: measuring ground-truth kinetic friction for 27 object
 | `friction_analysis.py` | Computes `μ_k` from phone-accelerometer (phyphox) recordings of a sled sliding on a flat board. Also does the six-position accelerometer calibration. |
 | `lookup_table.py` | Builds the published-value friction lookup table (baseline C2): `friction_lookup.csv` plus LaTeX rows `rows_*.tex`. |
 | `check_drake.py` | Smoke test for the Drake install: loads the iiwa 14 and checks a hydroelastic box slide against `d = v² / (2 μ g)`. |
+| `scene.py` | The Drake scene: patchy table, object, iiwa 14 with paddle. Also runs passive slides against the predicted stopping distance. |
+| `ground_truth_placeholder.csv` | Synthetic friction values in the `measured_friction.csv` columns, used until the measured file exists. **Not friction estimates.** |
 
 ## Setup
 
@@ -72,6 +74,32 @@ python3 friction_analysis.py M07_*rev*.csv --pair M07 --direction rev --calib ca
 The script prints `μ_k` for each run and flags rejects: a short slide, lateral force, or yaw. `--out` appends to the CSV. If more than 3 of a pair's 12 runs are rejected, fix the cause and redo them. Runs where the sled touched the paddle again after release must be marked by hand in the run log.
 
 **Where data goes.** Raw recordings are small, so commit them, with each session's `calib.json` and run log beside them. Suggested layout: `data/raw/<session>/`.
+
+## Simulation scene
+
+`scene.py` builds one `MultibodyPlant` for a given pair from the ground-truth file.
+
+**What's in the scene**
+- **Table:** its top is at z = 0 and is tiled with 5 cm strips across the travel direction (+x).
+  - Each strip's friction is the pair's `mu_k_nominal × exp(patchiness · s_tab_log · z)`, sampled per seed.
+  - `--bimodal` uses two levels instead.
+- **Object:** compliant hydroelastic.
+  - Shapes: box, disc, or block on 3 or 4 feet.
+  - For robustness cases: an optional centre-of-mass offset, or one longer foot.
+- **iiwa 14:** base at the origin on the table, with a flat rigid paddle welded to the flange.
+  - No controller is included: connect one to the plant's actuation input.
+
+**Getting the friction right.** Drake combines two geometries' friction as `2 μa μb / (μa + μb)`. The object therefore carries a fixed μ, and each strip and the paddle are given the value that makes the *pair* coefficient equal to its target.
+
+```bash
+python3 scene.py --pair M07 --meshcat                      # view the scene
+python3 scene.py --pair M07 --slide 0.8                    # passive slide vs prediction
+python3 scene.py --pair M07 --slide 0.8 --shape footed --foot-error 0.001 --patchiness 0
+```
+
+**What `--slide` does:** it gives the object a speed and lets it slide to rest. It compares the stopping distance with the prediction `g ∫ μ̄ dx = v₀²/2`, where `μ̄` is the strip friction averaged over the object's footprint. It prints PASS within 2% in distance and 2° in yaw.
+
+**From another script:** use `build_scene(builder, pair, obj, table, contact, arm=True, seed=...)`, which returns the plant, the object body, the iiwa model instance and the paddle body.
 
 ## Lookup table
 
