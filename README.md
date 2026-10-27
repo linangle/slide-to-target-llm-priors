@@ -14,17 +14,35 @@ Phase 1, Oct 25 – Nov 1: measuring ground-truth kinetic friction for 27 object
 |---|---|
 | `friction_analysis.py` | Computes `μ_k` from phone-accelerometer (phyphox) recordings of a sled sliding on a flat board. Also does the six-position accelerometer calibration. |
 | `lookup_table.py` | Builds the published-value friction lookup table (baseline C2): `friction_lookup.csv` plus LaTeX rows `rows_*.tex`. |
+| `check_drake.py` | Smoke test for the Drake install: loads the iiwa 14 and checks a hydroelastic box slide against `d = v² / (2 μ g)`. |
 
 ## Setup
 
-Python 3.10 or newer.
+You need Python 3.12 or newer. Drake 1.58 ships wheels for macOS 26 on Apple silicon and for Linux with glibc 2.34 or newer (Ubuntu 22.04+). On Windows, use WSL2.
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 python3 friction_analysis.py --selftest
+python3 check_drake.py
 ```
 
-The self-test runs the analysis on synthetic slides with `μ = 0.30`. With a 1° mounting tilt, the fwd/rev mean should come out close to 0.300.
+`requirements.txt` pins Drake and `manipulation`, the 6.4210 course package.
+
+**`friction_analysis.py --selftest`** runs the analysis on synthetic slides with `μ = 0.30`. With a 2° board tilt and a 1° mounting tilt, the fwd/rev mean should come out close to 0.300.
+
+**`check_drake.py`** gives a box a speed of 0.8 m/s on a table with `μ = 0.30` and prints PASS if:
+- it stops within 2% of `v² / (2 μ g)`
+- it turns by less than 2°
+
+Options:
+- `--mu`, `--v0`: friction and launch speed
+- `--dt`: plant time step
+- `--approx lagged|similar|sap`: Drake's discrete contact approximation
+- `--meshcat`: replay the slide in the browser
+
+The first run downloads Drake's model files, so it needs internet.
 
 ## Friction measurement
 
