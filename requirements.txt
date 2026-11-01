@@ -3,3 +3,5 @@ scipy
 pillow
 drake==1.58.0
 manipulation==2026.10.17
+pyyaml
+pytest
