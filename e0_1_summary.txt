@@ -1,0 +1,82 @@
+== E0-1 grid: free slide of a box vs d = v^2/(2 mu g); worst |error| and |yaw| over mu in {0.1, 0.3, 0.5}, v in {0.6, 1.0} ==
+PASS lagged  dissipation=0      dt=1 ms margin=0                max err  0.81%  max yaw  0.00 deg
+PASS lagged  dissipation=0      dt=1 ms margin=0.0001           max err  0.95%  max yaw  0.00 deg
+PASS lagged  dissipation=1      dt=1 ms margin=0                max err  0.82%  max yaw  0.00 deg
+PASS lagged  dissipation=1      dt=1 ms margin=0.0001           max err  0.96%  max yaw  0.00 deg
+PASS lagged  dissipation=10     dt=1 ms margin=0                max err  0.82%  max yaw  0.00 deg
+     lagged  dissipation=10     dt=1 ms margin=0.0001           max err  3.69%  max yaw  0.00 deg
+PASS lagged  dissipation=50     dt=1 ms margin=0                max err  0.82%  max yaw  0.00 deg
+     lagged  dissipation=50     dt=1 ms margin=0.0001           max err 28.52%  max yaw  0.09 deg
+PASS lagged  dissipation=0      dt=2 ms margin=0                max err  1.71%  max yaw  0.00 deg
+     lagged  dissipation=0      dt=2 ms margin=0.0001           max err  3.84%  max yaw  0.00 deg
+PASS lagged  dissipation=1      dt=2 ms margin=0                max err  1.63%  max yaw  0.00 deg
+     lagged  dissipation=1      dt=2 ms margin=0.0001           max err  6.19%  max yaw  0.00 deg
+PASS lagged  dissipation=10     dt=2 ms margin=0                max err  1.63%  max yaw  0.00 deg
+     lagged  dissipation=10     dt=2 ms margin=0.0001           max err 36.66%  max yaw  0.16 deg
+PASS lagged  dissipation=50     dt=2 ms margin=0                max err  1.63%  max yaw  0.00 deg
+     lagged  dissipation=50     dt=2 ms margin=0.0001           max err 11.65%  max yaw  0.10 deg
+     lagged  dissipation=0      dt=5 ms margin=0                max err  4.04%  max yaw  0.00 deg
+     lagged  dissipation=0      dt=5 ms margin=0.0001           max err  5.99%  max yaw  0.00 deg
+     lagged  dissipation=1      dt=5 ms margin=0                max err  4.04%  max yaw  0.00 deg
+     lagged  dissipation=1      dt=5 ms margin=0.0001           max err 12.22%  max yaw  0.00 deg
+     lagged  dissipation=10     dt=5 ms margin=0                max err  4.05%  max yaw  0.00 deg
+     lagged  dissipation=10     dt=5 ms margin=0.0001           max err 19.49%  max yaw  0.02 deg
+     lagged  dissipation=50     dt=5 ms margin=0                max err  4.05%  max yaw  0.00 deg
+     lagged  dissipation=50     dt=5 ms margin=0.0001           max err 31.07%  max yaw  0.00 deg
+PASS sap     relaxation_time=0      dt=1 ms margin=0            max err  0.84%  max yaw  1.17 deg
+PASS sap     relaxation_time=0      dt=1 ms margin=0.0001       max err  0.84%  max yaw  0.24 deg
+PASS sap     relaxation_time=0.01   dt=1 ms margin=0            max err  1.09%  max yaw  1.61 deg
+PASS sap     relaxation_time=0.01   dt=1 ms margin=0.0001       max err  1.46%  max yaw  0.12 deg
+     sap     relaxation_time=0.1    dt=1 ms margin=0            max err  2.89%  max yaw  0.96 deg
+     sap     relaxation_time=0.1    dt=1 ms margin=0.0001       max err 13.25%  max yaw  0.73 deg
+     sap     relaxation_time=0      dt=2 ms margin=0            max err  1.95%  max yaw  3.62 deg
+PASS sap     relaxation_time=0      dt=2 ms margin=0.0001       max err  1.73%  max yaw  1.41 deg
+     sap     relaxation_time=0.01   dt=2 ms margin=0            max err  4.16%  max yaw  3.49 deg
+     sap     relaxation_time=0.01   dt=2 ms margin=0.0001       max err  3.06%  max yaw  0.02 deg
+     sap     relaxation_time=0.1    dt=2 ms margin=0            max err  4.31%  max yaw  1.51 deg
+     sap     relaxation_time=0.1    dt=2 ms margin=0.0001       max err 36.20%  max yaw  0.72 deg
+     sap     relaxation_time=0      dt=5 ms margin=0            max err 69.52%  max yaw 59.91 deg
+     sap     relaxation_time=0      dt=5 ms margin=0.0001       max err 95.55%  max yaw 18.60 deg
+     sap     relaxation_time=0.01   dt=5 ms margin=0            max err 265.82%  max yaw 128.42 deg
+     sap     relaxation_time=0.01   dt=5 ms margin=0.0001       max err 143.06%  max yaw 33.05 deg
+     sap     relaxation_time=0.1    dt=5 ms margin=0            max err 129.95%  max yaw 38.21 deg
+     sap     relaxation_time=0.1    dt=5 ms margin=0.0001       max err 93.45%  max yaw  4.59 deg
+PASS similar dissipation=0      dt=1 ms margin=0                max err  0.74%  max yaw  0.76 deg
+PASS similar dissipation=0      dt=1 ms margin=0.0001           max err  0.84%  max yaw  0.58 deg
+PASS similar dissipation=1      dt=1 ms margin=0                max err  1.95%  max yaw  1.14 deg
+     similar dissipation=1      dt=1 ms margin=0.0001           max err 22.45%  max yaw  0.14 deg
+     similar dissipation=10     dt=1 ms margin=0                max err  3.43%  max yaw  1.22 deg
+     similar dissipation=10     dt=1 ms margin=0.0001           max err 59.52%  max yaw  0.16 deg
+     similar dissipation=50     dt=1 ms margin=0                max err  6.47%  max yaw  2.67 deg
+     similar dissipation=50     dt=1 ms margin=0.0001           max err 84.20%  max yaw  0.15 deg
+     similar dissipation=0      dt=2 ms margin=0                max err  3.46%  max yaw  4.96 deg
+PASS similar dissipation=0      dt=2 ms margin=0.0001           max err  1.80%  max yaw  0.95 deg
+     similar dissipation=1      dt=2 ms margin=0                max err  5.82%  max yaw  2.64 deg
+     similar dissipation=1      dt=2 ms margin=0.0001           max err 60.08%  max yaw  0.53 deg
+     similar dissipation=10     dt=2 ms margin=0                max err 12.07%  max yaw  4.36 deg
+     similar dissipation=10     dt=2 ms margin=0.0001           max err 85.74%  max yaw  0.32 deg
+     similar dissipation=50     dt=2 ms margin=0                max err 27.37%  max yaw 22.44 deg
+     similar dissipation=50     dt=2 ms margin=0.0001           max err 91.72%  max yaw  0.01 deg
+     similar dissipation=0      dt=5 ms margin=0                max err 392.10%  max yaw 171.51 deg
+     similar dissipation=0      dt=5 ms margin=0.0001           max err 221.70%  max yaw 158.12 deg
+     similar dissipation=1      dt=5 ms margin=0                max err 131.11%  max yaw 26.84 deg
+     similar dissipation=1      dt=5 ms margin=0.0001           max err 95.08%  max yaw 13.84 deg
+     similar dissipation=10     dt=5 ms margin=0                max err 80.18%  max yaw  3.31 deg
+     similar dissipation=10     dt=5 ms margin=0.0001           max err 94.73%  max yaw 10.76 deg
+     similar dissipation=50     dt=5 ms margin=0                max err 84.85%  max yaw 14.35 deg
+     similar dissipation=50     dt=5 ms margin=0.0001           max err 96.00%  max yaw  0.08 deg
+19 of 66 settings pass
+== spin launches (disc): d/d0 in the simulator vs the uniform-pressure disk integrator (pass within 10%) ==
+PASS mu=0.1 v=1.0 R omega/v=0.5: d/d0 sim 1.0529, disk model 1.0647 (-1.1%), quadratic 1.065
+PASS mu=0.1 v=1.0 R omega/v=1.0: d/d0 sim 1.2491, disk model 1.2748 (-2.0%), quadratic 1.260
+PASS mu=0.3 v=0.6 R omega/v=0.5: d/d0 sim 1.0597, disk model 1.0647 (-0.5%), quadratic 1.065
+PASS mu=0.3 v=0.6 R omega/v=1.0: d/d0 sim 1.2663, disk model 1.2748 (-0.7%), quadratic 1.260
+PASS mu=0.3 v=1.0 R omega/v=0.5: d/d0 sim 1.0596, disk model 1.0647 (-0.5%), quadratic 1.065
+PASS mu=0.3 v=1.0 R omega/v=1.0: d/d0 sim 1.2653, disk model 1.2748 (-0.7%), quadratic 1.260
+== heading launches (box): along-axis d0 cos psi and lateral d0 sin psi within 2%, yaw within 2 deg ==
+PASS mu=0.1 v=0.6 psi=5.0 deg: along -0.41%, lateral -0.29%, yaw -0.00 deg
+PASS mu=0.1 v=0.6 psi=10.0 deg: along -0.85%, lateral -0.50%, yaw -0.03 deg
+PASS mu=0.3 v=1.0 psi=5.0 deg: along -0.33%, lateral -0.31%, yaw -0.00 deg
+PASS mu=0.3 v=1.0 psi=10.0 deg: along -0.33%, lateral -0.31%, yaw -0.00 deg
+== A6 ==
+sim_config.yaml: lagged, dt 1.0 ms, margin 0.0001 m, dissipation=1.0.  settings tested at that approximation, step and margin: dissipation=0 PASS, dissipation=1 PASS, dissipation=10 fail, dissipation=50 fail

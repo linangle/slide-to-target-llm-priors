@@ -54,6 +54,8 @@ class Contact:
     dissipation: float = 1.0   # Hunt-Crossley dissipation, s/m (lagged, similar)
     relaxation: float = None   # SAP relaxation time, s; None = Drake's default
     resolution: float = 0.01   # object mesh resolution hint, m
+    contact_model: str = "hydroelastic_with_fallback"   # "hydroelastic" (strict: a rigid-rigid pair throws) for experiments
+    margin: float = None       # hydroelastic margin on every geometry, m; None = Drake's default (0)
 
 @dataclass
 class Table:
@@ -125,6 +127,8 @@ def proximity(compliant, mu, contact, resolution=None):
     AddContactMaterial(contact.dissipation, None, CoulombFriction(mu, mu), props)
     if contact.relaxation is not None:
         props.AddProperty("material", "relaxation_time", contact.relaxation)
+    if contact.margin is not None:
+        props.AddProperty("hydroelastic", "margin", contact.margin)
     return props
 
 def foot_xy(obj):
@@ -231,7 +235,7 @@ def add_camera(builder, scene_graph, cam):
 def build_scene(builder, pair, obj=Obj(), table=Table(), contact=Contact(), arm=True, seed=0, x0=0.55, camera=None):
     """Adds the plant (and the camera, if given) to builder and returns a Scene; the plant is finalized."""
     plant, scene_graph = AddMultibodyPlant(MultibodyPlantConfig(time_step=contact.time_step,
-                                                      contact_model="hydroelastic_with_fallback",
+                                                      contact_model=contact.contact_model,
                                                       discrete_contact_approximation=contact.approx), builder)
     mu_strips = strip_targets(float(pair["mu_k_nominal"]), float(pair["s_tab_log"]), table, seed)
     x_edges = table.x_min + table.strip*np.arange(len(mu_strips) + 1)

@@ -1,0 +1,24 @@
+# sim_config.yaml -- the one Drake contact configuration that every experiment loads (drake_config.py).
+# Status: FROZEN by E0-1 on 31 Oct 2026 (e0_1_free_slide.py; e0_1_summary.txt, e0_1_summary.png).  Change only with a new E0-1 run.
+#   E0-1 result at these settings: box free slide within 0.96% of d = v^2/(2 mu g) and 0.00 deg of yaw over
+#   mu in {0.1, 0.3, 0.5}, v in {0.6, 1.0} m/s; disc spin launches within 2% of the disk model; heading launches pass.
+#   Interaction to respect: with margin 1e-4 m, Hunt-Crossley dissipation >= 10 s/m (lagged) or >= 1 s/m (similar)
+#   shortens slides by 4-85%; without margin, lagged passes up to 50 s/m.  Keep dissipation <= 1 s/m with this margin.
+#   2 ms steps pass only without margin (lagged) and 5 ms steps never pass.  SAP passes at 1 ms with relaxation <= 0.01 s.
+time_step: 0.001                         # s                          (A6)
+discrete_contact_approximation: lagged   # lagged | similar | sap     (A6, tentative)
+contact_model: hydroelastic              # strict: a rigid-rigid pair throws instead of silently falling back to point contact
+hydroelastic_modulus: 1.0e7              # Pa, object (compliant); Drake's default; swept 1e5-1e7 in e0_sweep.py
+dissipation: 1.0                         # s/m, Hunt-Crossley: used by lagged and similar, IGNORED by sap
+relaxation_time: null                    # s, sap only (null = Drake's default); IGNORED by lagged and similar
+margin: 1.0e-4                           # m, hydroelastic margin on every geometry
+resolution_hint: 0.01                    # m, object mesh resolution
+compliance:                              # one compliant geometry per contact pair
+  object: compliant
+  table: rigid
+  paddle: rigid
+paddle_mu: 0.3                           # paddle-object pair coefficient; swept 0.1-0.6 in E0-3
+friction_rule: >
+  Drake combines a pair as 2 mu_a mu_b / (mu_a + mu_b).  The object geometry carries OBJECT_MU and
+  scene.partner_mu gives each strip and the paddle the value that makes the PAIR coefficient equal to
+  its target, so one object can touch strips of different friction.

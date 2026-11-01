@@ -1,0 +1,20 @@
+scene,shape,contact_model,bottom_clearance_mm,steps,steps_hydro_object_table,steps_hydro_paddle_object,point_pair_contacts,point_pairs,hydro_pairs,error,wall_s,pass
+passive,box,hydroelastic,3.0,300,300,0,0,,object-table,,0.2,1
+push,box,hydroelastic,3.0,300,300,300,0,,object-table;paddle-object,,0.3,1
+passive,disc,hydroelastic,3.0,300,300,0,0,,object-table,,0.4,1
+push,disc,hydroelastic,3.0,300,300,300,0,,object-table;paddle-object,,0.6,1
+passive,ring,hydroelastic,3.0,300,300,0,0,,object-table,,1.2,1
+push,ring,hydroelastic,3.0,300,300,300,0,,object-table;paddle-object,,1.4,1
+passive,footed,hydroelastic,3.0,300,300,0,0,,object-table,,0.4,1
+push,footed,hydroelastic,3.0,300,300,300,0,,object-table;paddle-object,,0.5,1
+passive,box,hydroelastic_with_fallback,3.0,300,300,0,0,,object-table,,0.1,1
+push,box,hydroelastic_with_fallback,3.0,300,300,300,0,,object-table;paddle-object,,0.2,1
+passive,disc,hydroelastic_with_fallback,3.0,300,300,0,0,,object-table,,0.4,1
+push,disc,hydroelastic_with_fallback,3.0,300,300,300,0,,object-table;paddle-object,,0.6,1
+passive,ring,hydroelastic_with_fallback,3.0,300,300,0,0,,object-table,,1.2,1
+push,ring,hydroelastic_with_fallback,3.0,300,300,300,0,,object-table;paddle-object,,1.4,1
+passive,footed,hydroelastic_with_fallback,3.0,300,300,0,0,,object-table,,0.4,1
+push,footed,hydroelastic_with_fallback,3.0,300,300,300,0,,object-table;paddle-object,,0.5,1
+negative control: paddle into table,box,hydroelastic,-1.0,50,0,0,0,,,"Requested contact between two rigid objects (Box with id 9714, Box with id 9843); that is not allowed in hydroelastic-only contact. Please consider using hydroelastics with point-contact fallback, e.g",0.1,1
+negative control: rigid box,box,hydroelastic,,50,0,0,0,,,"Requested contact between two rigid objects (Box with id 10009, Box with id 10012); that is not allowed in hydroelastic-only contact. Please consider using hydroelastics with point-contact fallback, e",0.0,1
+negative control: rigid box,box,hydroelastic_with_fallback,,50,0,0,42,object-table,,,0.0,1
