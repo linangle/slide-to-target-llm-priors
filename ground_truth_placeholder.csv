@@ -1,31 +1,31 @@
-pair_id,object_id,surface_id,object_material,surface_material,mu_k_nominal,s_tab_log,interval90_low,interval90_high,sources,n_runs,se,speed_effect,load_effect,temp_C,RH_pct,in_sim_range,description_object,description_surface,photo_object,photo_surface
-M01,O1,S1,PLA (3D printed),white melamine shelf board,0.290,0.100,0.246,0.342,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M02,O2,S1,ABS sheet (extruded),white melamine shelf board,0.174,0.100,0.148,0.206,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M03,O3,S1,furniture felt,white melamine shelf board,0.127,0.100,0.108,0.150,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M04,O4,S1,neoprene rubber 60A,white melamine shelf board,0.123,0.100,0.104,0.145,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M05,O5,S1,corrugated cardboard,white melamine shelf board,0.371,0.100,0.314,0.437,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M06,O6,S1,cast acrylic,white melamine shelf board,0.425,0.100,0.361,0.501,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M07,O7,S1,"oak, grain along travel",white melamine shelf board,0.278,0.100,0.236,0.328,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M08,O8,S1,glazed ceramic tile,white melamine shelf board,0.330,0.100,0.280,0.389,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M09,O9,S1,stainless steel 304,white melamine shelf board,0.255,0.100,0.216,0.301,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M10,O1,S2,PLA (3D printed),"birch plywood, sanded",0.439,0.100,0.372,0.517,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M11,O2,S2,ABS sheet (extruded),"birch plywood, sanded",0.372,0.100,0.315,0.438,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M12,O3,S2,furniture felt,"birch plywood, sanded",0.120,0.100,0.102,0.142,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M13,O4,S2,neoprene rubber 60A,"birch plywood, sanded",0.394,0.100,0.334,0.464,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M14,O5,S2,corrugated cardboard,"birch plywood, sanded",0.126,0.100,0.107,0.148,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M15,O6,S2,cast acrylic,"birch plywood, sanded",0.330,0.100,0.280,0.389,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M16,O7,S2,"oak, grain along travel","birch plywood, sanded",0.153,0.100,0.130,0.180,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M17,O8,S2,glazed ceramic tile,"birch plywood, sanded",0.397,0.100,0.337,0.468,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M18,O9,S2,stainless steel 304,"birch plywood, sanded",0.254,0.100,0.216,0.300,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M19,O1,S3,PLA (3D printed),painted MDF (satin),0.182,0.100,0.154,0.214,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M20,O2,S3,ABS sheet (extruded),painted MDF (satin),0.216,0.100,0.183,0.254,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M21,O3,S3,furniture felt,painted MDF (satin),0.125,0.100,0.106,0.147,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M22,O4,S3,neoprene rubber 60A,painted MDF (satin),0.143,0.100,0.121,0.168,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M23,O5,S3,corrugated cardboard,painted MDF (satin),0.304,0.100,0.258,0.358,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M24,O6,S3,cast acrylic,painted MDF (satin),0.294,0.100,0.250,0.347,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M25,O7,S3,"oak, grain along travel",painted MDF (satin),0.282,0.100,0.239,0.332,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M26,O8,S3,glazed ceramic tile,painted MDF (satin),0.204,0.100,0.173,0.241,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-M27,O9,S3,stainless steel 304,painted MDF (satin),0.478,0.100,0.406,0.564,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-V01,O9,S5,stainless steel 304,"ABS sheet, smooth face",0.467,0.100,0.397,0.551,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-V02,O7,S4,"oak, grain along travel","oak board, grain along travel",0.310,0.100,0.263,0.366,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
-V03,O7b,S4,"oak, grain across travel","oak board, grain along travel",0.296,0.100,0.251,0.349,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,
+pair_id,object_id,surface_id,object_material,surface_material,mu_k_nominal,s_tab_log,interval90_low,interval90_high,sources,n_runs,se,speed_effect,load_effect,temp_C,RH_pct,in_sim_range,description_object,description_surface,photo_object,photo_surface,mu_v2d,v2d_ratio_mean,v2d_ratio_sd,mu_slope_per_mps,strip_scale_mm,profile_repeatability,n_rejected,reject_reasons,s_lane
+M01,O1,S1,PLA (3D printed),white melamine shelf board,0.290,0.100,0.246,0.342,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.284,0.978,0.059,0.0075,100,0.79,0,,0.042
+M02,O2,S1,ABS sheet (extruded),white melamine shelf board,0.174,0.100,0.148,0.206,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.169,0.972,0.044,-0.0042,100,0.67,0,,0.040
+M03,O3,S1,furniture felt,white melamine shelf board,0.127,0.100,0.108,0.150,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.124,0.974,0.082,0.0113,160,0.49,1,yaw:1,0.037
+M04,O4,S1,neoprene rubber 60A,white melamine shelf board,0.123,0.100,0.104,0.145,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.126,1.026,0.090,-0.0224,160,0.43,1,yaw:1,0.041
+M05,O5,S1,corrugated cardboard,white melamine shelf board,0.371,0.100,0.314,0.437,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.369,0.994,0.061,0.0423,140,0.76,1,lateral force:1,0.053
+M06,O6,S1,cast acrylic,white melamine shelf board,0.425,0.100,0.361,0.501,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.457,1.074,0.041,0.0152,120,0.74,2,short slide:1;lateral force:1,0.028
+M07,O7,S1,"oak, grain along travel",white melamine shelf board,0.278,0.100,0.236,0.328,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.290,1.045,0.061,0.0157,100,0.52,1,lateral force:1,0.045
+M08,O8,S1,glazed ceramic tile,white melamine shelf board,0.330,0.100,0.280,0.389,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.333,1.010,0.059,0.0122,200,0.85,2,yaw:2,0.030
+M09,O9,S1,stainless steel 304,white melamine shelf board,0.255,0.100,0.216,0.301,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.261,1.023,0.034,-0.0118,160,0.68,1,yaw:1,0.046
+M10,O1,S2,PLA (3D printed),"birch plywood, sanded",0.439,0.100,0.372,0.517,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.461,1.050,0.073,-0.0002,200,0.41,0,,0.054
+M11,O2,S2,ABS sheet (extruded),"birch plywood, sanded",0.372,0.100,0.315,0.438,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.360,0.968,0.097,-0.0337,200,0.63,1,lateral force:1,0.034
+M12,O3,S2,furniture felt,"birch plywood, sanded",0.120,0.100,0.102,0.142,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.116,0.969,0.047,-0.0070,120,0.54,1,lateral force:1,0.043
+M13,O4,S2,neoprene rubber 60A,"birch plywood, sanded",0.394,0.100,0.334,0.464,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.390,0.989,0.059,-0.0190,100,0.42,0,,0.032
+M14,O5,S2,corrugated cardboard,"birch plywood, sanded",0.126,0.100,0.107,0.148,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.123,0.978,0.049,0.0231,160,0.77,2,lateral force:2,0.028
+M15,O6,S2,cast acrylic,"birch plywood, sanded",0.330,0.100,0.280,0.389,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.334,1.012,0.063,0.0170,200,0.89,1,lateral force:1,0.048
+M16,O7,S2,"oak, grain along travel","birch plywood, sanded",0.153,0.100,0.130,0.180,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.148,0.968,0.095,-0.0168,100,0.70,0,,0.004
+M17,O8,S2,glazed ceramic tile,"birch plywood, sanded",0.397,0.100,0.337,0.468,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.380,0.958,0.046,0.0181,100,0.86,1,yaw:1,0.044
+M18,O9,S2,stainless steel 304,"birch plywood, sanded",0.254,0.100,0.216,0.300,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.261,1.029,0.096,0.0005,200,0.57,0,,0.020
+M19,O1,S3,PLA (3D printed),painted MDF (satin),0.182,0.100,0.154,0.214,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.197,1.081,0.094,-0.0366,100,0.42,1,lateral force:1,0.062
+M20,O2,S3,ABS sheet (extruded),painted MDF (satin),0.216,0.100,0.183,0.254,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.225,1.043,0.095,-0.0153,100,0.80,1,yaw:1,0.042
+M21,O3,S3,furniture felt,painted MDF (satin),0.125,0.100,0.106,0.147,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.129,1.030,0.061,0.0057,200,0.63,1,touched paddle:1,0.048
+M22,O4,S3,neoprene rubber 60A,painted MDF (satin),0.143,0.100,0.121,0.168,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.141,0.988,0.095,-0.0154,160,0.36,0,,0.026
+M23,O5,S3,corrugated cardboard,painted MDF (satin),0.304,0.100,0.258,0.358,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.299,0.984,0.095,0.0145,100,0.40,0,,0.050
+M24,O6,S3,cast acrylic,painted MDF (satin),0.294,0.100,0.250,0.347,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.281,0.956,0.083,-0.0382,100,0.65,0,,0.045
+M25,O7,S3,"oak, grain along travel",painted MDF (satin),0.282,0.100,0.239,0.332,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.293,1.038,0.068,-0.0321,100,0.67,1,lateral force:1,0.018
+M26,O8,S3,glazed ceramic tile,painted MDF (satin),0.204,0.100,0.173,0.241,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.194,0.952,0.043,0.0279,200,0.46,3,lateral force:2;touched paddle:1,0.051
+M27,O9,S3,stainless steel 304,painted MDF (satin),0.478,0.100,0.406,0.564,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.473,0.990,0.085,0.0246,140,0.78,0,,0.024
+V01,O9,S5,stainless steel 304,"ABS sheet, smooth face",0.467,0.100,0.397,0.551,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.467,1.000,0.060,0.0224,100,0.70,2,yaw:1;lateral force:1,0.050
+V02,O7,S4,"oak, grain along travel","oak board, grain along travel",0.310,0.100,0.263,0.366,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.296,0.956,0.044,-0.0070,100,0.48,1,lateral force:1,0.046
+V03,O7b,S4,"oak, grain across travel","oak board, grain along travel",0.296,0.100,0.251,0.349,"PLACEHOLDER synthetic value, not a friction estimate",,,,,,,1,,,,,0.301,1.016,0.077,-0.0436,160,0.59,1,yaw:1,0.030
