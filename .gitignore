@@ -21,3 +21,6 @@ CLAUDE.local.md
 *.fls
 *.bbl
 *.blg
+
+# Rendered outputs
+demo.mp4

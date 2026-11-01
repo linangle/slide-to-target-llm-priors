@@ -8,11 +8,13 @@ One MultibodyPlant holds:
   * the object, a compliant-hydroelastic body: box, disc, ring, or block on 3-4 feet, optionally with
     a centre-of-mass offset or one long foot (the E0 robustness cases);
   * optionally the iiwa 14, base at the origin on the table, with a flat paddle welded to its flange
-    (rigid hydroelastic).  No controller is added: connect one to the plant's actuation input.
+    (rigid hydroelastic).  No controller is added: connect one to the plant's actuation input;
+  * optionally an overhead depth camera (RgbdSensor) for landing perception (perception.py).
 
-Friction comes from the ground-truth file, one row per object-surface pair, in the columns of
-measured_friction.csv.  Until that file exists, ground_truth_placeholder.csv holds synthetic values
-in the same columns; they are not friction estimates.
+Friction comes from the ground-truth files, one row per object-surface pair, in the columns of
+measured_friction.csv: our measured pairs plus Yu et al.'s published ones (ground_truth_published.csv).
+Until the measured file exists, ground_truth_placeholder.csv holds synthetic values in the same
+columns; they are not friction estimates.
 
 Drake gives a contact pair the coefficient 2*mu_a*mu_b/(mu_a + mu_b).  The object's geometry carries
 mu = OBJECT_MU, and every geometry it can touch (strips, paddle) gets the value that makes the *pair*
@@ -27,12 +29,16 @@ import argparse, csv, math, os, sys, tempfile
 from dataclasses import dataclass
 import numpy as np
 from pydrake.all import (AddCompliantHydroelasticProperties, AddContactMaterial, AddDefaultVisualization,
-                         AddMultibodyPlant, AddRigidHydroelasticProperties, Box, CoulombFriction, Cylinder,
-                         DiagramBuilder, Mesh, MultibodyPlantConfig, Parser, ProximityProperties, RigidTransform,
-                         RollPitchYaw, RotationalInertia, Simulator, SpatialInertia, SpatialVelocity, StartMeshcat)
+                         AddMultibodyPlant, AddRigidHydroelasticProperties, Box, CameraInfo, ClippingRange,
+                         ConvertVolumeToSurfaceMesh, CoulombFriction, Cylinder, DepthRange, DepthRenderCamera,
+                         DiagramBuilder, MakeRenderEngineVtk, Mesh, MultibodyPlantConfig, Parser, ProximityProperties,
+                         RenderCameraCore, RenderEngineVtkParams, RgbdSensor, RigidTransform, RollPitchYaw,
+                         RotationalInertia, RotationMatrix, Simulator, SpatialInertia, SpatialVelocity, StartMeshcat,
+                         VolumeElement, VolumeMesh)
 
 G = 9.81
-DEFAULT_PAIRS = "ground_truth_placeholder.csv"   # switch to measured_friction.csv once it exists
+DEFAULT_PAIRS = ("ground_truth_placeholder.csv",  # switch to measured_friction.csv once it exists
+                 "ground_truth_published.csv")   # Yu et al. 2016 pairs
 IIWA_URL = "package://drake_models/iiwa_description/sdf/iiwa14_no_collision.sdf"
 OBJECT_MU = 1.0               # object geometry's own mu; partners are set relative to it
 FLANGE_Z = 0.045              # flange face along iiwa_link_7 z, m
@@ -70,6 +76,14 @@ class Obj:
     foot_error: float = 0.0               # footed: first foot this much longer, m
 
 @dataclass
+class Camera:
+    position: tuple = (0.75, 0.0, 0.8)   # m; looks straight down, over the landing zone
+    width: int = 640                     # px
+    height: int = 480                    # px
+    fov_y: float = math.pi/4             # rad; Drake's CameraConfig default
+    yaw: float = math.radians(3)         # turn about the optical axis, so object edges never line up with pixel rows
+
+@dataclass
 class Scene:
     plant: object
     body: object               # the object
@@ -78,10 +92,17 @@ class Scene:
     mu_strips: np.ndarray      # target pair coefficient of each strip
     x_edges: np.ndarray        # strip boundaries along x, len = len(mu_strips) + 1
     X_WO: RigidTransform       # object's initial pose
+    scene_graph: object = None
+    sensor: object = None      # RgbdSensor, or None
+    camera: Camera = None
 
-def load_pairs(path=DEFAULT_PAIRS):
-    with open(path, newline="") as f:
-        return {r["pair_id"]: r for r in csv.DictReader(f)}
+def load_pairs(paths=DEFAULT_PAIRS):
+    """pair_id -> row, from one ground-truth file or several."""
+    rows = {}
+    for path in [paths] if isinstance(paths, str) else paths:
+        with open(path, newline="") as f:
+            rows.update({r["pair_id"]: r for r in csv.DictReader(f)})
+    return rows
 
 def partner_mu(target):
     """mu for a geometry touching the object so that Drake's pair value 2ab/(a+b) equals target."""
@@ -114,13 +135,15 @@ def foot_xy(obj):
     return [(ax, ay), (ax, -ay), (-ax, ay), (-ax, -ay)]
 
 def ring_mesh(r_in, r_out, h, res):
-    """Tetrahedral annulus as a .vtk file (a compliant Mesh needs a volume mesh), cached in the temp dir.
-    At least two cells across the wall and the height, so the mesh has interior vertices for the pressure field."""
+    """Tetrahedral annulus as a .vtk file (a compliant Mesh needs a volume mesh) plus its surface as .obj
+    (for drawing and rendering), cached in the temp dir; returns (vtk, obj).  At least two cells across the
+    wall and the height, so the mesh has interior vertices for the pressure field."""
     n_t = max(12, math.ceil(2*math.pi*r_out/res))
     n_r, n_z = max(2, math.ceil((r_out - r_in)/res)), max(2, math.ceil(h/res))
     path = os.path.join(tempfile.gettempdir(), f"slide_ring_{r_in:.4f}_{r_out:.4f}_{h:.4f}_{n_t}_{n_r}_{n_z}.vtk")
-    if os.path.exists(path):
-        return path
+    obj_path = path[:-4] + ".obj"
+    if os.path.exists(path) and os.path.exists(obj_path):
+        return path, obj_path
     rs, zs, th = np.linspace(r_in, r_out, n_r + 1), np.linspace(-h/2, h/2, n_z + 1), 2*math.pi*np.arange(n_t)/n_t
     pts = np.array([(r*math.cos(t), r*math.sin(t), z) for t in th for r in rs for z in zs])
     vid = lambda i, j, k: ((i % n_t)*(n_r + 1) + j)*(n_z + 1) + k
@@ -144,7 +167,14 @@ def ring_mesh(r_in, r_out, h, res):
         f.write(f"CELLS {len(tets)} {5*len(tets)}\n" + "".join("4 " + " ".join(map(str, t)) + "\n" for t in tets))
         f.write(f"CELL_TYPES {len(tets)}\n" + "10\n"*len(tets))
     os.replace(tmp, path)   # atomic, so parallel sweep workers never read a half-written file
-    return path
+    surf = ConvertVolumeToSurfaceMesh(VolumeMesh([VolumeElement(*map(int, t)) for t in tets], list(pts)))
+    with open(tmp, "w") as f:
+        f.write("".join("v %.9f %.9f %.9f\n" % tuple(surf.vertex(i)) for i in range(surf.num_vertices())))
+        f.write("".join("vn %.9f %.9f %.9f\n" % tuple(surf.face_normal(i)) for i in range(surf.num_triangles())))
+        f.write("".join("f %d//%d %d//%d %d//%d\n" % sum(((tri.vertex(j) + 1, i + 1) for j in range(3)), ())
+                        for i, tri in enumerate(surf.triangles())))
+    os.replace(tmp, obj_path)
+    return path, obj_path
 
 def add_object(plant, obj, contact):
     """Adds the object; returns (body, height of the body origin above the table when resting)."""
@@ -154,25 +184,24 @@ def add_object(plant, obj, contact):
         r2 = (obj.inner/2)**2 + (sx/2)**2
         I = RotationalInertia(obj.mass*(3*r2 + sz*sz)/12, obj.mass*(3*r2 + sz*sz)/12, obj.mass*r2/2)
         body = plant.AddRigidBody("object", SpatialInertia.MakeFromCentralInertia(obj.mass, com, I))
-        shape = Mesh(ring_mesh(obj.inner/2, sx/2, sz, contact.resolution))
+        vtk, obj_file = ring_mesh(obj.inner/2, sx/2, sz, contact.resolution)
+        shape, visual = Mesh(vtk), Mesh(obj_file)
     else:
         M = (SpatialInertia.SolidCylinderWithMass(obj.mass, sx/2, sz, [0, 0, 1]) if obj.shape == "disc"
              else SpatialInertia.SolidBoxWithMass(obj.mass, sx, sy, sz))
         body = plant.AddRigidBody("object", M.Shift(-com))
-        shape = Cylinder(sx/2, sz) if obj.shape == "disc" else Box(sx, sy, sz)
-    shapes = [(RigidTransform(), shape, None)]
+        shape = visual = Cylinder(sx/2, sz) if obj.shape == "disc" else Box(sx, sy, sz)
+    shapes = [(RigidTransform(), shape, None, visual)]
     z0 = sz/2
     if obj.shape == "footed":
         d, h = obj.foot
         for i, (x, y) in enumerate(foot_xy(obj)):
             hi = h + (obj.foot_error if i == 0 else 0.0)
-            shapes.append((RigidTransform([x, y, -sz/2 - hi/2]), Cylinder(d/2, hi), d/4))
+            shapes.append((RigidTransform([x, y, -sz/2 - hi/2]), Cylinder(d/2, hi), d/4, Cylinder(d/2, hi)))
         z0 += h + max(obj.foot_error, 0.0)
-    for i, (X, shape, res) in enumerate(shapes):
-        props = proximity(True, OBJECT_MU, contact, res)
-        plant.RegisterCollisionGeometry(body, X, shape, f"object_{i}", props)
-        if not isinstance(shape, Mesh):   # Meshcat can't draw .vtk, so the ring has no visual yet
-            plant.RegisterVisualGeometry(body, X, shape, f"object_{i}", [0.3, 0.5, 0.9, 1.0])
+    for i, (X, shape, res, visual) in enumerate(shapes):
+        plant.RegisterCollisionGeometry(body, X, shape, f"object_{i}", proximity(True, OBJECT_MU, contact, res))
+        plant.RegisterVisualGeometry(body, X, visual, f"object_{i}", [0.3, 0.5, 0.9, 1.0])
     return body, z0
 
 def add_arm(plant, contact):
@@ -186,9 +215,22 @@ def add_arm(plant, contact):
     plant.RegisterVisualGeometry(paddle, RigidTransform(), Box(*PADDLE), "paddle", [0.6, 0.6, 0.6, 1.0])
     return iiwa, paddle
 
-def build_scene(builder, pair, obj=Obj(), table=Table(), contact=Contact(), arm=True, seed=0, x0=0.55):
-    """Adds the plant to builder and returns a Scene; the plant is finalized."""
-    plant, _ = AddMultibodyPlant(MultibodyPlantConfig(time_step=contact.time_step,
+def camera_pose(cam):
+    """X_WC for a camera looking straight down: image right = world +x, image down = world -y (turned by cam.yaw)."""
+    return RigidTransform(RotationMatrix.MakeZRotation(cam.yaw) @ RotationMatrix.MakeXRotation(math.pi), list(cam.position))
+
+def add_camera(builder, scene_graph, cam):
+    if not scene_graph.HasRenderer("vtk"):
+        scene_graph.AddRenderer("vtk", MakeRenderEngineVtk(RenderEngineVtkParams()))
+    core = RenderCameraCore("vtk", CameraInfo(cam.width, cam.height, cam.fov_y), ClippingRange(0.05, 5.0), RigidTransform())
+    sensor = builder.AddSystem(RgbdSensor(scene_graph.world_frame_id(), camera_pose(cam),
+                                          DepthRenderCamera(core, DepthRange(0.1, 3.0)), False))
+    builder.Connect(scene_graph.get_query_output_port(), sensor.query_object_input_port())
+    return sensor
+
+def build_scene(builder, pair, obj=Obj(), table=Table(), contact=Contact(), arm=True, seed=0, x0=0.55, camera=None):
+    """Adds the plant (and the camera, if given) to builder and returns a Scene; the plant is finalized."""
+    plant, scene_graph = AddMultibodyPlant(MultibodyPlantConfig(time_step=contact.time_step,
                                                       contact_model="hydroelastic_with_fallback",
                                                       discrete_contact_approximation=contact.approx), builder)
     mu_strips = strip_targets(float(pair["mu_k_nominal"]), float(pair["s_tab_log"]), table, seed)
@@ -206,7 +248,8 @@ def build_scene(builder, pair, obj=Obj(), table=Table(), contact=Contact(), arm=
     X_WO = RigidTransform([x0, 0, z0])
     plant.SetDefaultFloatingBaseBodyPose(body, X_WO)
     plant.Finalize()
-    return Scene(plant, body, iiwa, paddle, mu_strips, x_edges, X_WO)
+    sensor = add_camera(builder, scene_graph, camera) if camera else None
+    return Scene(plant, body, iiwa, paddle, mu_strips, x_edges, X_WO, scene_graph, sensor, camera)
 
 def footprint_x(obj):
     """x offsets of the contact area under the body origin and their weights (uniform pressure)."""
@@ -241,6 +284,13 @@ def passive_slide(pair, v0, obj=Obj(), table=Table(), contact=Contact(), seed=0,
     if meshcat:
         AddDefaultVisualization(builder, meshcat)
     sim = Simulator(builder.Build())
+    X0, X1 = run_slide(sim, sc, v0, meshcat)
+    d = X1.translation()[0] - X0.translation()[0]
+    yaw = math.degrees(RollPitchYaw(X1.rotation()).yaw_angle() - RollPitchYaw(X0.rotation()).yaw_angle())
+    return d, yaw, predicted_distance(sc, obj, v0)
+
+def run_slide(sim, sc, v0, meshcat=None):
+    """Settles the object, gives it speed v0 along +x and runs to rest; returns its poses (launch, rest)."""
     plant, body = sc.plant, sc.body
     ctx = plant.GetMyMutableContextFromRoot(sim.get_mutable_context())
     if meshcat:
@@ -258,13 +308,11 @@ def passive_slide(pair, v0, obj=Obj(), table=Table(), contact=Contact(), seed=0,
     X1 = plant.EvalBodyPoseInWorld(ctx, body)
     if meshcat:
         meshcat.StopRecording(); meshcat.PublishRecording()
-    d = X1.translation()[0] - X0.translation()[0]
-    yaw = math.degrees(RollPitchYaw(X1.rotation()).yaw_angle() - RollPitchYaw(X0.rotation()).yaw_angle())
-    return d, yaw, predicted_distance(sc, obj, v0)
+    return X0, X1
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--pairs", default=DEFAULT_PAIRS)
+    ap.add_argument("--pairs", nargs="+", default=DEFAULT_PAIRS)
     ap.add_argument("--pair", default="M01")
     ap.add_argument("--shape", default="box", choices=["box", "disc", "ring", "footed"])
     ap.add_argument("--n-feet", type=int, default=4, choices=[3, 4])

@@ -1,0 +1,130 @@
+
+== grid ==  worst |error| and |yaw| over (mu, v0) per shape; * = all slides pass
+PASS approx=lagged dt_ms=1.0 modulus_Pa=100000 dissipation=0.0 resolution_m=0.01 box   0.7%/ 0.0deg*  disc   0.9%/ 0.0deg*  ring   0.9%/ 0.0deg*  footed   0.6%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=100000 dissipation=1.0 resolution_m=0.01 box   0.8%/ 0.0deg*  disc   0.8%/ 0.0deg*  ring   0.8%/ 0.0deg*  footed   0.8%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=100000 dissipation=10.0 resolution_m=0.01 box   0.9%/ 0.0deg*  disc   1.1%/ 0.0deg*  ring   1.2%/ 0.0deg*  footed   1.0%/ 0.0deg*
+     approx=lagged dt_ms=1.0 modulus_Pa=100000 dissipation=100.0 resolution_m=0.01 box   0.9%/ 0.0deg*  disc   1.3%/ 0.0deg*  ring   3.7%/ 0.0deg   footed   2.7%/ 0.0deg 
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+06 dissipation=0.0 resolution_m=0.01 box   0.8%/ 0.0deg*  disc   0.8%/ 0.0deg*  ring   0.8%/ 0.0deg*  footed   0.8%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+06 dissipation=1.0 resolution_m=0.01 box   0.8%/ 0.0deg*  disc   0.8%/ 0.0deg*  ring   0.8%/ 0.0deg*  footed   0.8%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+06 dissipation=10.0 resolution_m=0.01 box   0.8%/ 0.0deg*  disc   0.9%/ 0.0deg*  ring   0.8%/ 0.0deg*  footed   0.8%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+06 dissipation=100.0 resolution_m=0.01 box   0.8%/ 0.0deg*  disc   0.9%/ 0.0deg*  ring   0.9%/ 0.0deg*  footed   0.9%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=0.0 resolution_m=0.01 box   0.8%/ 0.0deg*  disc   0.8%/ 0.0deg*  ring   0.8%/ 0.0deg*  footed   0.8%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 box   0.8%/ 0.0deg*  disc   0.8%/ 0.0deg*  ring   0.8%/ 0.0deg*  footed   0.8%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=10.0 resolution_m=0.01 box   0.8%/ 0.0deg*  disc   0.8%/ 0.0deg*  ring   0.8%/ 0.0deg*  footed   0.8%/ 0.0deg*
+     approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=100.0 resolution_m=0.01 box   2.6%/ 0.0deg   disc   0.8%/ 0.0deg*  ring   0.8%/ 0.0deg*  footed   0.8%/ 0.0deg*
+PASS approx=lagged dt_ms=2.0 modulus_Pa=100000 dissipation=0.0 resolution_m=0.01 box   1.4%/ 0.0deg*  disc   1.5%/ 0.0deg*  ring   1.4%/ 0.0deg*  footed   1.4%/ 0.0deg*
+PASS approx=lagged dt_ms=2.0 modulus_Pa=100000 dissipation=1.0 resolution_m=0.01 box   1.6%/ 0.0deg*  disc   1.7%/ 0.0deg*  ring   1.6%/ 0.0deg*  footed   1.6%/ 0.0deg*
+     approx=lagged dt_ms=2.0 modulus_Pa=100000 dissipation=10.0 resolution_m=0.01 box   2.3%/ 0.0deg   disc   2.0%/ 0.0deg*  ring   2.1%/ 0.0deg   footed   1.9%/ 0.0deg*
+     approx=lagged dt_ms=2.0 modulus_Pa=100000 dissipation=100.0 resolution_m=0.01 box   1.8%/ 0.0deg*  disc   2.9%/ 0.0deg   ring   6.2%/ 0.0deg   footed   4.7%/ 0.0deg 
+PASS approx=lagged dt_ms=2.0 modulus_Pa=1e+06 dissipation=0.0 resolution_m=0.01 box   1.6%/ 0.0deg*  disc   1.6%/ 0.0deg*  ring   1.6%/ 0.0deg*  footed   1.6%/ 0.0deg*
+PASS approx=lagged dt_ms=2.0 modulus_Pa=1e+06 dissipation=1.0 resolution_m=0.01 box   1.6%/ 0.0deg*  disc   1.6%/ 0.0deg*  ring   1.6%/ 0.0deg*  footed   1.6%/ 0.0deg*
+PASS approx=lagged dt_ms=2.0 modulus_Pa=1e+06 dissipation=10.0 resolution_m=0.01 box   1.6%/ 0.0deg*  disc   1.7%/ 0.0deg*  ring   1.7%/ 0.0deg*  footed   1.7%/ 0.0deg*
+PASS approx=lagged dt_ms=2.0 modulus_Pa=1e+06 dissipation=100.0 resolution_m=0.01 box   1.6%/ 0.0deg*  disc   1.8%/ 0.0deg*  ring   1.9%/ 0.0deg*  footed   1.8%/ 0.0deg*
+PASS approx=lagged dt_ms=2.0 modulus_Pa=1e+07 dissipation=0.0 resolution_m=0.01 box   1.7%/ 0.0deg*  disc   1.6%/ 0.0deg*  ring   1.6%/ 0.0deg*  footed   1.6%/ 0.0deg*
+PASS approx=lagged dt_ms=2.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 box   1.6%/ 0.0deg*  disc   1.6%/ 0.0deg*  ring   1.6%/ 0.0deg*  footed   1.6%/ 0.0deg*
+PASS approx=lagged dt_ms=2.0 modulus_Pa=1e+07 dissipation=10.0 resolution_m=0.01 box   1.6%/ 0.0deg*  disc   1.6%/ 0.0deg*  ring   1.6%/ 0.0deg*  footed   1.6%/ 0.0deg*
+PASS approx=lagged dt_ms=2.0 modulus_Pa=1e+07 dissipation=100.0 resolution_m=0.01 box   1.6%/ 0.0deg*  disc   1.6%/ 0.0deg*  ring   1.6%/ 0.0deg*  footed   1.6%/ 0.0deg*
+     approx=lagged dt_ms=5.0 modulus_Pa=100000 dissipation=0.0 resolution_m=0.01 box   4.3%/ 0.0deg   disc   3.9%/ 0.0deg   ring   3.9%/ 0.0deg   footed   3.9%/ 0.0deg 
+     approx=lagged dt_ms=5.0 modulus_Pa=100000 dissipation=1.0 resolution_m=0.01 box   4.0%/ 0.0deg   disc   4.1%/ 0.0deg   ring   4.1%/ 0.0deg   footed   4.1%/ 0.0deg 
+     approx=lagged dt_ms=5.0 modulus_Pa=100000 dissipation=10.0 resolution_m=0.01 box   4.2%/ 0.0deg   disc   4.5%/ 0.0deg   ring   4.7%/ 0.0deg   footed   4.7%/ 0.0deg 
+     approx=lagged dt_ms=5.0 modulus_Pa=100000 dissipation=100.0 resolution_m=0.01 box  13.3%/ 0.0deg   disc   6.3%/ 0.0deg   ring  13.4%/ 0.0deg   footed   8.0%/ 0.0deg 
+     approx=lagged dt_ms=5.0 modulus_Pa=1e+06 dissipation=0.0 resolution_m=0.01 box   4.0%/ 0.0deg   disc   4.0%/ 0.0deg   ring   4.0%/ 0.0deg   footed   4.0%/ 0.0deg 
+     approx=lagged dt_ms=5.0 modulus_Pa=1e+06 dissipation=1.0 resolution_m=0.01 box   4.0%/ 0.0deg   disc   4.1%/ 0.0deg   ring   4.0%/ 0.0deg   footed   4.0%/ 0.0deg 
+     approx=lagged dt_ms=5.0 modulus_Pa=1e+06 dissipation=10.0 resolution_m=0.01 box   4.1%/ 0.0deg   disc   4.1%/ 0.0deg   ring   4.1%/ 0.0deg   footed   4.1%/ 0.0deg 
+     approx=lagged dt_ms=5.0 modulus_Pa=1e+06 dissipation=100.0 resolution_m=0.01 box   7.1%/ 0.0deg   disc   4.3%/ 0.0deg   ring   4.4%/ 0.0deg   footed   4.5%/ 0.0deg 
+     approx=lagged dt_ms=5.0 modulus_Pa=1e+07 dissipation=0.0 resolution_m=0.01 box   4.0%/ 0.0deg   disc   4.0%/ 0.0deg   ring   4.0%/ 0.0deg   footed   4.0%/ 0.0deg 
+     approx=lagged dt_ms=5.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 box   4.0%/ 0.0deg   disc   4.0%/ 0.0deg   ring   4.0%/ 0.0deg   footed   4.0%/ 0.0deg 
+     approx=lagged dt_ms=5.0 modulus_Pa=1e+07 dissipation=10.0 resolution_m=0.01 box   4.0%/ 0.0deg   disc   4.0%/ 0.0deg   ring   4.0%/ 0.0deg   footed   4.0%/ 0.0deg 
+     approx=lagged dt_ms=5.0 modulus_Pa=1e+07 dissipation=100.0 resolution_m=0.01 box   4.0%/ 0.0deg   disc   4.1%/ 0.0deg   ring   4.1%/ 0.0deg   footed   4.1%/ 0.0deg 
+PASS approx=sap dt_ms=1.0 modulus_Pa=100000 relaxation_s=0.0 resolution_m=0.01 box   0.9%/ 0.0deg*  disc   0.9%/ 0.0deg*  ring   0.9%/ 0.0deg*  footed   1.0%/ 0.0deg*
+PASS approx=sap dt_ms=1.0 modulus_Pa=100000 relaxation_s=0.01 resolution_m=0.01 box   1.1%/ 0.9deg*  disc   1.0%/ 0.0deg*  ring   1.0%/ 0.2deg*  footed   0.9%/ 0.5deg*
+     approx=sap dt_ms=1.0 modulus_Pa=100000 relaxation_s=0.1 resolution_m=0.01 box   2.4%/ 1.8deg   disc   0.9%/ 0.0deg*  ring   1.0%/ 0.1deg*  footed   1.2%/ 1.6deg*
+PASS approx=sap dt_ms=1.0 modulus_Pa=100000 relaxation_s=1.0 resolution_m=0.01 box   0.9%/ 0.2deg*  disc   0.8%/ 0.0deg*  ring   1.2%/ 0.2deg*  footed   1.9%/ 0.2deg*
+PASS approx=sap dt_ms=1.0 modulus_Pa=1e+06 relaxation_s=0.0 resolution_m=0.01 box   0.8%/ 0.4deg*  disc   0.9%/ 0.1deg*  ring   0.8%/ 0.2deg*  footed   0.8%/ 0.4deg*
+PASS approx=sap dt_ms=1.0 modulus_Pa=1e+06 relaxation_s=0.01 resolution_m=0.01 box   0.8%/ 1.0deg*  disc   0.8%/ 0.0deg*  ring   0.8%/ 0.9deg*  footed   0.8%/ 1.1deg*
+     approx=sap dt_ms=1.0 modulus_Pa=1e+06 relaxation_s=0.1 resolution_m=0.01 box   4.6%/ 1.5deg   disc   0.8%/ 0.0deg*  ring   0.8%/ 0.1deg*  footed   1.6%/ 0.8deg*
+     approx=sap dt_ms=1.0 modulus_Pa=1e+06 relaxation_s=1.0 resolution_m=0.01 box  10.8%/ 0.4deg   disc   4.8%/ 0.0deg   ring   9.4%/ 0.2deg   footed  14.8%/ 0.0deg 
+PASS approx=sap dt_ms=1.0 modulus_Pa=1e+07 relaxation_s=0.0 resolution_m=0.01 box   0.8%/ 1.3deg*  disc   0.8%/ 0.0deg*  ring   0.8%/ 0.5deg*  footed   0.8%/ 0.6deg*
+PASS approx=sap dt_ms=1.0 modulus_Pa=1e+07 relaxation_s=0.01 resolution_m=0.01 box   1.1%/ 0.9deg*  disc   0.8%/ 0.0deg*  ring   0.9%/ 0.3deg*  footed   0.8%/ 0.0deg*
+     approx=sap dt_ms=1.0 modulus_Pa=1e+07 relaxation_s=0.1 resolution_m=0.01 box   2.9%/ 1.1deg   disc   5.5%/ 0.0deg   ring   8.6%/ 0.1deg   footed  14.1%/ 0.1deg 
+     approx=sap dt_ms=1.0 modulus_Pa=1e+07 relaxation_s=1.0 resolution_m=0.01 box  49.0%/ 1.2deg   disc  20.6%/ 0.0deg   ring  32.5%/ 0.7deg   footed  35.0%/ 0.0deg 
+PASS approx=sap dt_ms=2.0 modulus_Pa=100000 relaxation_s=0.0 resolution_m=0.01 box   1.8%/ 0.0deg*  disc   1.9%/ 0.0deg*  ring   1.8%/ 0.1deg*  footed   1.7%/ 0.1deg*
+     approx=sap dt_ms=2.0 modulus_Pa=100000 relaxation_s=0.01 resolution_m=0.01 box   2.7%/ 0.9deg   disc   1.9%/ 0.1deg*  ring   1.9%/ 0.0deg*  footed   1.6%/ 1.2deg*
+     approx=sap dt_ms=2.0 modulus_Pa=100000 relaxation_s=0.1 resolution_m=0.01 box   6.5%/ 1.4deg   disc   1.9%/ 0.0deg*  ring   1.8%/ 0.1deg*  footed   2.2%/ 0.3deg 
+     approx=sap dt_ms=2.0 modulus_Pa=100000 relaxation_s=1.0 resolution_m=0.01 box  16.2%/ 1.2deg   disc   2.6%/ 0.0deg   ring   7.4%/ 0.2deg   footed  10.5%/ 0.0deg 
+PASS approx=sap dt_ms=2.0 modulus_Pa=1e+06 relaxation_s=0.0 resolution_m=0.01 box   1.5%/ 0.8deg*  disc   1.7%/ 0.0deg*  ring   1.7%/ 0.2deg*  footed   1.9%/ 0.5deg*
+     approx=sap dt_ms=2.0 modulus_Pa=1e+06 relaxation_s=0.01 resolution_m=0.01 box   1.6%/ 0.9deg*  disc   1.6%/ 0.0deg*  ring   1.7%/ 0.0deg*  footed   2.7%/ 0.0deg 
+     approx=sap dt_ms=2.0 modulus_Pa=1e+06 relaxation_s=0.1 resolution_m=0.01 box  10.3%/ 0.4deg   disc   2.2%/ 0.0deg   ring   6.9%/ 0.1deg   footed   8.8%/ 0.0deg 
+     approx=sap dt_ms=2.0 modulus_Pa=1e+06 relaxation_s=1.0 resolution_m=0.01 box  42.5%/ 1.4deg   disc  11.7%/ 0.0deg   ring  27.0%/ 0.1deg   footed  36.3%/ 0.4deg 
+     approx=sap dt_ms=2.0 modulus_Pa=1e+07 relaxation_s=0.0 resolution_m=0.01 box   1.9%/ 3.6deg   disc   4.4%/ 0.0deg   ring   1.4%/ 1.4deg*  footed   7.5%/ 4.3deg 
+     approx=sap dt_ms=2.0 modulus_Pa=1e+07 relaxation_s=0.01 resolution_m=0.01 box   5.2%/ 0.0deg   disc   2.4%/ 0.0deg   ring   1.7%/ 0.0deg*  footed  24.9%/ 0.0deg 
+     approx=sap dt_ms=2.0 modulus_Pa=1e+07 relaxation_s=0.1 resolution_m=0.01 box  12.2%/ 2.0deg   disc  10.3%/ 0.0deg   ring  24.5%/ 0.1deg   footed  74.0%/ 0.2deg 
+     approx=sap dt_ms=2.0 modulus_Pa=1e+07 relaxation_s=1.0 resolution_m=0.01 box  83.9%/ 6.1deg   disc  52.0%/ 0.3deg   ring  77.2%/ 0.1deg   footed  44.3%/ 0.1deg 
+     approx=sap dt_ms=5.0 modulus_Pa=100000 relaxation_s=0.0 resolution_m=0.01 box   4.5%/ 0.6deg   disc   4.2%/ 0.0deg   ring   3.9%/ 0.0deg   footed   4.2%/ 0.7deg 
+     approx=sap dt_ms=5.0 modulus_Pa=100000 relaxation_s=0.01 resolution_m=0.01 box   6.4%/ 1.3deg   disc   4.3%/ 0.0deg   ring   4.1%/ 0.1deg   footed   3.3%/ 0.3deg 
+     approx=sap dt_ms=5.0 modulus_Pa=100000 relaxation_s=0.1 resolution_m=0.01 box  14.7%/10.8deg   disc   8.7%/ 0.0deg   ring   8.1%/ 0.0deg   footed  13.9%/ 0.0deg 
+     approx=sap dt_ms=5.0 modulus_Pa=100000 relaxation_s=1.0 resolution_m=0.01 box  50.1%/ 2.8deg   disc  34.6%/ 0.0deg   ring  63.6%/ 0.0deg   footed  56.5%/ 0.0deg 
+     approx=sap dt_ms=5.0 modulus_Pa=1e+06 relaxation_s=0.0 resolution_m=0.01 box  10.2%/ 6.3deg   disc   4.3%/ 0.0deg   ring   3.4%/ 0.4deg   footed   7.3%/ 3.5deg 
+     approx=sap dt_ms=5.0 modulus_Pa=1e+06 relaxation_s=0.01 resolution_m=0.01 box   9.2%/ 0.6deg   disc   6.5%/ 0.0deg   ring   5.4%/ 0.0deg   footed   9.1%/ 0.0deg 
+     approx=sap dt_ms=5.0 modulus_Pa=1e+06 relaxation_s=0.1 resolution_m=0.01 box  24.4%/ 1.1deg   disc  29.9%/ 0.0deg   ring  62.0%/ 0.0deg   footed  33.7%/ 0.6deg 
+     approx=sap dt_ms=5.0 modulus_Pa=1e+06 relaxation_s=1.0 resolution_m=0.01 box  83.4%/ 4.1deg   disc  64.4%/ 0.0deg   ring  72.8%/ 0.0deg   footed  82.2%/ 0.0deg 
+     approx=sap dt_ms=5.0 modulus_Pa=1e+07 relaxation_s=0.0 resolution_m=0.01 box  69.5%/59.9deg   disc  59.6%/179.1deg   ring  43.2%/ 0.5deg   footed 472.4%/178.9deg 
+     approx=sap dt_ms=5.0 modulus_Pa=1e+07 relaxation_s=0.01 resolution_m=0.01 box 252.5%/128.4deg   disc  30.1%/ 0.2deg   ring  73.4%/ 5.3deg   footed 196.6%/123.4deg 
+     approx=sap dt_ms=5.0 modulus_Pa=1e+07 relaxation_s=0.1 resolution_m=0.01 box 129.9%/38.2deg   disc  61.6%/ 0.4deg   ring  59.8%/ 0.2deg   footed  63.3%/ 8.7deg 
+     approx=sap dt_ms=5.0 modulus_Pa=1e+07 relaxation_s=1.0 resolution_m=0.01 box  94.3%/ 0.7deg   disc  73.4%/ 0.0deg   ring  84.8%/ 0.1deg   footed  79.7%/22.2deg 
+PASS approx=similar dt_ms=1.0 modulus_Pa=100000 dissipation=0.0 resolution_m=0.01 box   0.9%/ 0.0deg*  disc   0.9%/ 0.0deg*  ring   0.9%/ 0.0deg*  footed   1.0%/ 0.0deg*
+PASS approx=similar dt_ms=1.0 modulus_Pa=100000 dissipation=1.0 resolution_m=0.01 box   1.0%/ 0.0deg*  disc   1.0%/ 0.0deg*  ring   1.0%/ 0.0deg*  footed   0.9%/ 0.0deg*
+PASS approx=similar dt_ms=1.0 modulus_Pa=100000 dissipation=10.0 resolution_m=0.01 box   1.1%/ 0.0deg*  disc   1.1%/ 0.1deg*  ring   1.1%/ 0.0deg*  footed   1.0%/ 0.2deg*
+     approx=similar dt_ms=1.0 modulus_Pa=100000 dissipation=100.0 resolution_m=0.01 box   2.8%/ 0.3deg   disc   1.3%/ 0.1deg*  ring   1.1%/ 0.1deg*  footed   1.1%/ 0.6deg*
+PASS approx=similar dt_ms=1.0 modulus_Pa=1e+06 dissipation=0.0 resolution_m=0.01 box   0.8%/ 0.3deg*  disc   0.8%/ 0.1deg*  ring   0.8%/ 0.4deg*  footed   0.8%/ 0.2deg*
+PASS approx=similar dt_ms=1.0 modulus_Pa=1e+06 dissipation=1.0 resolution_m=0.01 box   0.8%/ 0.1deg*  disc   0.8%/ 0.0deg*  ring   0.8%/ 0.1deg*  footed   0.8%/ 0.7deg*
+PASS approx=similar dt_ms=1.0 modulus_Pa=1e+06 dissipation=10.0 resolution_m=0.01 box   1.0%/ 0.9deg*  disc   0.8%/ 0.1deg*  ring   0.9%/ 0.3deg*  footed   0.9%/ 1.0deg*
+     approx=similar dt_ms=1.0 modulus_Pa=1e+06 dissipation=100.0 resolution_m=0.01 box   2.8%/ 0.8deg   disc   1.9%/ 0.0deg*  ring   1.1%/ 0.3deg*  footed   1.9%/ 1.9deg*
+     approx=similar dt_ms=1.0 modulus_Pa=1e+07 dissipation=0.0 resolution_m=0.01 box   0.7%/ 1.1deg*  disc   0.8%/ 0.0deg*  ring   0.8%/ 0.7deg*  footed   0.6%/ 2.3deg 
+     approx=similar dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 box   1.9%/ 1.1deg*  disc   0.8%/ 0.0deg*  ring   0.8%/ 0.5deg*  footed   0.7%/ 3.2deg 
+     approx=similar dt_ms=1.0 modulus_Pa=1e+07 dissipation=10.0 resolution_m=0.01 box   3.4%/ 1.2deg   disc   1.0%/ 0.0deg*  ring   0.7%/ 0.6deg*  footed   4.8%/ 3.4deg 
+     approx=similar dt_ms=1.0 modulus_Pa=1e+07 dissipation=100.0 resolution_m=0.01 box   3.7%/ 1.4deg   disc   7.7%/ 0.0deg   ring   8.0%/ 3.0deg   footed  15.5%/ 0.8deg 
+PASS approx=similar dt_ms=2.0 modulus_Pa=100000 dissipation=0.0 resolution_m=0.01 box   1.9%/ 0.0deg*  disc   1.9%/ 0.0deg*  ring   2.0%/ 0.0deg*  footed   1.7%/ 0.3deg*
+PASS approx=similar dt_ms=2.0 modulus_Pa=100000 dissipation=1.0 resolution_m=0.01 box   1.9%/ 0.1deg*  disc   1.9%/ 0.0deg*  ring   1.8%/ 0.0deg*  footed   1.8%/ 0.4deg*
+     approx=similar dt_ms=2.0 modulus_Pa=100000 dissipation=10.0 resolution_m=0.01 box   2.4%/ 0.3deg   disc   1.9%/ 0.0deg*  ring   1.9%/ 0.0deg*  footed   1.9%/ 0.1deg*
+     approx=similar dt_ms=2.0 modulus_Pa=100000 dissipation=100.0 resolution_m=0.01 box   8.4%/ 0.9deg   disc   2.4%/ 0.1deg   ring   1.9%/ 0.0deg*  footed   2.3%/ 1.0deg 
+PASS approx=similar dt_ms=2.0 modulus_Pa=1e+06 dissipation=0.0 resolution_m=0.01 box   1.7%/ 1.0deg*  disc   1.8%/ 0.0deg*  ring   1.7%/ 0.2deg*  footed   1.9%/ 1.2deg*
+PASS approx=similar dt_ms=2.0 modulus_Pa=1e+06 dissipation=1.0 resolution_m=0.01 box   1.6%/ 0.9deg*  disc   1.7%/ 0.0deg*  ring   1.6%/ 0.3deg*  footed   1.7%/ 0.7deg*
+     approx=similar dt_ms=2.0 modulus_Pa=1e+06 dissipation=10.0 resolution_m=0.01 box   2.5%/ 0.9deg   disc   1.9%/ 0.0deg*  ring   1.8%/ 0.3deg*  footed   4.1%/ 0.7deg 
+     approx=similar dt_ms=2.0 modulus_Pa=1e+06 dissipation=100.0 resolution_m=0.01 box  34.0%/ 0.7deg   disc   8.1%/ 0.0deg   ring  10.6%/ 0.0deg   footed  17.6%/ 0.3deg 
+     approx=similar dt_ms=2.0 modulus_Pa=1e+07 dissipation=0.0 resolution_m=0.01 box   3.5%/ 5.0deg   disc   2.6%/ 0.0deg   ring   2.1%/ 2.8deg   footed   8.5%/ 7.7deg 
+     approx=similar dt_ms=2.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 box   5.8%/ 2.6deg   disc   1.6%/ 0.2deg*  ring   1.0%/ 0.2deg*  footed   5.0%/ 2.8deg 
+     approx=similar dt_ms=2.0 modulus_Pa=1e+07 dissipation=10.0 resolution_m=0.01 box  12.6%/14.7deg   disc  15.1%/ 0.0deg   ring  12.6%/ 0.2deg   footed  20.5%/ 5.2deg 
+     approx=similar dt_ms=2.0 modulus_Pa=1e+07 dissipation=100.0 resolution_m=0.01 box  22.7%/20.7deg   disc  40.7%/ 0.0deg   ring  38.0%/ 0.1deg   footed  59.5%/ 3.8deg 
+     approx=similar dt_ms=5.0 modulus_Pa=100000 dissipation=0.0 resolution_m=0.01 box   4.0%/ 0.0deg   disc   4.3%/ 0.0deg   ring   4.1%/ 0.0deg   footed   4.4%/ 1.1deg 
+     approx=similar dt_ms=5.0 modulus_Pa=100000 dissipation=1.0 resolution_m=0.01 box   5.1%/ 0.2deg   disc   4.2%/ 0.0deg   ring   4.7%/ 0.0deg   footed   3.9%/ 0.1deg 
+     approx=similar dt_ms=5.0 modulus_Pa=100000 dissipation=10.0 resolution_m=0.01 box   9.0%/ 0.1deg   disc   4.7%/ 0.0deg   ring   4.7%/ 0.0deg   footed   6.4%/ 0.0deg 
+     approx=similar dt_ms=5.0 modulus_Pa=100000 dissipation=100.0 resolution_m=0.01 box  33.3%/ 1.0deg   disc  25.4%/ 0.2deg   ring  22.9%/ 0.0deg   footed  25.1%/ 1.8deg 
+     approx=similar dt_ms=5.0 modulus_Pa=1e+06 dissipation=0.0 resolution_m=0.01 box   6.1%/ 1.1deg   disc   3.7%/ 0.0deg   ring   3.4%/ 0.2deg   footed   5.8%/ 2.0deg 
+     approx=similar dt_ms=5.0 modulus_Pa=1e+06 dissipation=1.0 resolution_m=0.01 box   5.0%/ 2.3deg   disc   4.8%/ 0.0deg   ring   6.9%/ 3.6deg   footed  14.4%/ 4.4deg 
+     approx=similar dt_ms=5.0 modulus_Pa=1e+06 dissipation=10.0 resolution_m=0.01 box  18.6%/ 1.9deg   disc  19.0%/ 0.1deg   ring  17.5%/ 0.1deg   footed  47.1%/ 0.1deg 
+     approx=similar dt_ms=5.0 modulus_Pa=1e+06 dissipation=100.0 resolution_m=0.01 box  73.7%/ 1.8deg   disc  41.3%/ 0.0deg   ring  36.6%/ 0.4deg   footed  48.7%/ 0.0deg 
+     approx=similar dt_ms=5.0 modulus_Pa=1e+07 dissipation=0.0 resolution_m=0.01 box 392.1%/171.5deg   disc  87.5%/ 0.1deg   ring  41.3%/ 1.0deg   footed 267.2%/176.9deg 
+     approx=similar dt_ms=5.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 box 131.1%/26.8deg   disc  49.9%/ 0.3deg   ring  59.0%/ 0.9deg   footed 124.2%/53.4deg 
+     approx=similar dt_ms=5.0 modulus_Pa=1e+07 dissipation=10.0 resolution_m=0.01 box  65.0%/ 6.5deg   disc  75.2%/ 0.0deg   ring  76.5%/ 0.2deg   footed  76.7%/ 0.0deg 
+     approx=similar dt_ms=5.0 modulus_Pa=1e+07 dissipation=100.0 resolution_m=0.01 box  83.5%/ 4.3deg   disc  48.1%/ 0.0deg   ring  77.1%/ 0.0deg   footed  75.4%/ 0.0deg 
+39 of 108 grid settings pass for every shape
+
+== resolution ==  worst |error| and |yaw| over (mu, v0) per shape; * = all slides pass
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.005 box   0.8%/ 0.0deg*  disc   0.8%/ 0.0deg*  ring   0.8%/ 0.0deg*  footed   0.8%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 box   0.8%/ 0.0deg*  disc   0.8%/ 0.0deg*  ring   0.8%/ 0.0deg*  footed   0.8%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.02 box   0.8%/ 0.0deg*  disc   0.8%/ 0.0deg*  ring   0.8%/ 0.0deg*  footed   0.8%/ 0.0deg*
+3 of 3 resolution settings pass for every shape
+
+== robust ==  worst |error| and |yaw| over (mu, v0) per shape; * = all slides pass
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 com_offset_cm=0 1 0 box   0.8%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 com_offset_cm=0 2 0 box   0.9%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 com_offset_cm=1 0 0 box   0.8%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 com_offset_cm=2 0 0 box   0.9%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 com_offset_cm=2 2 0 box   1.1%/ 0.1deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 n_feet=3 foot_error_mm=0.0 footed   0.8%/ 0.0deg*
+PASS approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 n_feet=3 foot_error_mm=1.0 footed   1.1%/ 0.0deg*
+     approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 n_feet=4 foot_error_mm=0.5 footed   3.6%/ 1.1deg 
+     approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 n_feet=4 foot_error_mm=1.0 footed   4.0%/ 1.2deg 
+     approx=lagged dt_ms=1.0 modulus_Pa=1e+07 dissipation=1.0 resolution_m=0.01 n_feet=4 foot_error_mm=2.0 footed   5.9%/ 1.1deg 
+7 of 10 robust settings pass for every shape
