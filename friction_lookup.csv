@@ -1,0 +1,55 @@
+pair_id,object_material,surface_material,mu_k_nominal,source_low,source_high,s_tab_log,interval90_low,interval90_high,sources,notes,role,tier,static_upper,source_speed_mps,source_method,verified
+L01,hard steel block,mild steel plate,0.420,,,0.246,0.280,0.630,nasa;elib;etb,"handbook single value; mild-on-mild listed 0.57, so steel-on-steel spans 0.42-0.57 across grades",secondary,A,,,handbook table,n
+L02,aluminium block,mild steel plate,0.470,,,0.246,0.313,0.705,nasa;elib;etb,handbook single value; near the 0.50 cap,secondary,A,,,handbook table,n
+L03,copper block,mild steel plate,0.360,,,0.246,0.240,0.540,nasa;elib;etb,handbook single value,secondary,A,,,handbook table,n
+L04,brass block,mild steel plate,0.440,,,0.246,0.293,0.660,nasa;elib;etb,handbook single value,secondary,A,,,handbook table,n
+L05,phenolic laminate block,mild steel plate,0.350,,,0.246,0.233,0.525,nasa;elib,'laminated plastic on steel'; handbook single value,secondary,A,,,handbook table,n
+L06,acetal (POM) block,mild steel plate,0.200,0.15,0.45,0.357,0.111,0.360,delrin;tse;mens;DU,"sources disagree by 3x: 0.20 (D3702), 0.15-0.35 (TSE), 0.45 (Mens), 0.30-0.33 at 0.5 m/s [DU]; nominal = D3702 (PLACEHOLDER, Section 10 decision 5)",secondary,A,,0.25 (D3702); 0.5 (DU),thrust washer ASTM D3702; block-on-ring [DU],n
+L07,nylon 6/6 block,mild steel plate,0.270,0.17,0.57,0.357,0.150,0.486,mcm;tse;mens,"0.25-0.28 (McMaster), 0.17-0.43 (TSE), 0.57 (Mens); nominal = McMaster midpoint",secondary,A,,,datasheet / handbook,n
+L08,UHMW-PE block,mild steel plate,0.140,0.09,0.25,0.286,0.088,0.224,tse;mcm,"0.09-0.12 (TSE), 0.12-0.25 (McMaster); low end gives long slides",secondary,A,,,datasheet / handbook,n
+L09,zinc block,cast iron plate,0.210,,,0.246,0.140,0.315,nasa;elib;etb,handbook single value,secondary,A,,,handbook table,n
+L10,copper block,cast iron plate,0.290,,,0.246,0.193,0.435,nasa;elib;etb,handbook single value,secondary,A,,,handbook table,n
+L11,brass block,cast iron plate,0.300,,,0.246,0.200,0.450,nasa;elib;etb,handbook single value,secondary,A,,,handbook table,n
+L12,magnesium block,cast iron plate,0.250,,,0.246,0.167,0.375,nasa;elib;etb,handbook single value,secondary,A,,,handbook table,n
+L13,bronze block,cast iron plate,0.220,,,0.246,0.147,0.330,nasa;elib;etb,handbook single value,secondary,A,,,handbook table,n
+L14,mild steel block,cast iron plate,0.230,,,0.246,0.153,0.345,nasa;elib;etb,handbook single value,secondary,A,,,handbook table,n
+L15,cast iron block,cast iron plate,0.150,,,0.246,0.100,0.225,nasa;elib;etb,"handbook single value; static 1.10, so static/kinetic ratio is extreme",secondary,A,1.10,,handbook table,n
+L16,oak block,cast iron plate,0.490,,,0.246,0.327,0.735,nasa;elib;etb,"'cast iron on oak', reversed geometry; at the 0.50 cap; grain direction unspecified",secondary,C,,,handbook table,n
+L17,"oak block, grain parallel",oak board,0.480,,,0.246,0.320,0.720,nasa;elib;etb,handbook single value; chestnut-on-chestnut measured 0.25-0.39 (Villar-Garcia) shows wood-on-wood spread; same figure as Kollmann's oak on oak (V02),secondary,A,,,handbook table,n
+L18,"oak block, grain perpendicular",oak board,0.320,,,0.246,0.213,0.480,nasa;elib;etb;villar,handbook single value; within the measured chestnut range,secondary,A,,,handbook table; direct shear [villar],n
+L19,glass block,glass plate,0.400,,,0.246,0.267,0.600,nasa;elib;etb,handbook single value,secondary,A,,,handbook table,n
+L20,graphite block,glass plate,0.180,,,0.246,0.120,0.270,nasa;elib,'carbon on glass'; handbook single value,secondary,A,,,handbook table,n
+Y01,stainless steel block,ABS sheet,0.240,,,0.557,0.096,0.600,MA,"L21 in v1 (Yu value removed: simulator truth, not a lookup source); printed ABS under a stainless hemisphere, 0.05 m/s [MA]; printed, not extruded sheet, so tier C",yu_pair,C,,0.05,hemisphere-on-flat,n
+Y02,stainless steel block,acetal (Delrin) sheet,0.310,,,0.246,0.207,0.465,DU,"L22 in v1 (Yu value removed: simulator truth, not a lookup source); Delrin block on steel ring, 0.5 m/s, 10 N [DU]; exact materials at a matching speed, but a loaded ring test, not a lightly loaded flat block (ASTM G115: friction belongs to the whole test system)",yu_pair,A,,0.5,"block-on-ring, 10 N",n
+Y03,stainless steel block,plywood sheet,0.220,,,0.557,0.088,0.550,ME;VI,"L23 in v1 (Yu value removed: simulator truth, not a lookup source); smooth steel and timber, reversed roles [ME], [VI]; Meng 2008 Table 3 row assignment garbled in extraction, verify",yu_pair,C,,,"timber on steel plate, reversed roles",n
+Y04,stainless steel block,polyurethane sheet,0.610,,,0.421,0.305,1.220,MZ,"L24 in v1 (Yu value removed: simulator truth, not a lookup source); TPU 95A on brushed steel, flat on flat, 0.32 m/s [MZ]; above the simulated range (0.10-0.50); rubber-like friction rises with speed [RO]",yu_pair,B,,0.32,flat-on-flat long stroke,n
+M01,PLA (3D printed),white melamine shelf board,0.290,,,0.557,0.116,0.725,BO,"PLA on acrylic, inclined-plane launch",rig,C,,,inclined plane,n
+M02,ABS sheet (extruded),white melamine shelf board,0.300,,,0.557,0.120,0.750,MI;DJ;MA,"Printed ABS on steel, 0.05-0.75 m/s (sheet ABS on wood/laminate not found: different counterface class)",rig,C,,0.05-0.75,"tribometer, printed ABS on steel",n
+M03,furniture felt,white melamine shelf board,,,,,,,PA,Felt and ceramic on a melamine base; geometry unclear; static only,rig,none,0.41,,tilt test (static),n
+M04,neoprene rubber 60A,white melamine shelf board,0.830,,,0.557,0.332,2.075,VA,Rubber sole on varnished maple; rubber friction rises with speed [RO]; above the simulated range,rig,C,,,"sole on floor, sled type; speed unreadable in scan",n
+M05,corrugated cardboard,white melamine shelf board,0.200,,,0.557,0.080,0.500,GDV,"Cardboard on resin-coated board, sliding",rig,C,,,handbook sliding value,n
+M06,cast acrylic,white melamine shelf board,,,,,,,,No kinetic source,rig,none,,,,n
+M07,"oak, grain along travel",white melamine shelf board,0.390,0.30,0.50,0.557,0.156,0.975,WH,"Dry wood on hard smooth surfaces, 0.3-0.5 (geometric mean)",rig,C,,,handbook range,n
+M08,glazed ceramic tile,white melamine shelf board,,,,,,,PA,"Ceramic on melamine base, tilt test; static only",rig,none,0.28,,tilt test (static),n
+M09,stainless steel 304,white melamine shelf board,0.250,,,0.421,0.125,0.500,KU,"Wear-plate steel on decor-faced chipboard, 22 mm/s",rig,B,,0.022,sled on panel,n
+M10,PLA (3D printed),"birch plywood, sanded",0.330,,,0.421,0.165,0.660,BO,PLA on fine-sanded wood,rig,B,,,inclined plane,n
+M11,ABS sheet (extruded),"birch plywood, sanded",0.300,,,0.557,0.120,0.750,MI;DJ;MA,As M02,rig,C,,0.05-0.75,"tribometer, printed ABS on steel",n
+M12,furniture felt,"birch plywood, sanded",,,,,,,,No source,rig,none,,,,n
+M13,neoprene rubber 60A,"birch plywood, sanded",0.830,,,0.557,0.332,2.075,VA,As M04,rig,C,,,"sole on floor, sled type; speed unreadable in scan",n
+M14,corrugated cardboard,"birch plywood, sanded",0.210,,,0.421,0.105,0.420,YA;GDV;CTU,Corrugated box on smooth pine; static upper from CTU design value,rig,B,0.50,,box slid on pine board,n
+M15,cast acrylic,"birch plywood, sanded",,,,,,,,No kinetic source,rig,none,,,,n
+M16,"oak, grain along travel","birch plywood, sanded",0.340,0.24,0.48,0.557,0.136,0.850,ME;KO,Geometric mean of timber on plywood (0.24) and oak on oak (0.48),rig,C,,,geometric mean of two sources,n
+M17,glazed ceramic tile,"birch plywood, sanded",,,,,,,,No source,rig,none,,,,n
+M18,stainless steel 304,"birch plywood, sanded",0.220,,,0.557,0.088,0.550,ME;VI;CTU,"Smooth steel and timber, reversed roles; static upper from CTU design value",rig,C,0.45,,"timber on steel plate, reversed roles",n
+M19,PLA (3D printed),painted MDF (satin),0.290,,,0.557,0.116,0.725,BO,PLA on acrylic,rig,C,,,inclined plane,n
+M20,ABS sheet (extruded),painted MDF (satin),0.300,,,0.557,0.120,0.750,MI;DJ;MA,As M02,rig,C,,0.05-0.75,"tribometer, printed ABS on steel",n
+M21,furniture felt,painted MDF (satin),,,,,,,,No source,rig,none,,,,n
+M22,neoprene rubber 60A,painted MDF (satin),0.830,,,0.557,0.332,2.075,VA,Varnished surface; as M04,rig,C,,,"sole on floor, sled type; speed unreadable in scan",n
+M23,corrugated cardboard,painted MDF (satin),0.200,,,0.557,0.080,0.500,GDV,Coated board; as M05,rig,C,,,handbook sliding value,n
+M24,cast acrylic,painted MDF (satin),,,,,,,,No kinetic source,rig,none,,,,n
+M25,"oak, grain along travel",painted MDF (satin),0.390,0.30,0.50,0.557,0.156,0.975,WH,As M07,rig,C,,,handbook range,n
+M26,glazed ceramic tile,painted MDF (satin),,,,,,,,No source,rig,none,,,,n
+M27,stainless steel 304,painted MDF (satin),,,,,,,,Bare-MDF value (0.68 [KU]) excluded: paint changes the surface,rig,none,,,,n
+V01,stainless steel 304,"ABS sheet, smooth face",0.240,,,0.557,0.096,0.600,MA,Same source as Y01 (L21),rig,C,,0.05,hemisphere-on-flat,n
+V02,"oak, grain along travel","oak board, grain along travel",0.480,,,0.246,0.320,0.720,KO,"Morin and Kollmann values, secondhand; same figure as handbook L17",rig,A,0.62,,tabulated (secondhand),n
+V03,"oak, grain across travel","oak board, grain along travel",0.190,0.19,0.33,0.246,0.127,0.285,KO,"PLACEHOLDER (Section 10 decision 2): 'crossed' 0.19 (90% 0.13-0.29, static 0.43) used; 'perpendicular' 0.33 (90% 0.22-0.50, static 0.54) is the alternative; team decides",rig,A,0.43,,tabulated (secondhand),n

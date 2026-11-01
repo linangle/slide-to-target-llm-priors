@@ -1,0 +1,213 @@
+% Friction lookup table v2 (baseline C2) -- Slide-to-Target, MIT 6.4210
+% Build the row files first:  python3 lookup_table.py   (writes rows_*.tex and friction_lookup.csv)
+% Then:                       pdflatex friction_lookup_table.tex  (twice, for the table numbers)
+%
+% DRAFT STATUS (team, please read before citing):
+%  * The "Difficulties" list (Section 7) was written fresh for v2 and is TO BE MERGED WITH v1 by the team.
+%  * Every row has verified = n: nobody has yet checked a value against its source PDF (Section 8).
+%  * Section 10 decisions are PLACEHOLDERS: tier factors 1.5/2/2.5 accepted; L06 nominal kept at 0.20;
+%    V03 uses the "crossed" 0.19 value. See Section 9 and the comment block in lookup_table.py.
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[a4paper,margin=1.7cm]{geometry}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{amsmath}
+\PassOptionsToPackage{hyphens}{url}
+\usepackage[hidelinks]{hyperref}
+\setlength{\tabcolsep}{3pt}
+\setlength{\LTcapwidth}{\textwidth}
+\renewcommand{\arraystretch}{1.08}
+
+\title{Friction lookup table v2 (baseline C2)}
+\author{Slide-to-Target team, MIT 6.4210}
+\date{\today\ --- draft; Difficulties list to be merged with v1; all rows \texttt{verified = n}}
+
+\begin{document}
+\maketitle
+
+\noindent\fbox{\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule}{\small
+\textbf{Header note.} This document is generated in part by \texttt{lookup\_table.py}: Tables~\ref{tab:main}--\ref{tab:excluded} and the reference list are \texttt{\textbackslash input} from \texttt{rows\_*.tex}, so the numbers here are the numbers in \texttt{friction\_lookup.csv}. The Difficulties list (Section~\ref{sec:difficulties}) is new in v2 and is to be merged with the v1 list by the team. No value has been verified against its source PDF yet (\texttt{verified = n} on every row; checklist in Section~\ref{sec:verify}). The Section~10 decisions of the implementation spec are placeholders (Section~\ref{sec:placeholders}).}}
+
+\section{What changed in v2}
+Lookup v2 covers 17 of the 27 rig pairs (M01--M27), up from 2 in v1, using sources independent of Yu et al. It also gives Yu's four pairs (Y01--Y04, formerly L21--L24) independent lookup values, which miss Yu's measurements by about $2\times$ on three of four, so baseline C2 is no longer correct by construction there (Section~\ref{sec:yu}). No rig cell is an exact kinetic match, and felt, acrylic and glazed tile have no kinetic source at all; that gap is itself a finding. The v1 class-fallback table (old Table~4) is dropped: tiered entries replace it, and a pair with no source falls back to the default prior C0.
+
+\section{Rules}\label{sec:rules}
+\begin{enumerate}
+ \item \textbf{Kinetic values only.} A static value never becomes an entry. Where a close static value exists it is recorded in \texttt{static\_upper}, since kinetic friction is usually lower.
+ \item \textbf{Evidence tiers.} A = exact material pair. B = same object material on a similar surface class. C = different counterface class, or reversed geometry.
+ \item \textbf{Spread by tier.} The 90\% interval is $\mu/f$ to $\mu f$, with $f = 1.5$ (A), $2$ (B), $2.5$ (C); $s_{\text{tab}} = \ln f / 1.645 = 0.246,\ 0.421,\ 0.557$. Spread B rests on how far apart speed-matched PLA-on-steel studies are (0.23 to 0.49). These factors are a modelling choice, not a measurement. Rows L01--L20 keep their v1 spreads ($f = 1.5$, wider where sources disagree); their tier letter is informational.
+ \item \textbf{No Yu et al.} in any lookup row or source list, and nothing derived from their dataset. Their values appear in this document only in Table~\ref{tab:yu}, read from the simulator-truth file.
+ \item \textbf{Cross-checks only.} The Engineering ToolBox and other uncited tables never set a value.
+ \item \textbf{No gap-filling by asking an LLM.} That would turn C2 into a second LLM condition.
+ \item \textbf{Tier ``none''.} A pair with no source gets tier none, blank value columns, and C2 falls back to the default prior C0.
+\end{enumerate}
+Columns of \texttt{friction\_lookup.csv}: the eleven v1 columns (\texttt{pair\_id} \ldots\ \texttt{notes}) unchanged, then \texttt{role} (secondary for L01--L20, yu\_pair, rig), \texttt{tier} (A, B, C, none), \texttt{static\_upper}, \texttt{source\_speed\_mps} (blank if the source does not state a speed), \texttt{source\_method}, \texttt{verified}. Source numbers in the tables refer to Section~\ref{sec:refs}, which also gives the key used in the CSV.
+
+\section{Table 1: independent values (L01--L20 and Y01--Y04)}
+Rows L01--L20 come from the handbook table and are unchanged from v1 (L06 gains source [15] and loses the Yu figure). Rows Y01--Y04 carry the pair IDs of the simulator-truth file and show ``(L21)'' etc.\ for the v1 ID; their values are independent of Yu et al.
+
+{\footnotesize
+\begin{longtable}{l p{2.8cm} p{2.2cm} r l c c c l l}
+\caption{Lookup entries: handbook rows L01--L20 and the four Yu pairs with independent values. $\mu_k$ is the nominal kinetic coefficient, $s$ the log spread, the interval the 90\% range. Flags: ``near 0.50 cap'' = at the top of the simulated range; ``$n$ sources'' = nominal chosen among disagreeing sources.}\label{tab:main}\\
+\hline
+ID & Object (moving) & Surface & $\mu_k$ & Source range & 90\% interval & $s$ & Tier & Src & Flag\\
+\hline
+\endfirsthead
+\multicolumn{10}{l}{\emph{Table~\ref{tab:main}, continued}}\\
+\hline
+ID & Object (moving) & Surface & $\mu_k$ & Source range & 90\% interval & $s$ & Tier & Src & Flag\\
+\hline
+\endhead
+\hline
+\endfoot
+\input{rows_main.tex}
+\end{longtable}
+}
+
+\section{Table 2: static-only, unlabelled and near-miss values}
+These are not entries (rule 1). Where a static value is close to a rig pair it is carried in that row's \texttt{static\_upper} as an upper bound. The last block is the static part of the v1 excluded list.
+
+{\footnotesize
+\begin{longtable}{p{4.4cm} l l l p{6.2cm}}
+\caption{Values found but not usable as kinetic entries: static (tilt tests, lashing-guide design factors, secondhand static tables), unlabelled (static/kinetic not stated), or kinetic on the wrong surface.}\label{tab:static}\\
+\hline
+Pair & Value & Type & Src & Note\\
+\hline
+\endfirsthead
+\multicolumn{5}{l}{\emph{Table~\ref{tab:static}, continued}}\\
+\hline
+Pair & Value & Type & Src & Note\\
+\hline
+\endhead
+\hline
+\endfoot
+\input{rows_static.tex}
+\end{longtable}
+}
+
+\section{Table 3: rig pairs}\label{sec:rig}
+One row per rig pair, with the pair IDs of the measured file: $\mathrm{M} = 9(\text{surface}-1) + \text{object}$, so M18 is O9 on S2. Objects O1--O9: PLA (3D printed), ABS sheet (extruded), furniture felt, neoprene rubber 60A, corrugated cardboard, cast acrylic, oak (grain along travel), glazed ceramic tile, stainless steel 304; O7b is oak with grain across travel. Surfaces S1--S5: white melamine shelf board, birch plywood (sanded), painted MDF (satin), oak board (grain along travel), ABS sheet (smooth face). Neoprene is expected to exceed 0.5, so it will probably fall outside the simulated range (0.10--0.50) regardless of the entry.
+
+{\footnotesize
+\begin{longtable}{l p{2.3cm} p{2.4cm} r c c c l p{3.9cm}}
+\caption{Rig table. Tier none means no kinetic source: the value columns are blank in the CSV and C2 falls back to C0. ``Static upper'' is a nearby static value, never an entry.}\label{tab:rig}\\
+\hline
+ID & Object & Surface & $\mu_k$ & Tier & 90\% interval & Static upper & Src & Note\\
+\hline
+\endfirsthead
+\multicolumn{9}{l}{\emph{Table~\ref{tab:rig}, continued}}\\
+\hline
+ID & Object & Surface & $\mu_k$ & Tier & 90\% interval & Static upper & Src & Note\\
+\hline
+\endhead
+\hline
+\endfoot
+\input{rows_rig.tex}
+\end{longtable}
+}
+
+\begin{table}[htbp]
+\centering\small
+\caption{Rig coverage at a glance: $\mu_k$ (tier) per object and surface, built from the M rows; ``---'' = tier none, with any static upper bound in parentheses. 17 of 27 cells are covered (B: 3, C: 14, A: 0).}\label{tab:grid}
+\begin{tabular}{l l l l}
+\hline
+Object & S1 melamine & S2 birch plywood & S3 painted MDF\\
+\hline
+\input{rows_primary.tex}
+\hline
+\end{tabular}
+\end{table}
+
+\section{Separating Yu from the lookup}\label{sec:yu}
+Yu et al.\ (2016) set the simulator friction for Y01--Y04, so their numbers cannot also be lookup entries (rule 4). In v1 they were rows L21--L24; in v2 the same pair IDs as the truth file (\texttt{ground\_truth\_published.csv}) get independent values from the sources below, and the Yu figures are kept out of every row and source list of \texttt{friction\_lookup.csv}. Table~\ref{tab:yu} is the only place in the lookup documents where the two are side by side; its ``Yu truth'' column is read from the truth file when the row file is generated.
+
+\begin{table}[htbp]
+\centering\footnotesize
+\caption{Yu pairs: simulator truth vs.\ the independent lookup value. Ratio = lookup / truth.}\label{tab:yu}
+\begin{tabular}{p{4.0cm} c c c c c p{4.6cm}}
+\hline
+Pair & Yu truth (simulator only) & Independent lookup & Tier & 90\% interval & Ratio & Source and match\\
+\hline
+\input{rows_yu_compare.tex}
+\hline
+\end{tabular}
+\end{table}
+
+\noindent Y02 (L22) is the clearest case: exact materials at a matching speed, still $2\times$ off. The datasheet value [15] comes from a loaded block-on-ring test, while Yu slid a lightly loaded flat block. That is the ASTM G115 point: a friction coefficient belongs to the whole test system, not to a pair of material names.
+
+\medskip\noindent In row L06, \texttt{yu} is removed from \texttt{sources} and the Yu figure from \texttt{notes}; [15] (0.30--0.33 at 0.5~m/s) is added as a further source and the v1 nominal 0.20 (ASTM D3702) is kept (placeholder, Section~\ref{sec:placeholders}).
+
+\medskip\noindent Rows L01--L20 stay. Their simulator truth is sampled from the table's own interval, so C2 wins there by construction. Report them as a memorisation probe, not as evidence that C2 is accurate.
+
+\section{Difficulties (v2 list, to be merged with v1)}\label{sec:difficulties}
+\begin{enumerate}
+ \item \textbf{Kinetic vs static.} Most compilations do not say which they give, and static is usually the larger. Tilt tests (Papalou [26]) and lashing-guide factors (CTU Code [27]) are static by construction. Rule 1 keeps them out of the entries; \texttt{static\_upper} keeps the information.
+ \item \textbf{Speed dependence.} Rubber-like materials get stickier with speed (Roth et al.\ [23]); the TPU value behind Y04 is at 0.32~m/s and the published PLA-on-steel values span 0.23 to 0.49 across speeds, which is where spread B comes from. The CSV records the source speed where the paper states one; it is blank for handbooks, inclined planes and the unreadable Valiant scan.
+ \item \textbf{A friction coefficient belongs to the whole test system (ASTM G115).} Y02 (L22) is the example: Delrin on steel at 0.5~m/s from a loaded block-on-ring test [15] gives 0.31, Yu's lightly loaded flat block gave about half that. Same materials, same speed, different system, $2\times$ apart.
+ \item \textbf{Extraction-garbled tables.} The Meng 2008 Table~3 rows behind M16, M18 and Y03 came out of text extraction with uncertain row assignment, and the Valiant 1986 scan is too poor to read the speed. Both need the PDF opened (Section~\ref{sec:verify}).
+ \item \textbf{Secondhand values.} The oak-on-oak numbers (V02, V03, M16) are Kollmann and Morin values as tabulated by Aira 2014 and Villar-Garc\'{\i}a 2020; Kollmann 1959 itself was not opened. Mens 1991 reached us via a Curbell white paper and the NASA table via engineeringlibrary.org.
+ \item \textbf{The 0.10--0.50 simulated range.} Neoprene (0.83) and TPU (0.61) are above it, so for those pairs C2 is wrong in the simulator whatever the source says; the simulated pairs are chosen inside the range and the lookup is not.
+ \item \textbf{Circularity, L01--L20 only.} For the handbook rows the simulator truth is sampled from the table's own 90\% interval, so C2 is correct there by construction. Report those pairs as a memorisation probe. Y01--Y04 and the rig rows are no longer circular: their truth comes from Yu or from our measurements, and their lookup values from other sources.
+ \item \textbf{Tier spreads are a modelling choice.} The factors 1.5, 2 and 2.5 are not fitted to anything beyond the PLA-on-steel spread; Section~10 decision~3 of the spec is still open.
+ \item \textbf{Gaps.} Felt, cast acrylic and glazed tile have no kinetic source on any rig surface; stainless on painted MDF has none either because the only MDF value is for bare MDF. Ten of 27 rig cells are tier none.
+\end{enumerate}
+
+\section{Verify before citing}\label{sec:verify}
+Set \texttt{verified = y} in \texttt{lookup\_table.py} only after checking these against the PDF:
+\begin{itemize}
+ \item Meng 2008 Table~3 [18]: row assignments for M16, M18 and Y03 (L23) were garbled in extraction.
+ \item Kukla 2021 [17]: that ``laminated chipboard'' is melamine-faced (M09).
+ \item Bories Otondo 2024 [11]: which print face touched the plane (M01, M10, M19).
+ \item Oak-on-oak values [21]: secondhand via Aira 2014 and Villar-Garc\'{\i}a 2020; Kollmann 1959 not opened (V02, V03, M16).
+ \item DuPont L-12259 [15]: test geometry and footnotes (Y02 / L22, and the L06 addition).
+ \item Mahmood 2023 [12]: published values vs the preprint (Y01 / L21, V01, M02).
+ \item Valiant 1986 [22]: poor scan, speed unreadable (M04, M13, M22).
+ \item GDV Container Handbook [24]: Tables 1c--1d (M05, M14, M23).
+ \item Murase 1984 (figures only, not yet a source): Figs.~7--13 could fill the acrylic and stainless rows.
+ \item Reference titles marked ``[title: confirm]'' in Section~\ref{sec:refs} were not recorded when the values were taken; the PLEXIGLAS datasheet (Table~\ref{tab:static}) has no URL on file.
+\end{itemize}
+
+\section{Placeholder decisions (spec Section 10)}\label{sec:placeholders}
+The team has not yet decided these; the files use the spec's recommendation so that they build, and \texttt{lookup\_table.py} prints a reminder on every run.
+\begin{itemize}
+ \item \textbf{Decision 2, V03 (oak across on oak along).} Nominal = Kollmann ``crossed'' 0.19 (90\% 0.13--0.29, static upper 0.43). The alternative ``perpendicular'' 0.33 (0.22--0.50, static 0.54) is kept in the row's notes.
+ \item \textbf{Decision 3, tier spread factors.} $f = 1.5 / 2 / 2.5$ for A / B / C accepted.
+ \item \textbf{Decision 5, L06 nominal.} Kept at 0.20 (ASTM D3702); [15] 0.30--0.33 at 0.5~m/s added as a further source, not as the nominal.
+\end{itemize}
+
+\section{Other excluded candidates}
+Candidates from v1 dropped for reasons other than being static: above the 0.50 cap or below the 0.10 floor, toxic or exotic, or a range too wide to use.
+
+{\footnotesize
+\begin{longtable}{p{4.8cm} l l p{8cm}}
+\caption{Excluded candidates (non-static reasons).}\label{tab:excluded}\\
+\hline
+Pair & Value & Src & Reason\\
+\hline
+\endfirsthead
+\multicolumn{4}{l}{\emph{Table~\ref{tab:excluded}, continued}}\\
+\hline
+Pair & Value & Src & Reason\\
+\hline
+\endhead
+\hline
+\endfoot
+\input{rows_excluded.tex}
+\end{longtable}
+}
+
+\section{References}\label{sec:refs}
+Numbers are those used in the tables; the bold key is the \texttt{sources} token in \texttt{friction\_lookup.csv}. Sources 1--10 are the v1 keys (9 and 10 appear only in the excluded lists); 11--27 are the v2 lookup sources; 28 appears only in Table~\ref{tab:static}.
+\begingroup
+\renewcommand{\section}[2]{}% swallow thebibliography's own \section*{\refname}; the heading above is used instead
+\begin{thebibliography}{99}
+\raggedright
+\input{rows_refs.tex}
+\end{thebibliography}
+\endgroup
+
+\medskip\noindent\textbf{Not a lookup source (rule 4).} K.-T. Yu, M. Bauza, N. Fazeli and A. Rodriguez, \emph{More than a million ways to be pushed: a high-fidelity experimental dataset of planar pushing}, IROS 2016. Sets the simulator friction for Y01--Y04 via \texttt{ground\_truth\_published.csv}; cited here only to explain Table~\ref{tab:yu}.
+
+\end{document}
