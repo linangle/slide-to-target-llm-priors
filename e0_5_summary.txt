@@ -1,0 +1,63 @@
+== E0-5: observation models A, B, C and O1 on camera-replayed pushes (box, v_peak 0.8 m/s, J 100 m/s^3, config contact) ==
+bias against the simulator's effective mu (nominal mu in brackets), %; SE = SD of mu-hat over replicates, %; CRLB at the measured noise, %; SE/CRLB (pass < 1.5 and |bias| < 1%); CRLB from the error-budget table's nominal noise, %.  C1 is model C without the frames of the first 30 ms after release, when the object is within a millimetre of the plate; its bound is model C's
+  mu  fps model   n |     bias eff [nom] |      SE |    CRLB |  ratio |  budget | frames | pass
+ 0.1   30     A  20 |   -0.107 [ +0.31] |   0.042 |   0.071 |   0.60 |   1.582 |   27.4 | yes
+ 0.1   30     B  20 |   -0.110 [ +0.30] |   0.042 |   0.067 |   0.62 |   1.165 |   27.4 | yes
+ 0.1   30     C  20 |   -0.108 [ +0.31] |   0.043 |   0.067 |   0.64 |   0.858 |   27.4 | yes
+ 0.1   30    C1  20 |   -0.059 [ +0.35] |   0.040 |   0.067 |   0.60 |   0.858 |   27.4 | yes
+ 0.1   30    O1  20 |   +1.209 [ +1.63] |   0.101 |     nan |    nan |     nan |   27.4 |  no   (O1 bias predicted +1.21%)
+ 0.1   60     A  20 |   -0.106 [ +0.31] |   0.025 |   0.054 |   0.46 |   1.173 |   54.5 | yes
+ 0.1   60     B  20 |   -0.111 [ +0.30] |   0.024 |   0.051 |   0.47 |   0.892 |   54.5 | yes
+ 0.1   60     C  20 |   -0.110 [ +0.30] |   0.024 |   0.051 |   0.47 |   0.689 |   54.5 | yes
+ 0.1   60    C1  20 |   -0.062 [ +0.35] |   0.020 |   0.051 |   0.39 |   0.689 |   54.5 | yes
+ 0.1   60    O1  20 |   +1.234 [ +1.65] |   0.186 |     nan |    nan |     nan |   54.5 |  no   (O1 bias predicted +1.21%)
+ 0.1  120     A  20 |   -0.108 [ +0.31] |   0.022 |   0.038 |   0.58 |   0.829 |  109.0 | yes
+ 0.1  120     B  20 |   -0.109 [ +0.30] |   0.022 |   0.038 |   0.59 |   0.681 |  109.0 | yes
+ 0.1  120     C  20 |   -0.108 [ +0.31] |   0.022 |   0.038 |   0.58 |   0.562 |  109.0 | yes
+ 0.1  120    C1  20 |   -0.055 [ +0.36] |   0.020 |   0.038 |   0.54 |   0.562 |  109.0 | yes
+ 0.1  120    O1  20 |   +1.208 [ +1.63] |   0.166 |     nan |    nan |     nan |  109.0 |  no   (O1 bias predicted +1.21%)
+ 0.3   30     A  20 |   -0.595 [ -0.64] |   0.185 |   0.406 |   0.46 |   9.438 |   10.8 | yes
+ 0.3   30     B  20 |   -0.563 [ -0.61] |   0.143 |   0.259 |   0.55 |   5.920 |   10.8 | yes
+ 0.3   30     C  20 |   -0.549 [ -0.60] |   0.154 |   0.258 |   0.60 |   4.404 |   10.8 | yes
+ 0.3   30    C1  20 |   -0.233 [ -0.28] |   0.175 |   0.258 |   0.68 |   4.404 |   10.8 | yes
+ 0.3   30    O1  20 |  +12.033 [+11.98] |   0.492 |     nan |    nan |     nan |   10.8 |  no   (O1 bias predicted +11.77%)
+ 0.3   60     A  20 |   -0.645 [ -0.69] |   0.149 |   0.280 |   0.53 |   6.474 |   21.8 | yes
+ 0.3   60     B  20 |   -0.618 [ -0.66] |   0.150 |   0.206 |   0.73 |   4.590 |   21.8 | yes
+ 0.3   60     C  20 |   -0.610 [ -0.66] |   0.147 |   0.205 |   0.72 |   3.339 |   21.8 | yes
+ 0.3   60    C1  20 |   -0.255 [ -0.30] |   0.147 |   0.205 |   0.72 |   3.339 |   21.8 | yes
+ 0.3   60    O1  20 |  +11.983 [+11.93] |   0.530 |     nan |    nan |     nan |   21.8 |  no   (O1 bias predicted +11.77%)
+ 0.3  120     A  20 |   -0.610 [ -0.66] |   0.084 |   0.204 |   0.41 |   4.920 |   43.4 | yes
+ 0.3  120     B  20 |   -0.608 [ -0.66] |   0.086 |   0.163 |   0.53 |   3.516 |   43.4 | yes
+ 0.3  120     C  20 |   -0.603 [ -0.65] |   0.087 |   0.162 |   0.54 |   2.626 |   43.4 | yes
+ 0.3  120    C1  20 |   -0.263 [ -0.31] |   0.094 |   0.162 |   0.58 |   2.626 |   43.4 | yes
+ 0.3  120    O1  20 |  +11.883 [+11.83] |   0.693 |     nan |    nan |     nan |   43.4 |  no   (O1 bias predicted +11.77%)
+ 0.5   30     A  20 |   -0.887 [ -1.13] |   0.234 |   0.912 |   0.26 |  19.616 |    7.3 | yes
+ 0.5   30     B  20 |   -0.836 [ -1.08] |   0.263 |   0.706 |   0.37 |  14.984 |    7.3 | yes
+ 0.5   30     C  20 |   -0.678 [ -0.93] |   0.417 |   0.702 |   0.59 |  11.916 |    7.3 | yes
+ 0.5   30    C1  20 |   +0.293 [ +0.04] |   0.697 |   0.702 |   0.99 |  11.916 |    7.3 | yes
+ 0.5   30    O1  20 |  +38.980 [+38.63] |   1.067 |     nan |    nan |     nan |    7.3 |  no   (O1 bias predicted +38.53%)
+ 0.5   60     A  20 |   -0.823 [ -1.07] |   0.295 |   0.715 |   0.41 |  16.728 |   14.3 | yes
+ 0.5   60     B  20 |   -0.790 [ -1.04] |   0.303 |   0.514 |   0.59 |  11.873 |   14.3 | yes
+ 0.5   60     C  20 |   -0.743 [ -0.99] |   0.316 |   0.512 |   0.62 |   8.783 |   14.3 | yes
+ 0.5   60    C1  20 |   +0.306 [ +0.06] |   0.706 |   0.512 |   1.38 |   8.783 |   14.3 | yes
+ 0.5   60    O1  20 |  +39.146 [+38.80] |   1.590 |     nan |    nan |     nan |   14.3 |  no   (O1 bias predicted +38.53%)
+ 0.5  120     A  20 |   -0.898 [ -1.14] |   0.224 |   0.627 |   0.36 |  13.338 |   29.0 | yes
+ 0.5  120     B  20 |   -0.867 [ -1.11] |   0.245 |   0.449 |   0.55 |   9.182 |   29.0 | yes
+ 0.5  120     C  20 |   -0.837 [ -1.08] |   0.250 |   0.447 |   0.56 |   6.687 |   29.0 | yes
+ 0.5  120    C1  20 |   +0.239 [ -0.01] |   0.550 |   0.447 |   1.23 |   6.687 |   29.0 | yes
+ 0.5  120    O1  20 |  +38.956 [+38.61] |   1.374 |     nan |    nan |     nan |   29.0 |  no   (O1 bias predicted +38.53%)
+
+== perception noise (Tier B inputs) ==
+  mu  fps frames missed | sigma_f mm   bias | 1st frame rms   bias | later rms | sigma_rest mm   bias | sigma_fk mm fk bias
+ 0.1   30  548.0    0.0 |      0.090 -0.046 |         0.238 +0.224 |     0.079 |         0.108 -0.099 |         0.5   +0.00
+ 0.1   60 1091.0    0.0 |      0.092 -0.049 |         0.274 +0.270 |     0.085 |         0.089 -0.079 |         0.5   +0.00
+ 0.1  120 2180.0    0.0 |      0.091 -0.049 |         0.289 +0.287 |     0.087 |         0.109 -0.097 |         0.5   +0.00
+ 0.3   30  217.0    0.0 |      0.086 +0.010 |         0.241 +0.227 |     0.047 |         0.026 -0.004 |         0.5   -0.00
+ 0.3   60  435.0    0.0 |      0.087 +0.012 |         0.281 +0.278 |     0.064 |         0.028 +0.001 |         0.5   -0.00
+ 0.3  120  867.0    0.0 |      0.083 +0.007 |         0.286 +0.283 |     0.072 |         0.036 +0.004 |         0.5   -0.00
+ 0.5   30  147.0    0.0 |      0.093 +0.028 |         0.238 +0.227 |     0.032 |         0.028 -0.015 |         0.5   -0.00
+ 0.5   60  287.0    0.0 |      0.085 +0.024 |         0.260 +0.258 |     0.052 |         0.024 -0.013 |         0.5   -0.00
+ 0.5  120  580.0    0.0 |      0.094 +0.030 |         0.282 +0.279 |     0.079 |         0.030 -0.015 |         0.5   -0.00
+Tier B: sigma_f (pooled over mu) 0.089 mm at 30 Hz, 0.089 mm at 60 Hz, 0.089 mm at 120 Hz; sigma_rest 0.064 mm; sigma_fk 0.5 mm (assumed).  The first frame after release sits within a millimetre of the plate; its error is listed apart from the later frames.
+A/B/C: largest |bias| vs the simulator's mu 0.898%; largest SE/CRLB 0.73.  Without the first 30 ms of frames (C1) the largest |bias| is 0.306%: the residual bias of A/B/C is the first frame, taken against the plate.  The nominal-mu bias column is the simulator's own offset from mu (E0-1), not the estimator's.  These noise values come from a rendered depth camera with exact pose and intrinsics and no motion blur, so they are lower bounds for the real camera.
+decision 8 (camera rate), model C's SE per slide: mu 0.1: 0.04% at 30 Hz, 0.02% at 60 Hz, 0.02% at 120 Hz; mu 0.3: 0.15% at 30 Hz, 0.15% at 60 Hz, 0.09% at 120 Hz; mu 0.5: 0.42% at 30 Hz, 0.32% at 60 Hz, 0.25% at 120 Hz.  The error-budget table assumed 2 mm frames; the rendered camera gives a few tenths of a millimetre, so every rate beats the table.  What the rate buys is frames on the short high-friction slides (mu 0.5 at 0.8 m/s lasts 0.14 s) and, per observe.residual_signature, telling a friction step from spin, which needs 60 Hz or sub-millimetre frames.

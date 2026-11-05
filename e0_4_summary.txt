@@ -1,0 +1,45 @@
+== E0-4: object speed at separation vs v_peak - (mu g)^2/(2J), box, config contact (54 pushes) ==
+cells: error of the simulator's v_sep against the model on the commanded profile, % (pass within 1%); in brackets, against the model on the paddle's actual motion
+  mu v_peak |             J=30 |             J=50 |            J=100 |            J=200 |            J=500 |           J=2000
+ 0.1    0.6 |    +0.06 [+0.00] |    +0.04 [+0.00] |    +0.01 [+0.01] |    -0.05 [+0.01] |    -0.14 [+0.02] |    -0.24 [+0.05]
+ 0.1    0.8 |    +0.04 [+0.00] |    +0.03 [+0.00] |    +0.01 [+0.00] |    -0.04 [+0.01] |    -0.11 [+0.01] |    -0.18 [+0.03]
+ 0.1    1.0 |    +0.04 [+0.00] |    +0.03 [+0.00] |    +0.01 [+0.00] |    -0.03 [+0.00] |    -0.09 [+0.01] |    -0.15 [+0.03]
+ 0.3    0.6 |    +0.30 [+0.01] |    +0.24 [+0.01] |    +0.18 [+0.01] |    +0.11 [+0.01] |    -0.04 [+0.02] |    -0.25 [+0.08]
+ 0.3    0.8 |    +0.21 [+0.01] |    +0.18 [+0.01] |    +0.13 [+0.01] |    +0.08 [+0.01] |    -0.03 [+0.02] |    -0.19 [+0.06]
+ 0.3    1.0 |    +0.16 [+0.01] |    +0.14 [+0.01] |    +0.11 [+0.01] |    +0.06 [+0.01] |    -0.02 [+0.01] |    -0.19 [+0.01]
+ 0.5    0.6 |    +1.18 [+0.02]! |    +0.67 [+0.06] |    +0.42 [+0.02] |    +0.29 [+0.02] |    +0.10 [+0.03] |    -0.23 [+0.08]
+ 0.5    0.8 |    +0.58 [+0.01] |    +0.40 [+0.01] |    +0.29 [+0.01] |    +0.21 [+0.02] |    +0.07 [+0.02] |    -0.17 [+0.06]
+ 0.5    1.0 |    +0.39 [+0.01] |    +0.30 [+0.01] |    +0.23 [+0.01] |    +0.17 [+0.01] |    +0.06 [+0.02] |    -0.14 [+0.08]
+pass: 53 of 54 grid pushes within 1% on the commanded profile; largest |error| 1.18% (commanded), 0.08% (actual paddle)
+the paddle-object force vanished -0.1 .. +2.2 ms after t* (the compliant tail); the object's speed when it did was -1.97% .. +0.80% from the model
+free slide after separation vs v_sep^2/(2 mu g): -2.43% .. -0.12%; release heading |psi_r| <= 0.000 deg; tilt <= 0.029 deg; paddle tracking rms <= 0.05 mm, 2.5 mm/s
+
+== contact variants at mu=0.3, v_peak=0.8 ==
+approx  damping                    J |  v_sep err % cmd |      act |  d err % |  psi_r deg |  tilt deg |  spin rad/s
+lagged  dissipation 0             50 |            +0.18 |    +0.01 |    -0.41 |     -0.000 |     0.001 |     -0.0000
+lagged  dissipation 0            200 |            +0.08 |    +0.01 |    -0.37 |     -0.000 |     0.001 |     -0.0000
+lagged  dissipation 1             50 |            +0.18 |    +0.01 |    -0.41 |     -0.000 |     0.029 |     -0.0000
+lagged  dissipation 1            200 |            +0.08 |    +0.01 |    -0.37 |     -0.000 |     0.029 |     -0.0000
+similar dissipation 0             50 |            +6.45 |    +6.12 |    -3.96 |     -0.815 |     0.407 |     -0.1890
+similar dissipation 0            200 |            +3.50 |    +3.46 |    -3.43 |     -0.046 |     0.366 |     -0.1370
+similar dissipation 1             50 |            -1.05 |    -1.24 |    +5.57 |     +1.096 |     0.434 |     +0.0331
+similar dissipation 1            200 |            +3.82 |    +3.84 |    -3.80 |     -0.102 |     0.422 |     -0.1457
+sap     relaxation_time 0         50 |            +2.86 |    +2.91 |    -2.55 |     +0.829 |     0.474 |     -0.0727
+sap     relaxation_time 0        200 |            +3.55 |    +3.70 |    -1.82 |     +1.136 |     0.923 |     +0.0925
+sap     relaxation_time 0.01      50 |            -1.22 |    -1.41 |    +9.40 |     -0.301 |     1.178 |     -0.2483
+sap     relaxation_time 0.01     200 |            +3.35 |    -1.37 |    +3.42 |     +0.160 |     0.919 |     +0.0648
+sap     relaxation_time default    50 |            -0.90 |    -1.00 |   +13.48 |     +0.568 |     1.131 |     -0.8089
+sap     relaxation_time default   200 |            +7.07 |    -5.08 |    +1.40 |     +0.374 |     1.193 |     +0.3544
+
+== decision 7: distance lost to the braking ramp, 1 - (v_r/v_peak)^2, % (model; simulator in brackets) ==
+  mu v_peak |           J=30 |           J=50 |          J=100 |          J=200 |          J=500 |         J=2000
+ 0.1    0.6 |      5.3 [5.2] |      3.2 [3.1] |      1.6 [1.6] |      0.8 [0.9] |      0.3 [0.6] |      0.1 [0.6]
+ 0.1    0.8 |      4.0 [3.9] |      2.4 [2.3] |      1.2 [1.2] |      0.6 [0.7] |      0.2 [0.5] |      0.1 [0.4]
+ 0.1    1.0 |      3.2 [3.1] |      1.9 [1.9] |      1.0 [0.9] |      0.5 [0.5] |      0.2 [0.4] |      0.0 [0.3]
+ 0.3    0.6 |    42.3 [42.0] |    26.8 [26.4] |    13.9 [13.6] |      7.1 [6.9] |      2.9 [2.9] |      0.7 [1.2]
+ 0.3    0.8 |    32.8 [32.6] |    20.5 [20.2] |    10.5 [10.3] |      5.3 [5.2] |      2.2 [2.2] |      0.5 [0.9]
+ 0.3    1.0 |    26.8 [26.5] |    16.6 [16.3] |      8.5 [8.3] |      4.3 [4.2] |      1.7 [1.8] |      0.4 [0.8]
+ 0.5    0.6 |    89.0 [88.7] |    64.1 [63.6] |    36.1 [35.5] |    19.0 [18.6] |      7.9 [7.7] |      2.0 [2.5]
+ 0.5    0.8 |    75.1 [74.8] |    51.1 [50.7] |    27.8 [27.4] |    14.5 [14.1] |      5.9 [5.8] |      1.5 [1.8]
+ 0.5    1.0 |    64.1 [63.8] |    42.3 [42.0] |    22.6 [22.3] |    11.7 [11.4] |      4.8 [4.6] |      1.2 [1.5]
+reading: the ramp costs more than 2% of the distance at mu = 0.3 for J below about 500 m/s^3 and at mu = 0.5 for J below about 2000; where the model holds within 1%, the decision rule can keep v_r(mu) and brake as hard as the joints allow, both.
