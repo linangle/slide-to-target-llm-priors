@@ -285,6 +285,8 @@ Module & Functions & Tests (\code{pytest tests/})\\
 \code{llm\_prior.py} & \code{build\_prompt}, \code{cached\_response} & 7: only \code{description\_*}, \code{photo\_*} reach a prompt\\
 \code{drake\_config.py}, \code{sim\_config.yaml} & \code{load\_config}, \code{contact\_from\_config}, \code{describe}, \code{assert\_hydro\_only} & E0-2 (\code{e0\_2\_hydro\_check.py})\\
 \code{e0\_1\_free\_slide.py} & grid, spin and heading launches & E0-1 pass criteria; spin within 10\% of the disk model\\
+\code{push.py} & \code{Pusher}, \code{profile}, \code{push\_slide}: a prescribed plate under Drake's implicit PD stands in for the arm; the release is read at $t^*$ on the command, on the recorded motion, and when the contact force vanishes & \code{tests/test\_push.py}: the command reproduces~\eqref{eq:vr}; one push within 1\%\\
+\code{e0\_3\_contact\_geometry.py}, \code{e0\_4\_release.py}, \code{e0\_5\_observation.py} & E0-3, E0-4, E0-5 & their pass criteria; evidence for decisions 7 and 8\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -300,6 +302,34 @@ $v\in\{0.6,1.0\}$ m/s; disc spin launches within 2\% of the disk integrator (1.0
 margin, Hunt--Crossley dissipation of 10 s/m or more under Lagged (1 s/m or more under Similar) shortens slides by 4
 to 85\%, while without margin Lagged passes up to 50 s/m; 2 ms steps pass only without margin, 5 ms never; SAP
 passes at 1 ms with relaxation time 0.01 s or less (\code{e0\_1\_summary.txt}).  19 of 66 settings pass.
+
+\paragraph{E0 status (5 Nov).}  The arm still has no controller, so \code{push.py} drives the paddle plate on a prismatic
+joint under Drake's implicit PD actuator, tracking a profile that accelerates at 2 m/s$^2$ and then runs one jerk segment $-J$
+through the peak into the brake, so that braking starts from zero deceleration at $v_{\mathrm{peak}}$ as \eqref{eq:vr} assumes.
+The command is fed one time step ahead, after which the plate tracks to 0.05 mm.  Near separation both bodies decelerate at
+about $\mu g$, so the instant chosen moves the speed by $\mu g\,\Delta t$ per step (1.4\% of a 0.36 m/s release at 1 ms); the
+reported speed is the simulator's object state at the model's instant $t^* = t_{\mathrm{peak}} + \mu g/J$.
+\emph{E0-3 (A2)}: with the plate covering the whole face, the box leaves with $|\psi_r| \le 0.004^\circ$ and a lateral miss
+$\le 2$ mm for every COM offset up to $w/4$, plate yaw up to $2^\circ$ and $\mu_p \in \{0.1, 0.3, 0.6\}$; a yawed plate turns the box
+to its own angle without a heading.  A disc with an offset COM spins off (heading 5--27$^\circ$, miss 23--116 mm at $e = R/4$, $R/2$)
+and follows a yawed plate at about two thirds of its angle.  With the COM 5 mm inside the footprint edge the box rocks onto the edge
+(tilt 4--5$^\circ$, heading to $6^\circ$) and every such disc topples; with the covered segment not straddling the COM the box
+turns $90^\circ$ and leaves 33--86\% below the release model.  The slide error stays within 0.8\% wherever the object does not tilt.
+\emph{E0-4 (A3)}: at the frozen contact the object's speed at $t^*$ is within 1\% of \eqref{eq:vr} in 53 of 54 cases over
+$J \in \{30, \dots, 2000\}$ m/s$^3$, $\mu \in \{0.1, 0.3, 0.5\}$, $v_{\mathrm{peak}} \in \{0.6, 0.8, 1.0\}$ m/s (worst $+1.2\%$ at a
+0.2 m/s release), and within 0.08\% of the model on the plate's recorded motion; the contact force vanishes 0--2 ms after $t^*$.
+Under Similar and SAP, with any damping, the box tilts 0.4--1.2$^\circ$ during the push and leaves 1--7\% off the model with spin:
+the release model needs Lagged, which supports A6.  The distance lost to the ramp (decision 7) is tabulated in
+\code{e0\_4\_summary.txt}: under 2\% needs $J \approx 500$ m/s$^3$ at $\mu = 0.3$ and about 2000 at $\mu = 0.5$.
+\emph{E0-5}: pushes replayed through the rendered depth camera at 30, 60 and 120 Hz, 20 replicates each, give models A, B and C
+within 1\% of the simulator's $\mu$ with standard errors at or below the Cram\'er--Rao bound at the measured noise (ratio
+$\le 0.73$); the residual $-0.6$ to $-0.9\%$ bias at $\mu = 0.3$--$0.5$ is the first frame after release, taken against the plate
+(dropping the first 30 ms leaves $\le 0.3\%$).  O1's bias matches $(v_{\mathrm{peak}}/v_r)^2 - 1$.  Measured noise for Tier B:
+$\sigma_f = 0.09$ mm, $\sigma_{\mathrm{rest}} = 0.03$ mm near the camera axis and 0.1 mm at the far end of the table; $\sigma_{\mathrm{FK}}$ is
+assumed 0.5 mm because the simulator's forward kinematics are exact.  The Section~\ref{sec:observation} budget assumed 2 mm frames and
+is therefore 10--20$\times$ pessimistic; the measured values are lower bounds (exact camera pose and intrinsics, no motion blur).
+Decision 8 is not settled by $\mu$'s precision (model C: 0.42\% at 30 Hz and 0.25\% at 120 Hz on the shortest slide) but by what
+else the frames must resolve.
 
 \appendix
 \section{sim\_config.yaml}
