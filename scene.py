@@ -232,8 +232,10 @@ def add_camera(builder, scene_graph, cam):
     builder.Connect(scene_graph.get_query_output_port(), sensor.query_object_input_port())
     return sensor
 
-def build_scene(builder, pair, obj=Obj(), table=Table(), contact=Contact(), arm=True, seed=0, x0=0.55, camera=None):
-    """Adds the plant (and the camera, if given) to builder and returns a Scene; the plant is finalized."""
+def build_scene(builder, pair, obj=Obj(), table=Table(), contact=Contact(), arm=True, seed=0, x0=0.55, camera=None,
+                pusher=None):
+    """Adds the plant (and the camera, if given) to builder and returns a Scene; the plant is finalized.
+    pusher: an object with add(plant, contact, obj, x0) -> paddle body (push.Pusher) that stands in for the arm."""
     plant, scene_graph = AddMultibodyPlant(MultibodyPlantConfig(time_step=contact.time_step,
                                                       contact_model=contact.contact_model,
                                                       discrete_contact_approximation=contact.approx), builder)
@@ -248,7 +250,10 @@ def build_scene(builder, pair, obj=Obj(), table=Table(), contact=Contact(), arm=
         shade = 0.85 - 0.35*(mu - lo)/(hi - lo) if hi > lo else 0.7   # darker = more friction
         plant.RegisterVisualGeometry(plant.world_body(), X, strip, f"strip_{i:02d}", [shade, shade*0.9, shade*0.8, 1.0])
     body, z0 = add_object(plant, obj, contact)
-    iiwa, paddle = add_arm(plant, contact) if arm else (None, None)
+    if pusher is not None:
+        iiwa, paddle = None, pusher.add(plant, contact, obj, x0)
+    else:
+        iiwa, paddle = add_arm(plant, contact) if arm else (None, None)
     X_WO = RigidTransform([x0, 0, z0])
     plant.SetDefaultFloatingBaseBodyPose(body, X_WO)
     plant.Finalize()
