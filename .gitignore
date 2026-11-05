@@ -8,8 +8,10 @@ venv/
 # macOS
 .DS_Store
 
-# Claude Code: personal settings stay local
-.claude/
+# Claude Code: the shared settings file is tracked (attribution off for everyone);
+# personal settings stay local
+.claude/*
+!.claude/settings.json
 CLAUDE.local.md
 
 # LaTeX build files
