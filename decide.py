@@ -12,14 +12,15 @@ max(0.1 d*, 1 cm), and the table-edge penalty beyond L = 1.3 d*.
 
 Practice slides run at the maximum feasible speed: the standard error of mu falls roughly as v^-2.5, so
 the information grows roughly as v^5 (valid while mu does not depend on speed, which the rig's mu(v) data
-check).  practice_speed() is the fastest speed that keeps the slide on the table for the slipperiest
-plausible mu.
+check).  practice_speed() is the fastest speed that keeps the slide on the board for the slipperiest
+plausible mu; slide_room() is that length: from the release point to the far edge of the 48 in board
+(physics.BOARD_X_MAX, 5 Nov decision 1), less the object's half length.
 """
 import math
 from dataclasses import dataclass
 import numpy as np
 from scipy.optimize import brentq, minimize_scalar
-from physics import G, release_speed
+from physics import BOARD_X_MAX, G, release_speed
 
 @dataclass
 class Release:
@@ -89,6 +90,11 @@ def practice_speed(u_max, length_limit, post, rel, quantile=0.05):
         return u_max
     return brentq(f, 0.0, u_max)
 
+def slide_room(x_release, half_length=0.05, x_end=BOARD_X_MAX):
+    """Free slide length from the release point (object centre at x_release) to the board's far edge, less
+    the object's half length so the footprint stays on the board: practice_speed's length_limit."""
+    return x_end - half_length - x_release
+
 if __name__ == "__main__":
     from belief import logprior, posterior, theta_grid
     g = theta_grid()
@@ -98,4 +104,6 @@ if __name__ == "__main__":
         r = choose_speed(post, Release(J=J), 0.3, loss_sq_rel, u_max=2.0)
         print(f"d*=0.3 m, ln mu ~ N({m:.2f}, {S}^2), J={J}: u*={r['u']:.4f} m/s, E[L]={r['expected_loss']:.4f}"
               + (f"   closed form {closed_form_speed(0.3, m, S):.4f}" if math.isinf(J) else ""))
-    print(f"practice speed (table 0.6 m, u_max 1.2): {practice_speed(1.2, 0.6, post, Release()):.3f} m/s")
+    room = slide_room(0.75)
+    print(f"practice speed (release at x = 0.75 m on the 48 in board: {room:.3f} m of room, u_max 1.2): "
+          f"{practice_speed(1.2, room, post, Release()):.3f} m/s")

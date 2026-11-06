@@ -2,4 +2,3 @@ pair_id,object_id,surface_id,object_material,surface_material,mu_k_nominal,s_tab
 Y01,,,stainless steel block,ABS sheet,0.140,0.12,0.115,0.171,"Yu et al. 2016 (IROS), dynamic, 0.15 new -> 0.13 after 100 passes; s = spatial std 0.017 / mu",,,,,,,1,,,,
 Y02,,,stainless steel block,acetal (Delrin) sheet,0.140,0.11,0.117,0.168,"Yu et al. 2016 (IROS), dynamic, 0.16 -> 0.12 with wear; s = spatial std 0.016 / mu",,,,,,,1,,,,
 Y03,,,stainless steel block,plywood sheet,0.260,0.25,0.172,0.392,"Yu et al. 2016 (IROS), dynamic, 0.28 -> 0.24 with wear; s = spatial std 0.064 / mu",,,,,,,1,,,,
-Y04,,,stainless steel block,polyurethane sheet,0.285,0.25,0.189,0.430,"Yu et al. 2016 (IROS), dynamic at low speed; rises to 1.0 at 0.5 m/s, so not simulated (constant-mu model)",,,,,,,0,,,,

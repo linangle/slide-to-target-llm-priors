@@ -1,0 +1,17 @@
+"""scene.Table is the 48 in board (5 Nov decision 1): its extent, its strip tiling, and that the E0 runs fit on it."""
+import numpy as np
+from physics import BOARD_LENGTH, BOARD_X_MAX, BOARD_X_MIN
+from scene import Obj, Table, strip_targets
+
+def test_table_is_the_48_in_board():
+    t = Table()
+    assert abs(BOARD_LENGTH - 48*0.0254) < 1e-12 and abs(t.length - BOARD_LENGTH) < 1e-12
+    e = t.edges()
+    assert e[0] == BOARD_X_MIN and abs(e[-1] - BOARD_X_MAX) < 1e-12 and len(e) == t.n_strips + 1 == 25
+    assert np.allclose(np.diff(e)[:-1], t.strip) and t.strip <= e[-1] - e[-2] < 2*t.strip   # the last strip absorbs the remainder
+    assert len(strip_targets(0.3, 0.0, t, 0)) == t.n_strips
+    # the default start (x0 = 0.55) and the longest E0 slide (E0-4: rest at x = 1.35 m) both sit on the board
+    half = Obj().size[0]/2
+    assert BOARD_X_MIN < 0.55 - half and 1.35 + half < BOARD_X_MAX
+    # a table that is a whole number of strips tiles exactly
+    assert np.allclose(np.diff(Table(x_min=0.0, x_max=1.0).edges()), 0.05)

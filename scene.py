@@ -36,6 +36,9 @@ from pydrake.all import (AddCompliantHydroelasticProperties, AddContactMaterial,
                          RotationalInertia, RotationMatrix, Simulator, SpatialInertia, SpatialVelocity, StartMeshcat,
                          VolumeElement, VolumeMesh)
 
+from observe import CAMERA_FPS   # the landing camera's frame rate, 60 Hz (5 Nov decision 8)
+from physics import BOARD_X_MAX, BOARD_X_MIN   # the 48 in board along travel (5 Nov decision 1)
+
 G = 9.81
 DEFAULT_PAIRS = ("ground_truth_placeholder.csv",  # switch to measured_friction.csv once it exists
                  "ground_truth_published.csv")   # Yu et al. 2016 pairs
@@ -59,12 +62,24 @@ class Contact:
 
 @dataclass
 class Table:
-    x_min: float = -0.3        # strips cover x_min..x_max along travel, m
-    x_max: float = 1.5
+    x_min: float = BOARD_X_MIN  # the board along travel, m: strips cover x_min..x_max (48 in, 5 Nov decision 1)
+    x_max: float = BOARD_X_MAX
     width: float = 1.2         # across travel (y), m
-    strip: float = 0.05        # strip length along travel, m
+    strip: float = 0.05        # strip length along travel, m; the last strip absorbs the board's remainder
     patchiness: float = 1.0    # multiplier on the pair's s_tab_log; 0 = uniform table
     bimodal: bool = False      # strips at mu*exp(+-s) instead of mu*exp(s*z), z ~ N(0, 1)
+
+    @property
+    def length(self):
+        return self.x_max - self.x_min
+
+    @property
+    def n_strips(self):
+        return max(1, int(math.floor(self.length/self.strip + 1e-9)))
+
+    def edges(self):
+        """Strip boundaries along x: strip-long from x_min, the last one running to x_max (len = n_strips + 1)."""
+        return np.append(self.x_min + self.strip*np.arange(self.n_strips), self.x_max)
 
 @dataclass
 class Obj:
@@ -84,6 +99,7 @@ class Camera:
     height: int = 480                    # px
     fov_y: float = math.pi/4             # rad; Drake's CameraConfig default
     yaw: float = math.radians(3)         # turn about the optical axis, so object edges never line up with pixel rows
+    fps: float = CAMERA_FPS              # Hz; frames are rendered at the recorded poses every 1/fps s (e0_5_observation.py)
 
 @dataclass
 class Scene:
@@ -113,7 +129,7 @@ def partner_mu(target):
     return OBJECT_MU*target/(2*OBJECT_MU - target)
 
 def strip_targets(mu, s, table, seed):
-    n = int(round((table.x_max - table.x_min)/table.strip))
+    n = table.n_strips
     rng = np.random.default_rng(seed)
     z = rng.choice([-1.0, 1.0], n) if table.bimodal else rng.standard_normal(n)
     return mu*np.exp(table.patchiness*s*z)
@@ -240,11 +256,11 @@ def build_scene(builder, pair, obj=Obj(), table=Table(), contact=Contact(), arm=
                                                       contact_model=contact.contact_model,
                                                       discrete_contact_approximation=contact.approx), builder)
     mu_strips = strip_targets(float(pair["mu_k_nominal"]), float(pair["s_tab_log"]), table, seed)
-    x_edges = table.x_min + table.strip*np.arange(len(mu_strips) + 1)
+    x_edges = table.edges()
     lo, hi = mu_strips.min(), mu_strips.max()
     for i, mu in enumerate(mu_strips):
         X = RigidTransform([(x_edges[i] + x_edges[i+1])/2, 0, -0.025])   # 5 cm thick, top at z = 0
-        strip = Box(table.strip, table.width, 0.05)
+        strip = Box(x_edges[i+1] - x_edges[i], table.width, 0.05)
         plant.RegisterCollisionGeometry(plant.world_body(), X, strip, f"strip_{i:02d}",
                                         proximity(False, partner_mu(mu), contact))
         shade = 0.85 - 0.35*(mu - lo)/(hi - lo) if hi > lo else 0.7   # darker = more friction

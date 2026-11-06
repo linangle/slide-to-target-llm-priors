@@ -4,14 +4,26 @@ import numpy as np
 import observe as O
 import physics as P
 
-# Section 3.5 error-budget table: (mu, v) -> (A, B, C, O1 noise, O1 bias J=100, O1 bias J=300), in percent
-TABLE = {(0.1, 0.8): (1.6, 1.1, 0.8, 6.0, 1.2, 0.4), (0.1, 1.1): (0.7, 0.5, 0.4, 6.0, 0.9, 0.3),
-         (0.3, 0.5): (20.0, 15.6, 12.1, 7.6, 19.9, 6.0), (0.3, 0.8): (7.0, 5.2, 3.9, 6.3, 11.8, 3.7),
-         (0.3, 1.1): (3.3, 2.5, 1.8, 6.1, 8.4, 2.7), (0.5, 0.5): (36.7, 30.6, 25.6, 9.9, 73.4, 18.2),
-         (0.5, 0.8): (19.6, 10.3, 8.0, 6.7, 38.5, 10.8), (0.5, 1.1): (8.0, 4.9, 3.7, 6.2, 26.1, 7.7)}
+# Section 3.5 error-budget table at the 60 Hz camera (5 Nov decision 8), 2 mm frames, 0.5 mm rest and FK:
+# (mu, v) -> (A, B, C, O1 noise, O1 bias J=100, O1 bias J=300), in percent
+TABLE = {(0.1, 0.8): (1.2, 0.9, 0.7, 6.0, 1.2, 0.4), (0.1, 1.1): (0.5, 0.4, 0.3, 6.0, 0.9, 0.3),
+         (0.3, 0.5): (16.7, 12.3, 9.0, 7.6, 19.9, 6.0), (0.3, 0.8): (5.6, 4.0, 2.9, 6.3, 11.8, 3.7),
+         (0.3, 1.1): (2.6, 1.9, 1.4, 6.1, 8.4, 2.7), (0.5, 0.5): (32.0, 24.5, 18.6, 9.9, 73.4, 18.2),
+         (0.5, 0.8): (12.8, 8.1, 6.0, 6.7, 38.5, 10.8), (0.5, 1.1): (5.4, 3.8, 2.8, 6.2, 26.1, 7.7)}
+# the 31 Oct table at 30 Hz, kept so the rate's effect stays checkable
+TABLE_30HZ = {(0.1, 0.8): (1.6, 1.1, 0.8, 6.0, 1.2, 0.4), (0.1, 1.1): (0.7, 0.5, 0.4, 6.0, 0.9, 0.3),
+              (0.3, 0.5): (20.0, 15.6, 12.1, 7.6, 19.9, 6.0), (0.3, 0.8): (7.0, 5.2, 3.9, 6.3, 11.8, 3.7),
+              (0.3, 1.1): (3.3, 2.5, 1.8, 6.1, 8.4, 2.7), (0.5, 0.5): (36.7, 30.6, 25.6, 9.9, 73.4, 18.2),
+              (0.5, 0.8): (19.6, 10.3, 8.0, 6.7, 38.5, 10.8), (0.5, 1.1): (8.0, 4.9, 3.7, 6.2, 26.1, 7.7)}
 
 def test_crlb_reproduces_error_budget():
-    """Test 2: every cell within 0.1 percentage point."""
+    """Test 2: every cell within 0.1 percentage point, at the default (60 Hz) and at the 31 Oct 30 Hz."""
+    assert O.CAMERA_FPS == 60
+    for row in O.error_budget(fps=30):
+        want = TABLE_30HZ[(row["mu"], row["v"])]
+        got = (row["A"], row["B"], row["C"], row["O1"], row["bias_J100"], row["bias_J300"])
+        for g, w in zip(got, want):
+            assert abs(g*100 - w) <= 0.1 + 1e-9, (30, row["mu"], row["v"], got, want)
     for row in O.error_budget():
         want = TABLE[(row["mu"], row["v"])]
         got = (row["A"], row["B"], row["C"], row["O1"], row["bias_J100"], row["bias_J300"])

@@ -12,11 +12,18 @@ prior and LLM model are Gaussian in ln mu, so the grid is exact where a conjugat
 transition between practice slides is the identity (the parameters do not change between slides; the
 object is reset; Yu et al. saw about 0.15% wear per pass).
 
+Baseline C2 (the published lookup table, friction_lookup.csv) enters the same way as the LLM term: the row's
+nominal is one Gaussian observation of theta on top of the population prior, ln mu_tab ~ N(theta, s_tab^2),
+with s_tab the row's s_tab_log (ln f / 1.645 for the tier factors f = 2 / 2.5 / 3; 5 Nov decision 3).  A pair
+with tier none has no such term (loglik_lookup, lookup_observation).
+
 The grid has 500 points over [ln 0.05, ln 1.0].
 """
-import math
+import csv, math, os
 import numpy as np
 from physics import G
+
+LOOKUP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "friction_lookup.csv")
 
 THETA_MIN, THETA_MAX, N_GRID = math.log(0.05), math.log(1.0), 500
 
@@ -36,6 +43,20 @@ def prior_from_measured(mu_train, s_floor=0.05):
 
 def logprior(grid, m0, s0):
     return log_normal_pdf(grid, m0, s0)
+
+def loglik_lookup(grid, mu_tab, s_tab):
+    """log p(lookup | theta) for baseline C2 (5 Nov decision 3): the table's nominal is one Gaussian observation
+    of theta on top of the population prior, ln mu_tab ~ N(theta, s_tab^2)."""
+    return log_normal_pdf(math.log(mu_tab), grid, s_tab)
+
+def lookup_observation(pair_id, path=LOOKUP_PATH):
+    """(mu_tab, s_tab) for one pair of friction_lookup.csv, read by column name (mu_k_nominal, s_tab_log); None
+    when the pair is not in the table or has tier none, in which case C2 is the prior alone."""
+    with open(path, newline="") as f:
+        for row in csv.DictReader(f):
+            if row["pair_id"] == pair_id:
+                return (float(row["mu_k_nominal"]), float(row["s_tab_log"])) if row["mu_k_nominal"] else None
+    return None
 
 def fit_llm_likelihood(m_llm, theta_true):
     """Least squares of the LLM's median (in ln mu) on the true ln mu: m = alpha + beta theta + eps.
@@ -140,9 +161,11 @@ def n0(sigma_obs, s0):
     return (sigma_obs/s0)**2
 
 if __name__ == "__main__":
-    from observe import crlb
+    from observe import crlb, CAMERA_FPS
     g = theta_grid()
     m0, s0 = math.log(0.3), 0.45
     print(f"prior: ln mu ~ N({m0:.3f}, {s0}^2)")
     for mu, v in ((0.1, 1.1), (0.3, 0.8), (0.5, 0.5)):
-        print(f"mu={mu} v={v}: n0 = {n0(crlb(mu, v, 30, 0.002, 0.0005, 0.0005), s0):.2e} slides")
+        print(f"mu={mu} v={v}: n0 = {n0(crlb(mu, v, CAMERA_FPS, 0.002, 0.0005, 0.0005), s0):.2e} slides")
+    for pid in ("V03", "Y02", "M06"):
+        print(f"lookup observation for {pid}: {lookup_observation(pid)}")

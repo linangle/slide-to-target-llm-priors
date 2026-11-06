@@ -34,3 +34,10 @@ def test_losses_and_practice_speed():
     for name in D.LOSSES:
         r = D.choose_speed(post, D.Release(), 0.3, D.LOSSES[name], u_max=2.0)
         assert 0 < r["u"] <= 2.0
+
+def test_slide_room_on_the_48_in_board():
+    """Decision 1 (5 Nov): the practice-speed length limit is the board's far edge less the release point and the
+    object's half length."""
+    assert abs(D.BOARD_X_MAX - 0.3 - 48*0.0254) < 1e-12
+    assert abs(D.slide_room(0.75) - (D.BOARD_X_MAX - 0.05 - 0.75)) < 1e-12
+    assert D.slide_room(0.75, half_length=0.1) < D.slide_room(0.75) < D.slide_room(0.6)

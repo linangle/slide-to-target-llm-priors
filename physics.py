@@ -29,6 +29,14 @@ import numpy as np
 
 G = 9.81   # m/s^2; scene.py uses the same value
 
+# Rig geometry (5 Nov decision 1): the object slides on a 48 in board.  Along the push (+x) it runs from
+# BOARD_X_MIN, ahead of the iiwa base at the origin, to BOARD_X_MAX.  scene.Table tiles it with strips and
+# decide.slide_room measures the free length from a release point.  The far edge is where the pre-decision
+# 1.8 m table ended, so the E0 runs (rest points up to x = 1.35 m) stay on the board.
+BOARD_LENGTH = 48*0.0254                 # m, 1.2192
+BOARD_X_MIN = 0.3                        # m; the object starts at x0 >= 0.55 (paddle reach), 0.2 m in from the near edge
+BOARD_X_MAX = BOARD_X_MIN + BOARD_LENGTH  # m, 1.5192
+
 # ----------------------------------------------------------------------------- free slide
 
 def stop_distance(v, mu, g=G):

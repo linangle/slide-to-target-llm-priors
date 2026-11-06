@@ -178,7 +178,7 @@ release-ramp bias $(v_{\text{cmd}}/v_r)^2-1$, which grows with $\mu$ by~\eqref{e
 bias (\code{observe.fit\_o1}, \code{o1\_bias}).
 
 \paragraph{Error budget.}  Relative standard error of $\mu$ from one slide (Cram\'er--Rao bound,
-\code{observe.crlb}; test 2 reproduces every cell).  Camera at 30 Hz with 2 mm per-frame noise; rest pose and FK
+\code{observe.crlb}; test 2 reproduces every cell).  Camera at 60 Hz (decision 8, settled 5 Nov; the 31 Oct budget used 30 Hz) with 2 mm per-frame noise; rest pose and FK
 at 0.5 mm.  O1 assumes 3\% speed error and 2 mm endpoint error; its bias is computed at braking jerk $J$.
 \begin{center}\small
 \begin{tabular}{@{}cclrrrrrr@{}}
@@ -225,7 +225,9 @@ and $\dstar=0.3$ m, the optimum moves from 1.242 m/s at $J=\infty$ to 1.253 at $
 
 \textbf{Practice slides run at the maximum feasible speed} (\code{decide.practice\_speed}).  The standard error
 falls roughly as $v^{-2.5}$, so the Fisher information grows roughly as $v^{5}$.  That is valid only if $\mu$ does not
-depend on speed, which the rig's $\mu(v)$ data check (A4).
+depend on speed, which the rig's $\mu(v)$ data check (A4).  The slide room is the 48 in board's far edge less the release
+point and the object's half length (\code{decide.slide\_room}; decision 1, 5 Nov; \code{scene.Table} tiles the same board,
+$x = 0.3$ to $1.52$ m ahead of the iiwa base).
 
 \section{Fidelity ladder}
 \label{sec:ladder}
@@ -248,7 +250,7 @@ step in deceleration (a friction strip crossed); deceleration that changes smoot
 ratio evolves; or a speed-dependent $\mu$, which across slides shows as $\hat\mu$ correlated with $v_r$,
 \code{observe.speed\_signature}).  \emph{Detectability}: on synthetic 1.1 m/s slides with $\mu$ stepping from 0.1
 to 0.2 part way, the step is labelled on 20 of 20 trials at 0.5 mm frame noise and 60 Hz and on 18 of 20 at 1 mm,
-but at the budget's 2 mm and 30 Hz it reads as a smooth trend on 20 of 20.  Telling a strip from spin in one slide
+but at 2 mm and 30 Hz (the 31 Oct budget) it reads as a smooth trend on 20 of 20.  Telling a strip from spin in one slide
 needs sub-millimetre frames or 60 Hz and up, which bears on the camera-rate decision (E0-5).
 
 Prediction to report against: L0 is easy, as the instructor expects.  The real difficulty is the $\mu$-dependent
@@ -280,8 +282,8 @@ Module & Functions & Tests (\code{pytest tests/})\\
 \midrule
 \code{physics.py} & \code{stop\_distance}, \code{release\_speed}, \code{release\_from\_profile}, \code{slide\_trajectory}, \code{slide\_piecewise}, \code{slide\_field}, \code{spin\_factor}, \code{disk\_spin\_slide}, \code{no\_tip} & 1: sampled release vs~\eqref{eq:vr} to $10^{-6}$ m/s; 6: disk $d/d_0$ 1.065, 1.27\\
 \code{observe.py} & \code{simulate\_obs}, \code{fit\_slide} (A, B, C), \code{fit\_o1}, \code{crlb}, \code{error\_budget}, \code{residual\_signature}, \code{speed\_signature} & 2: budget table to 0.1 pp; 3: 2,000 slides, bias $<1\%$, SD within 20\% of CRLB\\
-\code{belief.py} & \code{theta\_grid}, \code{prior\_from\_measured}, \code{fit\_llm\_likelihood(\_loo)}, \code{loglik\_slide}, \code{posterior}, \code{n0} & 4: grid vs conjugate update to $10^{-3}$\\
-\code{decide.py} & \code{expected\_loss}, \code{choose\_speed}, losses, \code{closed\_form\_speed}, \code{practice\_speed} & 5: $J\to\infty$ limit to three significant digits\\
+\code{belief.py} & \code{theta\_grid}, \code{prior\_from\_measured}, \code{loglik\_lookup}, \code{lookup\_observation} (C2: the table's value as one observation of $\theta$, decision 3), \code{fit\_llm\_likelihood(\_loo)}, \code{loglik\_slide}, \code{posterior}, \code{n0} & 4: grid vs conjugate update to $10^{-3}$, with and without the lookup term\\
+\code{decide.py} & \code{expected\_loss}, \code{choose\_speed}, losses, \code{closed\_form\_speed}, \code{practice\_speed}, \code{slide\_room} & 5: $J\to\infty$ limit to three significant digits\\
 \code{llm\_prior.py} & \code{build\_prompt}, \code{cached\_response} & 7: only \code{description\_*}, \code{photo\_*} reach a prompt\\
 \code{drake\_config.py}, \code{sim\_config.yaml} & \code{load\_config}, \code{contact\_from\_config}, \code{describe}, \code{assert\_hydro\_only} & E0-2 (\code{e0\_2\_hydro\_check.py})\\
 \code{e0\_1\_free\_slide.py} & grid, spin and heading launches & E0-1 pass criteria; spin within 10\% of the disk model\\
@@ -329,7 +331,8 @@ $\sigma_f = 0.09$ mm, $\sigma_{\mathrm{rest}} = 0.03$ mm near the camera axis an
 assumed 0.5 mm because the simulator's forward kinematics are exact.  The Section~\ref{sec:observation} budget assumed 2 mm frames and
 is therefore 10--20$\times$ pessimistic; the measured values are lower bounds (exact camera pose and intrinsics, no motion blur).
 Decision 8 is not settled by $\mu$'s precision (model C: 0.42\% at 30 Hz and 0.25\% at 120 Hz on the shortest slide) but by what
-else the frames must resolve.
+else the frames must resolve.  The team chose 60 Hz on 5 Nov (\code{observe.CAMERA\_FPS}, \code{scene.Camera.fps}); the
+error-budget table of Section~\ref{sec:observation} is at that rate.
 
 \appendix
 \section{sim\_config.yaml}

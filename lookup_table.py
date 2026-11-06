@@ -4,7 +4,7 @@ Run: python3 lookup_table.py
 Writes friction_lookup.csv (v1's 11 columns unchanged, then role, tier, static_upper,
 source_speed_mps, source_method, verified) and the LaTeX row files that
 friction_lookup_table.tex \\input{}s:
-  rows_main.tex        Table 1: L01-L20 handbook rows + Y01-Y04 with independent values
+  rows_main.tex        Table 1: L01-L20 handbook rows + Y01-Y03 with independent values
   rows_static.tex      Table 2: static-only / unlabelled / near-miss values (not entries)
   rows_rig.tex         Table 3: rig pairs M01-M27 and V01-V03
   rows_primary.tex     Table 4: object x surface coverage grid built from the M rows
@@ -56,12 +56,14 @@ SOURCES = [
 ]
 SRC = {k: i+1 for i, (k, _) in enumerate(SOURCES)}   # key -> reference number
 BIB = dict(SOURCES)
-# Not a lookup source (rule 4): Yu et al. 2016 sets simulator friction for Y01-Y04.
+# Not a lookup source (rule 4): Yu et al. 2016 sets simulator friction for Y01-Y03
+# (Y04, polyurethane, was dropped from the simulated set on 5 Nov 2026, decision 6).
 # The document cites it in its own text; the comparison table reads its values from the truth file.
 YU_TRUTH_FILE = "ground_truth_published.csv"
 
 # ----------------------------------------------------------------------------- spreads
-TIER_F = {"A": 1.5, "B": 2.0, "C": 2.5}      # rule 3: 90% interval mu/f .. mu*f
+TIER_F = {"A": 2.0, "B": 2.5, "C": 3.0}      # rule 3: 90% interval mu/f .. mu*f (5 Nov decision 3; was 1.5 / 2 / 2.5)
+POOLED_F = {"L06": 1.8, "Y02": 1.8}           # decision 5: the pooled acetal-on-steel entry keeps its own spread
 
 def s_from_factor(f):
     """log-spread s such that the 90% interval is [mu/f, mu*f]."""
@@ -71,17 +73,20 @@ def interval(mu, s):
     return mu*math.exp(-1.645*s), mu*math.exp(1.645*s)
 
 # ----------------------------------------------------------------------------- data
-# PLACEHOLDER DECISIONS (Section 10): the team has not decided these yet. The spec's
-# recommendations are used so the files build; change here once decided.
-#   decision 2 (V03): "crossed" 0.19 (90% 0.13-0.29, static 0.43) is the nominal;
-#                     "perpendicular" 0.33 (0.22-0.50, static 0.54) is kept in notes.
-#   decision 3 (tiers): spread factors 1.5 / 2 / 2.5 for tiers A / B / C are accepted.
-#   decision 5 (L06): nominal stays 0.20 (ASTM D3702); [DU] 0.30-0.33 at 0.5 m/s is
-#                     added as a further source, not as the nominal.
-PLACEHOLDERS = [
- ("2", "V03 nominal = 'crossed' 0.19 (alt. 'perpendicular' 0.33 in notes)"),
- ("3", "tier spread factors 1.5 / 2 / 2.5 accepted"),
- ("5", "L06 nominal kept at 0.20 (ASTM D3702); [DU] 0.30-0.33 added as a source"),
+# TEAM DECISIONS of 5 Nov 2026 (README, "Decisions (5 Nov)"), replacing the Section 10 placeholders:
+#   decision 2 (V03): "perpendicular" 0.33 (source 0.32-0.34, static 0.54) is the nominal;
+#                     "crossed" 0.19 (static 0.43) is the alternative, kept in the notes.
+#   decision 3 (tiers): spread factors 2 / 2.5 / 3 for tiers A / B / C; the lookup value enters
+#                     the belief as one observation on top of the population prior (belief.loglik_lookup).
+#   decision 5 (L06): one pooled acetal-on-steel entry, 0.25 with factor 1.8, shared by L06 and Y02
+#                     (0.20 D3702, 0.15-0.35 TSE, 0.45 Mens, 0.30-0.33 DU); 0.20 had it been binary.
+#   decision 6 (Y04): polyurethane dropped from the simulated set: the row is gone from the truth
+#                     file and its lookup candidate (0.61, above the 0.50 cap) sits in EXCLUDED.
+DECISIONS = [
+ ("2", "V03 nominal = 'perpendicular' 0.33 (alt. 'crossed' 0.19 in notes)"),
+ ("3", "tier spread factors 2 / 2.5 / 3; the lookup value is an observation on the prior"),
+ ("5", "L06 and Y02 share the pooled acetal-on-steel entry 0.25, factor 1.8"),
+ ("6", "Y04 polyurethane dropped from the simulated set (excluded list)"),
 ]
 
 @dataclass
@@ -95,7 +100,7 @@ class Row:
     s: float             # log spread (None when tier == "none")
     src: list
     note: str
-    role: str            # secondary (L01-L20) | yu_pair (Y01-Y04) | rig (M, V)
+    role: str            # secondary (L01-L20) | yu_pair (Y01-Y03) | rig (M, V)
     tier: str            # A | B | C | none   (for L01-L20 informational: spreads are v1's)
     static_upper: float = None
     speed: str = ""      # test speed in the source, m/s, blank if unstated
@@ -120,7 +125,7 @@ ROWS_L = [
  L("L03","copper block",            "mild steel plate", 0.36, None, None, s_from_factor(1.5), ["nasa","elib","etb"], "handbook single value", method="handbook table"),
  L("L04","brass block",             "mild steel plate", 0.44, None, None, s_from_factor(1.5), ["nasa","elib","etb"], "handbook single value", method="handbook table"),
  L("L05","phenolic laminate block", "mild steel plate", 0.35, None, None, s_from_factor(1.5), ["nasa","elib"],       "'laminated plastic on steel'; handbook single value", method="handbook table"),
- L("L06","acetal (POM) block",      "mild steel plate", 0.20, 0.15, 0.45, s_from_factor(1.8), ["delrin","tse","mens","DU"], "sources disagree by 3x: 0.20 (D3702), 0.15-0.35 (TSE), 0.45 (Mens), 0.30-0.33 at 0.5 m/s [DU]; nominal = D3702 (PLACEHOLDER, Section 10 decision 5)", speed="0.25 (D3702); 0.5 (DU)", method="thrust washer ASTM D3702; block-on-ring [DU]", flag="4 sources"),
+ L("L06","acetal (POM) block",      "mild steel plate", 0.25, 0.15, 0.45, s_from_factor(POOLED_F["L06"]), ["delrin","tse","mens","DU"], "sources disagree by 3x: 0.20 (D3702), 0.15-0.35 (TSE), 0.45 (Mens), 0.30-0.33 at 0.5 m/s [DU]; pooled acetal-on-steel entry 0.25 with factor 1.8, shared with Y02 (5 Nov decision 5; 0.20 D3702 had it been binary)", speed="0.25 (D3702); 0.5 (DU)", method="thrust washer ASTM D3702; block-on-ring [DU]", flag="4 sources, pooled with Y02"),
  L("L07","nylon 6/6 block",         "mild steel plate", 0.27, 0.17, 0.57, s_from_factor(1.8), ["mcm","tse","mens"],  "0.25-0.28 (McMaster), 0.17-0.43 (TSE), 0.57 (Mens); nominal = McMaster midpoint", method="datasheet / handbook", flag="3 sources"),
  L("L08","UHMW-PE block",           "mild steel plate", 0.14, 0.09, 0.25, s_from_factor(1.6), ["tse","mcm"],         "0.09-0.12 (TSE), 0.12-0.25 (McMaster); low end gives long slides", method="datasheet / handbook"),
  L("L09","zinc block",              "cast iron plate",  0.21, None, None, s_from_factor(1.5), ["nasa","elib","etb"], "handbook single value", method="handbook table"),
@@ -137,28 +142,26 @@ ROWS_L = [
  L("L20","graphite block",          "glass plate",      0.18, None, None, s_from_factor(1.5), ["nasa","elib"],       "'carbon on glass'; handbook single value", method="handbook table"),
 ]
 
-# --- Y01-Y04: Yu et al.'s pairs with INDEPENDENT lookup values (Section 7.2) ----------
+# --- Y01-Y03: Yu et al.'s pairs with INDEPENDENT lookup values (Section 7.2) ----------
 # IDs match the truth file ground_truth_published.csv. Material strings match it too.
 # The Yu figures themselves are not stored here (rule 4); the comparison table reads them
-# from the truth file at run time.
+# from the truth file at run time.  Y04 (polyurethane) was dropped on 5 Nov (decision 6): see EXCLUDED.
 def Y(pid, alias, obj, surf, mu, tier, src, note, match, **kw):
-    return Row(pid, obj, surf, mu, kw.pop("lo", None), kw.pop("hi", None), s_from_factor(TIER_F[tier]),
+    f = POOLED_F.get(pid, TIER_F[tier])
+    return Row(pid, obj, surf, mu, kw.pop("lo", None), kw.pop("hi", None), s_from_factor(f),
                src, f"{alias} in v1 (Yu value removed: simulator truth, not a lookup source); " + note,
-               "yu_pair", tier, alias=alias, match=match, flag="replaces Yu value", **kw)
+               "yu_pair", tier, alias=alias, match=match, flag=kw.pop("flag", "replaces Yu value"), **kw)
 
 ROWS_Y = [
  Y("Y01","L21","stainless steel block","ABS sheet",             0.24, "C", ["MA"],
    "printed ABS under a stainless hemisphere, 0.05 m/s [MA]; printed, not extruded sheet, so tier C",
    "[MA]: printed ABS under a stainless hemisphere, 0.05 m/s", speed="0.05", method="hemisphere-on-flat"),
- Y("Y02","L22","stainless steel block","acetal (Delrin) sheet", 0.31, "A", ["DU"],
-   "Delrin block on steel ring, 0.5 m/s, 10 N [DU]; exact materials at a matching speed, but a loaded ring test, not a lightly loaded flat block (ASTM G115: friction belongs to the whole test system)",
-   "[DU]: Delrin block on steel ring, 0.5 m/s, 10 N", speed="0.5", method="block-on-ring, 10 N"),
+ Y("Y02","L22","stainless steel block","acetal (Delrin) sheet", 0.25, "A", ["delrin","tse","mens","DU"],
+   "pooled acetal-on-steel entry 0.25 with factor 1.8, shared with L06 (5 Nov decision 5): 0.20 (D3702), 0.15-0.35 (TSE), 0.45 (Mens), 0.30-0.33 at 0.5 m/s [DU]; the exact-material source [DU] is a loaded block-on-ring test, not a lightly loaded flat block (ASTM G115: friction belongs to the whole test system)",
+   "[DU] pooled with L06's sources [delrin], [tse], [mens]: Delrin block on steel ring, 0.5 m/s, 10 N", speed="0.5 (DU); 0.25 (D3702)", method="block-on-ring, 10 N; pooled with thrust washer ASTM D3702", lo=0.15, hi=0.45, flag="replaces Yu value; pooled with L06"),
  Y("Y03","L23","stainless steel block","plywood sheet",         0.22, "C", ["ME","VI"],
    "smooth steel and timber, reversed roles [ME], [VI]; Meng 2008 Table 3 row assignment garbled in extraction, verify",
    "[ME], [VI]: smooth steel and timber, reversed roles", method="timber on steel plate, reversed roles"),
- Y("Y04","L24","stainless steel block","polyurethane sheet",    0.61, "B", ["MZ"],
-   "TPU 95A on brushed steel, flat on flat, 0.32 m/s [MZ]; above the simulated range (0.10-0.50); rubber-like friction rises with speed [RO]",
-   "[MZ]: TPU 95A on brushed steel, flat on flat, 0.32 m/s", speed="0.32", method="flat-on-flat long stroke"),
 ]
 
 # --- rig pairs M01-M27 and V01-V03 (Section 7.3) -------------------------------------
@@ -215,7 +218,7 @@ ROWS_M = [
  # --- validation pairs --------------------------------------------------------------
  rig("V01", 0.24, "C", ["MA"],           "Same source as Y01 (L21)", speed="0.05", method="hemisphere-on-flat", obj="9", surf="5"),
  rig("V02", 0.48, "A", ["KO"],           "Morin and Kollmann values, secondhand; same figure as handbook L17", static=0.62, method="tabulated (secondhand)", obj="7", surf="4"),
- rig("V03", 0.19, "A", ["KO"],           "PLACEHOLDER (Section 10 decision 2): 'crossed' 0.19 (90% 0.13-0.29, static 0.43) used; 'perpendicular' 0.33 (90% 0.22-0.50, static 0.54) is the alternative; team decides", static=0.43, lo=0.19, hi=0.33, method="tabulated (secondhand)", obj="7b", surf="4"),
+ rig("V03", 0.33, "A", ["KO"],           "'perpendicular' 0.33 (source 0.32-0.34, static 0.54) per the 5 Nov decision 2; 'crossed' 0.19 (static 0.43) is the alternative", static=0.54, lo=0.32, hi=0.34, method="tabulated (secondhand)", obj="7b", surf="4"),
 ]
 
 ROWS = ROWS_L + ROWS_Y + ROWS_M
@@ -228,15 +231,16 @@ STATIC = [
  ("cardboard (untreated) on wooden pallet",         "0.50",        ["CTU"], "static-derived design value", "lashing-guide factor; recorded as M14 static upper"),
  ("unpainted rough steel on sawn wood",             "0.45",        ["CTU"], "static-derived design value", "lashing-guide factor; recorded as M18 static upper"),
  ("oak on oak, grain along (static)",               "0.62",        ["KO"],  "static",     "secondhand; recorded as V02 static upper"),
- ("oak across on oak along (static)",               "0.54 perp. / 0.43 crossed", ["KO"], "static", "secondhand; V03 static upper follows the Section 10 decision"),
+ ("oak across on oak along (static)",               "0.54 perp. / 0.43 crossed", ["KO"], "static", "secondhand; V03 static upper is the perpendicular 0.54 (5 Nov decision 2)"),
  ("PLEXIGLAS (cast acrylic), datasheet",            "0.8 and 0.5", ["PLX"], "unlabelled", "counterface and static/kinetic not stated; cannot be used (M06, M15, M24 stay none)"),
  ("wear-plate steel on bare (unpainted) MDF",       "0.68",        ["KU"],  "kinetic, excluded", "bare MDF; paint changes the surface, so not used for M27"),
 ]
 
 # Candidate entries found but excluded, with reason. Entries whose reason mentions STATIC
 # are printed in Table 2 with the list above; the rest go to the excluded table.
-# The four Yu et al. pairs are no longer listed here: they are Y01-Y04 with independent values.
+# Yu's simulated pairs are Y01-Y03 above, with independent values; the dropped Y04 is the first entry here.
 EXCLUDED = [
+ ("stainless steel on polyurethane (TPU 95A) sheet, 0.32 m/s", 0.61, "MZ", "above 0.50 cap; Yu pair Y04, dropped from the simulated set on 5 Nov (decision 6); rubber-like friction rises with speed"),
  ("mild steel on mild steel", 0.57, "nasa", "above 0.50 cap"),
  ("nickel on nickel", 0.53, "nasa", "above 0.50 cap"),
  ("nickel on mild steel", 0.64, "nasa", "above 0.50 cap"),
@@ -408,7 +412,8 @@ def check_consistency():
         else:
             assert r.mu is not None and r.s is not None, f"{r.pid}: missing value"
             if r.role != "secondary":
-                assert abs(r.s - s_from_factor(TIER_F[r.tier])) < 1e-12, f"{r.pid}: spread does not match tier"
+                f = POOLED_F.get(r.pid, TIER_F[r.tier])
+                assert abs(r.s - s_from_factor(f)) < 1e-12, f"{r.pid}: spread does not match tier"
     # material strings against the measured-file placeholder, if present
     if os.path.exists("ground_truth_placeholder.csv"):
         with open("ground_truth_placeholder.csv", newline="") as f:
@@ -447,7 +452,7 @@ def main():
     mus = [r.mu for r in ROWS if r.mu is not None]
     print("mu range over entries", min(mus), max(mus), "; entries outside 0.10-0.50:",
           [r.pid for r in ROWS if r.mu is not None and not 0.10 <= r.mu <= 0.50])
-    print("REMINDER: Section 10 decisions are PLACEHOLDERS -- " + "; ".join(f"d{d}: {t}" for d, t in PLACEHOLDERS))
+    print("5 Nov decisions applied -- " + "; ".join(f"d{d}: {t}" for d, t in DECISIONS))
     # slide lengths at median/max release speed, for a feel of the numbers
     for mu in (0.14, 0.26, 0.49):
         for v in (0.43, 0.8, 1.1):
