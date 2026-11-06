@@ -19,7 +19,7 @@ with tier none has no such term (loglik_lookup, lookup_observation).
 
 The grid has 500 points over [ln 0.05, ln 1.0].
 """
-import csv, math, os
+import csv, functools, math, os
 import numpy as np
 from physics import G
 
@@ -49,12 +49,17 @@ def loglik_lookup(grid, mu_tab, s_tab):
     of theta on top of the population prior, ln mu_tab ~ N(theta, s_tab^2)."""
     return log_normal_pdf(math.log(mu_tab), grid, s_tab)
 
+@functools.lru_cache(maxsize=None)
+def _lookup_rows(path):
+    """friction_lookup.csv as {pair_id: row}, read once per path and process (rerun after regenerating it)."""
+    with open(path, newline="") as f:
+        return {row["pair_id"]: row for row in csv.DictReader(f)}
+
 def lookup_observation(pair_id, path=LOOKUP_PATH):
     """(mu_tab, s_tab) for one pair of friction_lookup.csv, read by column name (mu_k_nominal, s_tab_log); None
     when the row has tier none, in which case C2 is the prior alone.  A pair_id that is not in the table raises
     KeyError, so a typo or an ID-scheme mismatch cannot quietly turn C2 into C0."""
-    with open(path, newline="") as f:
-        rows = {row["pair_id"]: row for row in csv.DictReader(f)}
+    rows = _lookup_rows(path)
     if pair_id not in rows:
         raise KeyError(f"pair {pair_id!r} is not in {path}")
     row = rows[pair_id]

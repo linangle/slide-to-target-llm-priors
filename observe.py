@@ -83,7 +83,7 @@ def initial_guess(obs, model="C"):
         return np.array([c0, max(c1, 0.05), mu])
     x_r = obs.x_fk if "fk" in MODELS[model] else float(obs.x[0])
     d = max(obs.x_rest - x_r, 1e-3) if "rest" in MODELS[model] else max(obs.x[-1] - x_r, 1e-3)
-    T = max(obs.t[-1], 1/30.0) if len(obs.t) else 0.2
+    T = max(obs.t[-1], 1/CAMERA_FPS) if len(obs.t) else 0.2
     v_r = 2*d/T if len(obs.t) > 1 else 0.5
     return np.array([x_r, v_r, float(np.clip(v_r**2/(2*obs.g*d), 0.02, 2.0))])
 

@@ -37,7 +37,7 @@ from pydrake.all import (AddDefaultVisualization, Box, DiagramBuilder, FixedOffs
                          SpatialInertia, StartMeshcat, TrajectorySource, UnitInertia)
 from scene import G, PADDLE, Obj, Table, build_scene, partner_mu, proximity
 from drake_config import contact_from_config, describe
-from physics import release_from_profile, release_speed, stop_distance
+from physics import A_PUSH, release_from_profile, release_speed, stop_distance
 
 PLATE = (PADDLE[2], PADDLE[0], PADDLE[1])   # thickness along x (push), width along y, height along z: scene.PADDLE as the arm holds it
 
@@ -80,7 +80,7 @@ class Pusher:
         """World x of the face's nearest point to the object at joint translation q."""
         return self.x_touch0 + q
 
-def profile(v_peak, J, a_push=2.0, settle=0.3, hold=2.0, dt=1e-4):
+def profile(v_peak, J, a_push=A_PUSH, settle=0.3, hold=2.0, dt=1e-4):
     """Commanded paddle motion: rest until `settle`; accelerate at a_push; then ONE constant-jerk segment (-J) that
     takes the acceleration through zero exactly at v_peak and on into braking until the plate stops; then hold.
     So the brake starts from zero deceleration at the speed peak, as the release model assumes, and the command has
@@ -133,7 +133,7 @@ def _points_involving(res, plant, names=("paddle", "object")):
             n += 1
     return n
 
-def push_slide(mu, v_peak, J, contact=None, obj=None, pusher=None, a_push=2.0, settle=0.3, x0=0.55, f_min=0.01,
+def push_slide(mu, v_peak, J, contact=None, obj=None, pusher=None, a_push=A_PUSH, settle=0.3, x0=0.55, f_min=0.01,
                camera=None, keep_traj=True, meshcat=None):
     """One push-and-slide.  Returns a dict of scalars plus 'traj' (per-step arrays) when keep_traj."""
     contact = contact if contact is not None else contact_from_config()

@@ -32,11 +32,14 @@ G = 9.81   # m/s^2; scene.py uses the same value
 # Rig geometry (5 Nov decision 1): the object slides on a 48 in board.  Along the push (+x) it runs from
 # BOARD_X_MIN, ahead of the iiwa base at the origin, to BOARD_X_MAX.  scene.Table tiles it with strips and
 # decide.slide_room measures the free length from the release point, which moves with the push speed
-# (release_push_distance).  The far edge is where the pre-decision
-# 1.8 m table ended, so the E0 runs (rest points up to x = 1.35 m) stay on the board.
+# (release_push_distance).  Against the pre-decision table (x = -0.3 to 1.5) the near edge moves in by
+# 0.6 m and the far edge out by 1.9 cm, so the E0 runs (starts at x0 = 0.55, rest points up to x = 1.35 m)
+# stay on the board.
 BOARD_LENGTH = 48*0.0254                 # m, 1.2192
 BOARD_X_MIN = 0.3                        # m; the object starts at x0 >= 0.55 (paddle reach), 0.2 m in from the near edge
 BOARD_X_MAX = BOARD_X_MIN + BOARD_LENGTH  # m, 1.5192
+OBJECT_SIZE = (0.10, 0.10, 0.05)         # m, x (along the push), y, z of the default object (scene.Obj; decide.slide_room)
+A_PUSH = 2.0                             # m/s^2, the push's acceleration before the brake (push.profile, constant_jerk_profile)
 
 # ----------------------------------------------------------------------------- free slide
 
@@ -118,8 +121,6 @@ def release_speed(v_peak, mu, J, g=G):
         loss = np.where(np.isinf(J), 0.0, (mu*g)**2/(2*J))
     return np.maximum(v_peak - loss, 0.0)
 
-A_PUSH = 2.0   # m/s^2: the push's acceleration before the brake (push.profile, constant_jerk_profile)
-
 def release_push_distance(v_peak, mu, J, a_push=A_PUSH, g=G):
     """Travel of the paddle (and the object riding on it) from rest to the release, under push.profile's command:
     accelerate at a_push (capped at sqrt(2 J v_peak)), then one constant-jerk segment -J through the speed peak
@@ -155,7 +156,7 @@ def release_from_profile(t, v_p, a_p, mu, g=G):
     vs = v_p[i - 1] + 0.5*(a_p[i - 1] + thr)*(ts - t[i - 1])
     return float(ts), float(vs)
 
-def constant_jerk_profile(v_peak, J, a_push=2.0, a_max=math.inf, dt=1e-4):
+def constant_jerk_profile(v_peak, J, a_push=A_PUSH, a_max=math.inf, dt=1e-4):
     """Synthetic paddle profile: accelerate at a_push to v_peak, then brake with deceleration ramping at
     jerk J (capped at a_max) until the paddle stops.  Returns (t, v_p, a_p)."""
     t_acc = v_peak/a_push

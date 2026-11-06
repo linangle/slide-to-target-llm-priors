@@ -133,7 +133,7 @@ python3 aggregate_pairs.py --results results.csv --profiles profiles.csv --runlo
 `scene.py` builds one `MultibodyPlant` for a given pair from the ground-truth file.
 
 **What's in the scene**
-- **Table:** the 48 in board (decision 1; `physics.BOARD_LENGTH`, `BOARD_X_MIN`, `BOARD_X_MAX`): its top is at z = 0 and it runs from x = 0.3 to 1.52 m along the travel direction (+x), tiled with 5 cm strips across it (`Table.edges()`; the last strip absorbs the remainder).
+- **Table:** the 48 in board (decision 1; `physics.BOARD_LENGTH`, `BOARD_X_MIN`, `BOARD_X_MAX`): its top is at z = 0 and it runs from x = 0.3 to 1.52 m along the travel direction (+x), tiled with equal strips across it (`Table.edges()`: 24 strips of 2 in, 5.08 cm, for the nominal 5 cm). Strip draws are indexed from the board's near edge, so a patchy-table run (patchiness > 0) from before 5 Nov, when the table started at x = −0.3 m with 5 cm strips, does not reproduce from its seed.
   - Each strip's friction is the pair's `mu_k_nominal × exp(patchiness · s_tab_log · z)`, sampled per seed.
   - `--bimodal` uses two levels instead.
 - **Object:** compliant hydroelastic.
@@ -261,7 +261,7 @@ What the team decided on 5 Nov, against what the code and data still carry. "App
 
 | # | Topic | Decided 5 Nov | In the code and data |
 |---|---|---|---|
-| 1 | Board length | 48 in (1.22 m) | Applied 5 Nov: `physics.BOARD_LENGTH` = 48 × 0.0254 m, with the board at x = 0.3 to 1.52 m (`BOARD_X_MIN`, `BOARD_X_MAX`); `scene.Table` defaults to it (24 five-cm strips and a 6.9 cm last strip) and `decide.slide_room` gives `practice_speed` its length limit from the release point, which moves with the push speed (`physics.release_push_distance`). The far edge is where the old 1.8 m table ended, so the E0 runs stay on the board (`tests/test_scene.py`). The rig protocol's use of the board is the team's. |
+| 1 | Board length | 48 in (1.22 m) | Applied 5 Nov: `physics.BOARD_LENGTH` = 48 × 0.0254 m, with the board at x = 0.3 to 1.52 m (`BOARD_X_MIN`, `BOARD_X_MAX`); `scene.Table` defaults to it (24 equal strips of 2 in, 5.08 cm) and `decide.slide_room` gives `practice_speed` its length limit from the release point, which moves with the push speed (`physics.release_push_distance`). Against the old table (x = −0.3 to 1.5 m) the near edge moves in by 0.6 m and the far edge out by 1.9 cm, so the E0 runs (starts at x = 0.55 m, rest points up to 1.35 m) stay on the board (`tests/test_scene.py`). The rig protocol's use of the board is the team's. |
 | 2 | V03 reference value | 0.33 ("perpendicular", 0.32–0.34); list 0.19 ("crossed") as the alternative | Applied 5 Nov: V03 = 0.33 (source 0.32–0.34, static upper 0.54) with 0.19 in the notes; `friction_lookup.csv` and the `rows_*.tex` files regenerated. |
 | 3 | Lookup spread factors | 2 / 2.5 / 3 for tiers A / B / C, entered as an observation on top of the population prior | Applied 5 Nov: `TIER_F` = 2 / 2.5 / 3 (L01–L20 keep v1's spreads); `belief.loglik_lookup` adds the row's value as one Gaussian observation of ln μ and `belief.lookup_observation` reads it by column name: `None` for a tier-none row, `KeyError` for a pair ID that is not in the table (tested in `tests/test_belief.py`). |
 | 4 | Rig validation against Yu (V01, M18) | Keep as an external comparison; validate the rig by same-run cross-method checks | Applied as far as the data goes: rows stay labelled; the cross-method check is the accelerometer-vs-endpoint ratio (`mu_v2d`, `v2d_ratio_*`) that `aggregate_pairs.py` already writes. |

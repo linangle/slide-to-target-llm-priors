@@ -21,7 +21,7 @@ import math
 from dataclasses import dataclass
 import numpy as np
 from scipy.optimize import brentq, minimize_scalar
-from physics import A_PUSH, BOARD_X_MAX, G, release_push_distance, release_speed
+from physics import A_PUSH, BOARD_X_MAX, G, OBJECT_SIZE, release_push_distance, release_speed
 
 @dataclass
 class Release:
@@ -96,7 +96,7 @@ def practice_speed(u_max, length_limit, post, rel, quantile=0.05):
         raise ValueError(f"no room to slide: the length limit is {room(0.0, mu_low, rel):.3f} m at u = 0")
     return brentq(f, 0.0, u_max)
 
-def slide_room(x0, a_push=A_PUSH, half_length=0.05, x_end=BOARD_X_MAX):
+def slide_room(x0, a_push=A_PUSH, half_length=OBJECT_SIZE[0]/2, x_end=BOARD_X_MAX):
     """practice_speed's length limit on the board for an object whose centre starts at x0: a function
     (u, mu, rel) -> the free length from the release point to the board's far edge, less the object's half
     length so the footprint stays on the board.  The release point is x0 plus the push's travel to release

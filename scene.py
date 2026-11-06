@@ -36,7 +36,7 @@ from pydrake.all import (AddCompliantHydroelasticProperties, AddContactMaterial,
                          RotationalInertia, RotationMatrix, Simulator, SpatialInertia, SpatialVelocity, StartMeshcat,
                          VolumeElement, VolumeMesh)
 
-from physics import BOARD_X_MAX, BOARD_X_MIN   # the 48 in board along travel (5 Nov decision 1)
+from physics import BOARD_X_MAX, BOARD_X_MIN, OBJECT_SIZE   # the 48 in board along travel (5 Nov decision 1)
 
 G = 9.81
 DEFAULT_PAIRS = ("ground_truth_placeholder.csv",  # switch to measured_friction.csv once it exists
@@ -64,7 +64,7 @@ class Table:
     x_min: float = BOARD_X_MIN  # the board along travel, m: strips cover x_min..x_max (48 in, 5 Nov decision 1)
     x_max: float = BOARD_X_MAX
     width: float = 1.2         # across travel (y), m
-    strip: float = 0.05        # strip length along travel, m; the last strip absorbs the board's remainder
+    strip: float = 0.05        # nominal strip length along travel, m; the board is cut into equal strips near it
     patchiness: float = 1.0    # multiplier on the pair's s_tab_log; 0 = uniform table
     bimodal: bool = False      # strips at mu*exp(+-s) instead of mu*exp(s*z), z ~ N(0, 1)
 
@@ -74,16 +74,17 @@ class Table:
 
     @property
     def n_strips(self):
-        return max(1, int(math.floor(self.length/self.strip + 1e-9)))
+        """round(length / strip), at least 1: 24 strips of 2 in (5.08 cm) on the 48 in board."""
+        return max(1, round(self.length/self.strip))
 
     def edges(self):
-        """Strip boundaries along x: strip-long from x_min, the last one running to x_max (len = n_strips + 1)."""
-        return np.append(self.x_min + self.strip*np.arange(self.n_strips), self.x_max)
+        """Strip boundaries along x: n_strips equal strips from x_min to x_max (len = n_strips + 1)."""
+        return np.linspace(self.x_min, self.x_max, self.n_strips + 1)
 
 @dataclass
 class Obj:
     shape: str = "box"                    # box | disc | ring | footed
-    size: tuple = (0.10, 0.10, 0.05)      # x, y, z; disc and ring use size[0] as the outer diameter
+    size: tuple = OBJECT_SIZE             # x, y, z, m (0.10, 0.10, 0.05); disc and ring use size[0] as the outer diameter
     inner: float = 0.06                   # ring: inner diameter, m
     mass: float = 0.5                     # kg
     com_offset: tuple = (0.0, 0.0, 0.0)   # CoM from the body's geometric centre, m
