@@ -51,12 +51,14 @@ def loglik_lookup(grid, mu_tab, s_tab):
 
 def lookup_observation(pair_id, path=LOOKUP_PATH):
     """(mu_tab, s_tab) for one pair of friction_lookup.csv, read by column name (mu_k_nominal, s_tab_log); None
-    when the pair is not in the table or has tier none, in which case C2 is the prior alone."""
+    when the row has tier none, in which case C2 is the prior alone.  A pair_id that is not in the table raises
+    KeyError, so a typo or an ID-scheme mismatch cannot quietly turn C2 into C0."""
     with open(path, newline="") as f:
-        for row in csv.DictReader(f):
-            if row["pair_id"] == pair_id:
-                return (float(row["mu_k_nominal"]), float(row["s_tab_log"])) if row["mu_k_nominal"] else None
-    return None
+        rows = {row["pair_id"]: row for row in csv.DictReader(f)}
+    if pair_id not in rows:
+        raise KeyError(f"pair {pair_id!r} is not in {path}")
+    row = rows[pair_id]
+    return None if row["tier"] == "none" else (float(row["mu_k_nominal"]), float(row["s_tab_log"]))
 
 def fit_llm_likelihood(m_llm, theta_true):
     """Least squares of the LLM's median (in ln mu) on the true ln mu: m = alpha + beta theta + eps.

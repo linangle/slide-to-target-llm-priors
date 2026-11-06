@@ -27,7 +27,7 @@ from scipy.optimize import least_squares
 from physics import G, release_speed, slide_time, slide_trajectory, stop_distance
 
 MODELS = {"A": ("frames",), "B": ("frames", "rest"), "C": ("frames", "rest", "fk")}
-CAMERA_FPS = 60.0   # Hz, the landing camera's frame rate (5 Nov decision 8; the 31 Oct budget assumed 30).  scene.Camera.fps reads it.
+CAMERA_FPS = 60.0   # Hz, the landing camera's frame rate (5 Nov decision 8; the 31 Oct budget assumed 30).  The one place the rate is set.
 
 @dataclass
 class Obs:

@@ -31,7 +31,8 @@ G = 9.81   # m/s^2; scene.py uses the same value
 
 # Rig geometry (5 Nov decision 1): the object slides on a 48 in board.  Along the push (+x) it runs from
 # BOARD_X_MIN, ahead of the iiwa base at the origin, to BOARD_X_MAX.  scene.Table tiles it with strips and
-# decide.slide_room measures the free length from a release point.  The far edge is where the pre-decision
+# decide.slide_room measures the free length from the release point, which moves with the push speed
+# (release_push_distance).  The far edge is where the pre-decision
 # 1.8 m table ended, so the E0 runs (rest points up to x = 1.35 m) stay on the board.
 BOARD_LENGTH = 48*0.0254                 # m, 1.2192
 BOARD_X_MIN = 0.3                        # m; the object starts at x0 >= 0.55 (paddle reach), 0.2 m in from the near edge
@@ -116,6 +117,24 @@ def release_speed(v_peak, mu, J, g=G):
     with np.errstate(divide="ignore", invalid="ignore"):
         loss = np.where(np.isinf(J), 0.0, (mu*g)**2/(2*J))
     return np.maximum(v_peak - loss, 0.0)
+
+A_PUSH = 2.0   # m/s^2: the push's acceleration before the brake (push.profile, constant_jerk_profile)
+
+def release_push_distance(v_peak, mu, J, a_push=A_PUSH, g=G):
+    """Travel of the paddle (and the object riding on it) from rest to the release, under push.profile's command:
+    accelerate at a_push (capped at sqrt(2 J v_peak)), then one constant-jerk segment -J through the speed peak
+    into the brake.  The object leaves when the deceleration reaches mu g, (a_push + mu g) / J into that segment,
+    or stays on until the paddle stops if that comes first (release_speed = 0).  J = inf releases at the peak,
+    after v_peak^2 / (2 a_push).  Scalars; the release point is the start plus this distance."""
+    if v_peak <= 0:
+        return 0.0
+    if math.isinf(J):
+        return v_peak*v_peak/(2*a_push)
+    a = min(a_push, math.sqrt(2*J*v_peak))
+    v1 = max(v_peak - a*a/(2*J), 0.0)                     # speed when the jerk segment starts
+    tau_stop = (a + math.sqrt(a*a + 2*J*v1))/J            # v1 + a tau - J tau^2 / 2 = 0
+    tau = min((a + mu*g)/J, tau_stop)
+    return v1*v1/(2*a) + v1*tau + 0.5*a*tau**2 - J*tau**3/6
 
 def release_from_profile(t, v_p, a_p, mu, g=G):
     """Separation (t*, v_r) from any sampled paddle profile: the first time after the speed peak at which

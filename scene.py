@@ -36,7 +36,6 @@ from pydrake.all import (AddCompliantHydroelasticProperties, AddContactMaterial,
                          RotationalInertia, RotationMatrix, Simulator, SpatialInertia, SpatialVelocity, StartMeshcat,
                          VolumeElement, VolumeMesh)
 
-from observe import CAMERA_FPS   # the landing camera's frame rate, 60 Hz (5 Nov decision 8)
 from physics import BOARD_X_MAX, BOARD_X_MIN   # the 48 in board along travel (5 Nov decision 1)
 
 G = 9.81
@@ -99,7 +98,8 @@ class Camera:
     height: int = 480                    # px
     fov_y: float = math.pi/4             # rad; Drake's CameraConfig default
     yaw: float = math.radians(3)         # turn about the optical axis, so object edges never line up with pixel rows
-    fps: float = CAMERA_FPS              # Hz; frames are rendered at the recorded poses every 1/fps s (e0_5_observation.py)
+    # no frame rate here: the camera renders single poses; replays take theirs from observe.CAMERA_FPS (decision 8)
+    # or, for the rate study, from e0_5_observation.RATES
 
 @dataclass
 class Scene:

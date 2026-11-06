@@ -227,7 +227,8 @@ and $\dstar=0.3$ m, the optimum moves from 1.242 m/s at $J=\infty$ to 1.253 at $
 falls roughly as $v^{-2.5}$, so the Fisher information grows roughly as $v^{5}$.  That is valid only if $\mu$ does not
 depend on speed, which the rig's $\mu(v)$ data check (A4).  The slide room is the 48 in board's far edge less the release
 point and the object's half length (\code{decide.slide\_room}; decision 1, 5 Nov; \code{scene.Table} tiles the same board,
-$x = 0.3$ to $1.52$ m ahead of the iiwa base).
+$x = 0.3$ to $1.52$ m ahead of the iiwa base).  The release point is the start plus the push's travel to release
+(\code{physics.release\_push\_distance}), so the room shrinks as the commanded speed grows.
 
 \section{Fidelity ladder}
 \label{sec:ladder}
@@ -280,7 +281,7 @@ release and the simulator-vs-analytic mismatch, not friction or COM uncertainty 
 \toprule
 Module & Functions & Tests (\code{pytest tests/})\\
 \midrule
-\code{physics.py} & \code{stop\_distance}, \code{release\_speed}, \code{release\_from\_profile}, \code{slide\_trajectory}, \code{slide\_piecewise}, \code{slide\_field}, \code{spin\_factor}, \code{disk\_spin\_slide}, \code{no\_tip} & 1: sampled release vs~\eqref{eq:vr} to $10^{-6}$ m/s; 6: disk $d/d_0$ 1.065, 1.27\\
+\code{physics.py} & \code{stop\_distance}, \code{release\_speed}, \code{release\_from\_profile}, \code{release\_push\_distance}, \code{slide\_trajectory}, \code{slide\_piecewise}, \code{slide\_field}, \code{spin\_factor}, \code{disk\_spin\_slide}, \code{no\_tip} & 1: sampled release vs~\eqref{eq:vr} to $10^{-6}$ m/s; 6: disk $d/d_0$ 1.065, 1.27\\
 \code{observe.py} & \code{simulate\_obs}, \code{fit\_slide} (A, B, C), \code{fit\_o1}, \code{crlb}, \code{error\_budget}, \code{residual\_signature}, \code{speed\_signature} & 2: budget table to 0.1 pp; 3: 2,000 slides, bias $<1\%$, SD within 20\% of CRLB\\
 \code{belief.py} & \code{theta\_grid}, \code{prior\_from\_measured}, \code{loglik\_lookup}, \code{lookup\_observation} (C2: the table's value as one observation of $\theta$, decision 3), \code{fit\_llm\_likelihood(\_loo)}, \code{loglik\_slide}, \code{posterior}, \code{n0} & 4: grid vs conjugate update to $10^{-3}$, with and without the lookup term\\
 \code{decide.py} & \code{expected\_loss}, \code{choose\_speed}, losses, \code{closed\_form\_speed}, \code{practice\_speed}, \code{slide\_room} & 5: $J\to\infty$ limit to three significant digits\\
@@ -331,7 +332,7 @@ $\sigma_f = 0.09$ mm, $\sigma_{\mathrm{rest}} = 0.03$ mm near the camera axis an
 assumed 0.5 mm because the simulator's forward kinematics are exact.  The Section~\ref{sec:observation} budget assumed 2 mm frames and
 is therefore 10--20$\times$ pessimistic; the measured values are lower bounds (exact camera pose and intrinsics, no motion blur).
 Decision 8 is not settled by $\mu$'s precision (model C: 0.42\% at 30 Hz and 0.25\% at 120 Hz on the shortest slide) but by what
-else the frames must resolve.  The team chose 60 Hz on 5 Nov (\code{observe.CAMERA\_FPS}, \code{scene.Camera.fps}); the
+else the frames must resolve.  The team chose 60 Hz on 5 Nov (\code{observe.CAMERA\_FPS}); the
 error-budget table of Section~\ref{sec:observation} is at that rate.
 
 \appendix

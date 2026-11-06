@@ -2,7 +2,7 @@
 import math
 import numpy as np
 import pytest
-from physics import G, release_from_profile, release_speed
+from physics import G, release_from_profile, release_push_distance, release_speed
 from push import PLATE, Pusher, profile
 
 def test_profile_peaks_at_v_peak_with_zero_acceleration():
@@ -20,6 +20,17 @@ def test_profile_brake_matches_release_model():
         t_star, v_r = release_from_profile(p["t"], p["v"], p["a"], mu)
         assert abs(v_r - release_speed(v, mu, J)) < 1e-6
         assert abs(t_star - (p["t_peak"] + mu*G/J)) < 2e-4
+
+def test_release_push_distance_matches_profile():
+    """physics.release_push_distance (decide.slide_room's release point) is the commanded travel up to t*, or up to
+    the paddle's stop when the ramp never out-brakes friction (the last case: (mu g)^2 / 2J > v_peak)."""
+    for v, J, mu in ((0.8, 100.0, 0.3), (1.2, 100.0, 0.1), (1.0, 50.0, 0.5), (0.6, 2000.0, 0.3), (0.05, 100.0, 0.3),
+                     (0.2, 30.0, 0.5)):
+        p = profile(v, J)
+        t_star = min(p["t_peak"] + mu*G/J, p["t_stop"])
+        assert abs(release_push_distance(v, mu, J) - float(np.interp(t_star, p["t"], p["x"]))) < 1e-6, (v, J, mu)
+    assert release_push_distance(0.0, 0.3, 100.0) == 0.0
+    assert abs(release_push_distance(1.0, 0.3, math.inf) - 0.25) < 1e-12        # v^2 / (2 a_push), a_push = 2
 
 def test_pusher_geometry():
     assert PLATE == (0.01, 0.12, 0.18)

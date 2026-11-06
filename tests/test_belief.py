@@ -1,6 +1,7 @@
 """Test 4 of the implementation spec, plus the slide likelihood on the grid."""
 import math
 import numpy as np
+import pytest
 import belief as B
 import observe as O
 
@@ -56,4 +57,6 @@ def test_lookup_is_an_observation_on_the_prior():
     assert B.lookup_observation("V03") == (0.33, 0.421)              # decision 2 value, tier A spread
     assert B.lookup_observation("Y02") == (0.25, 0.357)              # decision 5 pooled entry, factor 1.8
     assert B.lookup_observation("M06") is None                       # tier none: prior alone
-    assert B.lookup_observation("Y04") is None                       # dropped on 5 Nov (decision 6)
+    for missing in ("Y04", "m07"):                                    # dropped on 5 Nov (decision 6); a typo
+        with pytest.raises(KeyError):
+            B.lookup_observation(missing)

@@ -13,14 +13,15 @@ max(0.1 d*, 1 cm), and the table-edge penalty beyond L = 1.3 d*.
 Practice slides run at the maximum feasible speed: the standard error of mu falls roughly as v^-2.5, so
 the information grows roughly as v^5 (valid while mu does not depend on speed, which the rig's mu(v) data
 check).  practice_speed() is the fastest speed that keeps the slide on the board for the slipperiest
-plausible mu; slide_room() is that length: from the release point to the far edge of the 48 in board
-(physics.BOARD_X_MAX, 5 Nov decision 1), less the object's half length.
+plausible mu; slide_room() gives it that length: from the release point to the far edge of the 48 in board
+(physics.BOARD_X_MAX, 5 Nov decision 1), less the object's half length.  The release point is the start plus
+the push's travel to release (physics.release_push_distance), so the room shrinks as the speed grows.
 """
 import math
 from dataclasses import dataclass
 import numpy as np
 from scipy.optimize import brentq, minimize_scalar
-from physics import BOARD_X_MAX, G, release_speed
+from physics import A_PUSH, BOARD_X_MAX, G, release_push_distance, release_speed
 
 @dataclass
 class Release:
@@ -83,17 +84,26 @@ def closed_form_speed(d_star, m, S, g=G):
 
 def practice_speed(u_max, length_limit, post, rel, quantile=0.05):
     """Fastest commanded speed, at most u_max, whose slide stays within length_limit for the slipperiest
-    plausible friction (the posterior's lower quantile)."""
+    plausible friction (the posterior's lower quantile).  length_limit is the free length from the release
+    point in m, or a function (u, mu, rel) -> that length when the release point moves with the speed
+    (slide_room).  Raises ValueError when there is no room even for a vanishing push."""
     mu_low = math.exp(float(np.interp(quantile, np.cumsum(post["pmf"]) - 0.5*post["pmf"], post["grid"])))
-    f = lambda u: float(distance(u, mu_low, rel)) - length_limit
+    room = length_limit if callable(length_limit) else (lambda u, mu, rel: length_limit)
+    f = lambda u: float(distance(u, mu_low, rel)) - room(u, mu_low, rel)
     if f(u_max) <= 0:
         return u_max
+    if f(0.0) > 0:
+        raise ValueError(f"no room to slide: the length limit is {room(0.0, mu_low, rel):.3f} m at u = 0")
     return brentq(f, 0.0, u_max)
 
-def slide_room(x_release, half_length=0.05, x_end=BOARD_X_MAX):
-    """Free slide length from the release point (object centre at x_release) to the board's far edge, less
-    the object's half length so the footprint stays on the board: practice_speed's length_limit."""
-    return x_end - half_length - x_release
+def slide_room(x0, a_push=A_PUSH, half_length=0.05, x_end=BOARD_X_MAX):
+    """practice_speed's length limit on the board for an object whose centre starts at x0: a function
+    (u, mu, rel) -> the free length from the release point to the board's far edge, less the object's half
+    length so the footprint stays on the board.  The release point is x0 plus the push's travel to release
+    at commanded speed u (physics.release_push_distance), so the room shrinks as u grows."""
+    def room(u, mu, rel):
+        return x_end - half_length - x0 - release_push_distance(u, mu, rel.J, a_push, rel.g)
+    return room
 
 if __name__ == "__main__":
     from belief import logprior, posterior, theta_grid
@@ -104,6 +114,9 @@ if __name__ == "__main__":
         r = choose_speed(post, Release(J=J), 0.3, loss_sq_rel, u_max=2.0)
         print(f"d*=0.3 m, ln mu ~ N({m:.2f}, {S}^2), J={J}: u*={r['u']:.4f} m/s, E[L]={r['expected_loss']:.4f}"
               + (f"   closed form {closed_form_speed(0.3, m, S):.4f}" if math.isinf(J) else ""))
-    room = slide_room(0.75)
-    print(f"practice speed (release at x = 0.75 m on the 48 in board: {room:.3f} m of room, u_max 1.2): "
-          f"{practice_speed(1.2, room, post, Release()):.3f} m/s")
+    rel, x0 = Release(), 0.55
+    for m_p, S_p in ((m, S), (math.log(0.12), 0.45)):
+        p = posterior(g, logprior(g, m_p, S_p))
+        u_p = practice_speed(1.2, slide_room(x0), p, rel)
+        print(f"practice speed (object from x = {x0} m on the 48 in board, ln mu ~ N({m_p:.2f}, {S_p}^2), u_max 1.2): "
+              f"{u_p:.3f} m/s, release at x = {x0 + release_push_distance(u_p, math.exp(p['q05']), rel.J):.3f} m")

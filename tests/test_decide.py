@@ -1,6 +1,7 @@
 """Test 5 of the implementation spec, plus the losses and the practice speed."""
 import math
 import numpy as np
+import pytest
 import belief as B
 import decide as D
 
@@ -37,7 +38,27 @@ def test_losses_and_practice_speed():
 
 def test_slide_room_on_the_48_in_board():
     """Decision 1 (5 Nov): the practice-speed length limit is the board's far edge less the release point and the
-    object's half length."""
+    object's half length, and the release point moves with the push speed."""
+    rel = D.Release()
     assert abs(D.BOARD_X_MAX - 0.3 - 48*0.0254) < 1e-12
-    assert abs(D.slide_room(0.75) - (D.BOARD_X_MAX - 0.05 - 0.75)) < 1e-12
-    assert D.slide_room(0.75, half_length=0.1) < D.slide_room(0.75) < D.slide_room(0.6)
+    room = D.slide_room(0.55)
+    assert abs(room(0.0, 0.3, rel) - (D.BOARD_X_MAX - 0.05 - 0.55)) < 1e-12
+    assert abs(room(1.2, 0.3, rel) - (D.BOARD_X_MAX - 0.05 - 0.55 - D.release_push_distance(1.2, 0.3, rel.J))) < 1e-12
+    assert room(1.2, 0.3, rel) < room(0.6, 0.3, rel) < room(0.0, 0.3, rel)
+    assert D.slide_room(0.55, half_length=0.1)(0.6, 0.3, rel) < room(0.6, 0.3, rel)
+    # a slippery prior: the practice slide ends exactly at the usable far edge, counting the push to release
+    g = B.theta_grid()
+    post = B.posterior(g, B.logprior(g, math.log(0.12), 0.45))
+    u = D.practice_speed(1.2, room, post, rel)
+    mu_low = post["mu_q05"]
+    x_rest = 0.55 + D.release_push_distance(u, mu_low, rel.J) + float(D.distance(u, mu_low, rel))
+    assert u < 1.2 and abs(x_rest - (D.BOARD_X_MAX - 0.05)) < 1e-6
+    # a fixed release point at the start would allow a faster, off-board slide
+    assert D.practice_speed(1.2, room(0.0, mu_low, rel), post, rel) > u
+
+def test_practice_speed_without_room_raises():
+    g = B.theta_grid()
+    post = B.posterior(g, B.logprior(g, math.log(0.3), 0.3))
+    for limit in (-0.1, D.slide_room(D.BOARD_X_MAX)):          # a release past the far edge used to crash brentq
+        with pytest.raises(ValueError, match="no room"):
+            D.practice_speed(1.2, limit, post, D.Release())
