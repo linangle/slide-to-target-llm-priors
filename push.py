@@ -15,6 +15,9 @@ object's back face and `clearance` above the table.  The paddle-object pair coef
 (scene.partner_mu makes Drake's 2ab/(a+b) equal to it).  Knobs for E0-3: lateral offset of the plate, yaw
 misalignment of its face, and the object's COM offset (Obj.com_offset).
 
+Any object with the same hook (add, connect, q, qd, face_x, set_displacement, record, summary) can stand in for the plate:
+arm.ArmPusher is the iiwa under its joint controller, so the E0 scripts rerun with the arm by swapping the pusher.
+
 push_slide() runs settle -> push -> brake -> free slide to rest, stepping at the plant time step and reading
 ContactResults every step.  The release is read three ways: (1) the model on the command, t* = t_peak + mu g / J,
 with the simulator's object state interpolated there (v_sep, heading, spin, x_sep, the FK release point); (2) the
@@ -52,6 +55,7 @@ class Pusher:
     gap: float = 0.001         # initial gap between the face's nearest point and the object's back face, m
     clearance: float = 0.003   # plate's lower edge above the table, m
     plate: tuple = PLATE
+    a_brake_max: float = math.inf   # cap on the braking deceleration in profile(); the plate brakes uncapped
     # filled by add()
     body: object = field(default=None, repr=False, compare=False)
     joint: object = field(default=None, repr=False, compare=False)
@@ -80,37 +84,70 @@ class Pusher:
         """World x of the face's nearest point to the object at joint translation q."""
         return self.x_touch0 + q
 
-def profile(v_peak, J, a_push=A_PUSH, settle=0.3, hold=2.0, dt=1e-4):
+    # --- the pusher hook, shared with arm.ArmPusher: push_slide drives any object with add/connect/q/qd/face_x/record/summary
+    def connect(self, builder, plant, prof, dt=0.0):
+        """Desired state [x_d, v_d] and feed-forward force m a_d into the plate's actuator.  The implicit PD reads the
+        desired state at the start of a step and reaches it at the end, so the command is fed one time step (dt) ahead."""
+        t = prof["t"] - dt
+        pp_x = PiecewisePolynomial.CubicHermite(t, prof["x"][None, :], prof["v"][None, :])
+        desired = builder.AddSystem(TrajectorySource(pp_x, output_derivative_order=1))
+        builder.Connect(desired.get_output_port(), plant.get_desired_state_input_port(self.instance))
+        pp_f = PiecewisePolynomial.FirstOrderHold(t, (self.mass*prof["a"])[None, :])
+        builder.Connect(builder.AddSystem(TrajectorySource(pp_f)).get_output_port(), plant.get_actuation_input_port(self.instance))
+
+    def q(self, ctx):
+        """Plate displacement along the push from its start pose (the joint translation), m."""
+        return self.joint.get_translation(ctx)
+
+    def qd(self, ctx):
+        return self.joint.get_translation_rate(ctx)
+
+    def set_displacement(self, ctx, q):
+        """Poses the plate at displacement q (E0-5's camera replay)."""
+        self.joint.set_translation(ctx, q)
+
+    def record(self, ctx):
+        """Extra per-step columns for the trajectory record (none for the plate)."""
+        return {}
+
+    def summary(self, tr):
+        """Extra scalars for push_slide's result (none for the plate)."""
+        return {}
+
+def profile(v_peak, J, a_push=A_PUSH, settle=0.3, hold=2.0, dt=1e-4, a_max=math.inf):
     """Commanded paddle motion: rest until `settle`; accelerate at a_push; then ONE constant-jerk segment (-J) that
     takes the acceleration through zero exactly at v_peak and on into braking until the plate stops; then hold.
     So the brake starts from zero deceleration at the speed peak, as the release model assumes, and the command has
     no acceleration jump at the peak (a jump makes the PD plate dip and the object leave early at low mu).
-    Returns dict(t, x, v, a, t_peak, t_stop, x_stop, a_push); x is the displacement from the start (the joint q)."""
+    a_max caps the braking deceleration: the jerk ramp stops at -a_max and the paddle then decelerates at a_max to its
+    stop.  The release is unchanged as long as a_max > mu g (the object has left before the cap is reached); the cap
+    keeps the arm's brake within its torque limits (arm.ArmPusher.a_brake_max), the plate brakes uncapped (inf).
+    Returns dict(t, x, v, a, t_peak, t_stop, x_stop, a_push, a_max); x is the displacement from the start (the joint q)."""
     a_push = min(a_push, math.sqrt(2*J*v_peak))          # the ramp from a_push down to 0 at jerk J gains a_push^2/(2J)
     v1 = v_peak - a_push**2/(2*J)
     t1 = v1/a_push
     n1 = max(int(math.ceil(t1/dt)), 1)
     ta = np.linspace(0, t1, n1 + 1)
     tau_stop = (a_push + math.sqrt(a_push**2 + 2*J*v1))/J   # v1 + a_push tau - J tau^2/2 = 0
+    tau_cap = (a_push + a_max)/J                             # the ramp reaches -a_max here
+    if tau_cap < tau_stop:
+        v_cap = v1 + a_push*tau_cap - 0.5*J*tau_cap**2
+        tau_stop = tau_cap + v_cap/a_max
     tau = np.linspace(0, tau_stop, int(math.ceil(tau_stop/dt)) + 1)[1:]
-    vb = np.maximum(v1 + a_push*tau - 0.5*J*tau**2, 0.0)
-    ab = np.where(vb > 0, a_push - J*tau, 0.0)
+    ramp = tau <= tau_cap
+    vb = np.where(ramp, v1 + a_push*tau - 0.5*J*tau**2, (v1 + a_push*tau_cap - 0.5*J*tau_cap**2) - a_max*(tau - tau_cap))
+    vb = np.maximum(vb, 0.0)
+    ab = np.where(vb > 0, np.where(ramp, a_push - J*tau, -a_max), 0.0)
     t = np.concatenate([[0.0], settle + ta, settle + t1 + tau, [settle + t1 + tau_stop + hold]])
     v = np.concatenate([[0.0], a_push*ta, vb, [0.0]])
     a = np.concatenate([[0.0], np.full(n1 + 1, a_push), ab, [0.0]])
     x = np.concatenate([[0.0], np.cumsum(0.5*(v[1:] + v[:-1])*np.diff(t))])
     return {"t": t, "x": x, "v": v, "a": a, "t_peak": settle + t1 + a_push/J, "t_stop": settle + t1 + tau_stop,
-            "x_stop": float(x[-1]), "a_push": a_push}
+            "x_stop": float(x[-1]), "a_push": a_push, "a_max": a_max}
 
 def connect(builder, plant, pusher, prof, dt=0.0):
-    """Desired state [x_d, v_d] and feed-forward force m a_d into the pusher's actuator.  The implicit PD reads the desired
-    state at the start of a step and reaches it at the end, so the command is fed one time step (dt) ahead."""
-    t = prof["t"] - dt
-    pp_x = PiecewisePolynomial.CubicHermite(t, prof["x"][None, :], prof["v"][None, :])
-    desired = builder.AddSystem(TrajectorySource(pp_x, output_derivative_order=1))
-    builder.Connect(desired.get_output_port(), plant.get_desired_state_input_port(pusher.instance))
-    pp_f = PiecewisePolynomial.FirstOrderHold(t, (pusher.mass*prof["a"])[None, :])
-    builder.Connect(builder.AddSystem(TrajectorySource(pp_f)).get_output_port(), plant.get_actuation_input_port(pusher.instance))
+    """Wires the pusher's controller to the plant (kept for callers of the 5 Nov API; same as pusher.connect)."""
+    pusher.connect(builder, plant, prof, dt)
 
 def _paddle_object(res, inspector):
     """(force magnitude, area-weighted centroid, area) of the paddle-object hydroelastic contact in a ContactResults."""
@@ -139,15 +176,15 @@ def push_slide(mu, v_peak, J, contact=None, obj=None, pusher=None, a_push=A_PUSH
     contact = contact if contact is not None else contact_from_config()
     obj = obj if obj is not None else Obj()
     pusher = pusher if pusher is not None else Pusher()
-    prof = profile(v_peak, J, a_push, settle)
+    prof = profile(v_peak, J, a_push, settle, a_max=getattr(pusher, "a_brake_max", math.inf))
     builder = DiagramBuilder()
     sc = build_scene(builder, {"mu_k_nominal": mu, "s_tab_log": 0.0}, obj, Table(patchiness=0.0), contact, arm=False, x0=x0,
                      camera=camera, pusher=pusher)
-    connect(builder, sc.plant, pusher, prof, contact.time_step)
+    pusher.connect(builder, sc.plant, prof, contact.time_step)
     if meshcat:
         AddDefaultVisualization(builder, meshcat)
     sim = Simulator(builder.Build())
-    plant, body, joint = sc.plant, sc.body, pusher.joint
+    plant, body = sc.plant, sc.body
     ctx = plant.GetMyMutableContextFromRoot(sim.get_mutable_context())
     inspector = sc.scene_graph.model_inspector()
     port = plant.get_contact_results_output_port()
@@ -169,7 +206,9 @@ def push_slide(mu, v_peak, J, contact=None, obj=None, pusher=None, a_push=A_PUSH
         rec["t"].append(t); rec["x"].append(p[0]); rec["y"].append(p[1]); rec["z"].append(p[2])
         rec["roll"].append(rpy.roll_angle()); rec["pitch"].append(rpy.pitch_angle()); rec["yaw"].append(rpy.yaw_angle())
         rec["vx"].append(w[0]); rec["vy"].append(w[1]); rec["wz"].append(V.rotational()[2])
-        rec["q"].append(joint.get_translation(ctx)); rec["qd"].append(joint.get_translation_rate(ctx))
+        rec["q"].append(pusher.q(ctx)); rec["qd"].append(pusher.qd(ctx))
+        for key, val in pusher.record(ctx).items():
+            rec[key].append(val)
         rec["f"].append(f); rec["cy"].append(c[1] - pusher.lateral); rec["cz"].append(c[2]); rec["area"].append(area)
         rec["n_point"].append(_points_involving(res, plant))
         if t > prof["t_stop"] + 0.05 and math.hypot(w[0], w[1]) < 1e-4 and abs(V.rotational()[2]) < 1e-3:
@@ -178,7 +217,7 @@ def push_slide(mu, v_peak, J, contact=None, obj=None, pusher=None, a_push=A_PUSH
         meshcat.StopRecording(); meshcat.PublishRecording()
     tr = {key: np.array(val) for key, val in rec.items()}
     sx = obj.size[0]
-    out = {"mu": mu, "v_peak": v_peak, "J": J, "a_push": prof["a_push"], "shape": obj.shape, "mu_p": pusher.mu_p,
+    out = {"mu": mu, "v_peak": v_peak, "J": J, "a_push": prof["a_push"], "a_max": prof["a_max"], "shape": obj.shape, "mu_p": pusher.mu_p,
            "lateral": pusher.lateral, "yaw_cmd_deg": pusher.yaw_deg, "com_y": obj.com_offset[1],
            "approx": contact.approx, "dt_ms": contact.time_step*1e3, "steps": len(tr["t"]), "wall_s": time.time() - t0,
            "n_point_contacts": int(tr["n_point"].sum()), "separated": bool(tr["f"][-1] <= f_min), "t_peak": prof["t_peak"], "t_stop": prof["t_stop"]}
@@ -227,6 +266,7 @@ def push_slide(mu, v_peak, J, contact=None, obj=None, pusher=None, a_push=A_PUSH
     ev = tr["qd"][move] - np.interp(tr["t"][move], prof["t"], prof["v"])
     out.update(track_q_rms=float(np.sqrt(np.mean(eq**2))), track_q_max=float(np.abs(eq).max()),
                track_v_rms=float(np.sqrt(np.mean(ev**2))), track_v_max=float(np.abs(ev).max()))
+    out.update(pusher.summary(tr))
     if keep_traj:
         out["traj"], out["profile"] = tr, prof
     return out

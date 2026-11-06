@@ -75,7 +75,7 @@ def _frame(t, case, dy, dyaw, rng, noise, cam):
     tr = case["traj"]
     x, y, yaw, q = (float(np.interp(t, tr["t"], tr[k])) for k in ("x", "y", "yaw", "q"))
     sc.plant.SetFreeBodyPose(pctx, sc.body, RigidTransform(RollPitchYaw(0, 0, yaw + dyaw), [x, y + dy, z0]))
-    pusher.joint.set_translation(pctx, q)
+    pusher.set_displacement(pctx, q)
     # the window starts 0.5 mm ahead of the plate face (known from FK), so the plate's own face pixels never join the object's blob
     est = perceive(add_noise(render_depth(sc, ctx), cam, noise, rng), cam, Obj(), rng, x_window=(pusher.face_x(q) + 0.0005, pusher.face_x(q) + 0.6))
     return x, y + dy, est

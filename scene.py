@@ -225,15 +225,19 @@ def add_object(plant, obj, contact):
         plant.RegisterVisualGeometry(body, X, visual, f"object_{i}", [0.3, 0.5, 0.9, 1.0])
     return body, z0
 
-def add_arm(plant, contact):
+def add_arm(plant, contact, X_WB=RigidTransform(), mu_p=PADDLE_MU, collision=True):
+    """Adds the iiwa 14 with its base frame at X_WB (default: the origin, on the table top) and the paddle plate welded
+    to the flange; returns (model instance, paddle body).  collision=False gives a kinematics-only copy (arm.ArmModel)."""
     iiwa = Parser(plant).AddModelsFromUrl(IIWA_URL)[0]
-    plant.WeldFrames(plant.world_frame(), plant.GetFrameByName("iiwa_link_0", iiwa))
+    plant.WeldFrames(plant.world_frame(), plant.GetFrameByName("iiwa_link_0", iiwa), X_WB)
     paddle = plant.AddRigidBody("paddle", iiwa, SpatialInertia.SolidBoxWithMass(0.3, *PADDLE))
     plant.WeldFrames(plant.GetFrameByName("iiwa_link_7", iiwa), paddle.body_frame(),
                      RigidTransform([0, PADDLE_Y, FLANGE_Z + PADDLE[2]/2]))
-    plant.RegisterCollisionGeometry(paddle, RigidTransform(), Box(*PADDLE), "paddle",
-                                    proximity(False, partner_mu(PADDLE_MU), contact))
-    plant.RegisterVisualGeometry(paddle, RigidTransform(), Box(*PADDLE), "paddle", [0.6, 0.6, 0.6, 1.0])
+    if collision:
+        plant.RegisterCollisionGeometry(paddle, RigidTransform(), Box(*PADDLE), "paddle",
+                                        proximity(False, partner_mu(mu_p), contact))
+    if plant.geometry_source_is_registered():
+        plant.RegisterVisualGeometry(paddle, RigidTransform(), Box(*PADDLE), "paddle", [0.6, 0.6, 0.6, 1.0])
     return iiwa, paddle
 
 def camera_pose(cam):
