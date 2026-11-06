@@ -143,7 +143,10 @@ def push_slide(mu, v_peak, J, contact=None, obj=None, pusher=None, a_push=A_PUSH
     builder = DiagramBuilder()
     sc = build_scene(builder, {"mu_k_nominal": mu, "s_tab_log": 0.0}, obj, Table(patchiness=0.0), contact, arm=False, x0=x0,
                      camera=camera, pusher=pusher)
-    connect(builder, sc.plant, pusher, prof, contact.time_step)
+    if hasattr(pusher, "connect"):      # arm.ArmPusher wires its own joint trajectory and torques
+        pusher.connect(builder, sc.plant, prof, contact.time_step)
+    else:
+        connect(builder, sc.plant, pusher, prof, contact.time_step)
     if meshcat:
         AddDefaultVisualization(builder, meshcat)
     sim = Simulator(builder.Build())
