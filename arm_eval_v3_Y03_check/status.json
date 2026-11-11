@@ -1,0 +1,7 @@
+{
+  "status": "complete",
+  "rows_written": 144,
+  "expected_rows": 144,
+  "invalid_rows": 0,
+  "unique_scored_rollouts": 84
+}

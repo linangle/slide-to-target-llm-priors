@@ -1,0 +1,75 @@
+{
+  "version": "multi_target_noise_v3",
+  "status": "infrastructure_for_exploratory_pairs",
+  "pairs": [
+    "Y03"
+  ],
+  "conditions": [
+    "low",
+    "nominal",
+    "high",
+    "no_added"
+  ],
+  "seeds": [
+    7
+  ],
+  "targets": [
+    0.6,
+    0.62,
+    0.64
+  ],
+  "x0": 0.55,
+  "peak_cap": 0.45,
+  "practice_peak": 0.45,
+  "jerk": 100.0,
+  "fps": 60,
+  "noise_scales": {
+    "low": 0.5,
+    "nominal": 1.0,
+    "high": 2.0,
+    "no_added": 0.0
+  },
+  "nominal_sd": [
+    0.002,
+    0.0005,
+    0.0005
+  ],
+  "no_added_likelihood": "nominal positive SDs; zero injected noise; seed label -1",
+  "grid_points": 2000,
+  "grid_mu_bounds": [
+    0.005,
+    5.0
+  ],
+  "generic_median": 0.2966479394838265,
+  "generic_log_sd": 0.7967392299126166,
+  "llm": "raw approximate lognormal, uncalibrated",
+  "observations": "noisy simulator positions, ideal contact-event release timing",
+  "random_sharing": "same standard-normal draws across noise levels; same observations across methods/targets",
+  "limits": "planned q, velocity, feed-forward torque; not total actuator torque",
+  "rollout_reuse": "deterministic state, exact pair and float speed; no approximate cache rounding",
+  "sha256": {
+    "run_arm_evaluation.py": "ab1d2d60029d7d9774983133a45e643429fd6687f80c7663c3857da09595e5ce",
+    "run_arm_comparison_v2.py": "1a52ae8ab07ab863478d7aa0f92f3150d89bdae6ea560d8ba4693ab127c4c648",
+    "demo_published_comparison.py": "1d3258cb1ad90f4be4368032d3e049103dd2cbe5f27df4ddb1c86906df291c15",
+    "llm_prior.py": "7c6e4edbee8ae79b32d9d4e0c91c62907af0f02cc5dff7f1ab75181565327def",
+    "belief.py": "4425a85f69c1f7f1d2a2fd03efc06277a94e9114081a67c8a532bf86803aa392",
+    "observe.py": "62ec1e092dfe057397d5feb4d5a8a8eaf8b2345358412b491715f61354f1a78e",
+    "arm.py": "3cf9eb38ce4b8e04923d755e04c07260fbc33e8096a14211386c92a780824a06",
+    "push.py": "7dea79d1887df31eaeca82db3220219e6de8553dcf532fb91be34a2d40036fa9",
+    "physics.py": "02cc82544ca2fc5c2246f9adf4071469d99180d34e80dfc4b9c529e00a2910f2",
+    "scene.py": "304e0329493c602ea7677e96d80847c9b68d4bd84bec28dc2fc15a6832d6a60d",
+    "drake_config.py": "eaa97bbf66e840d00a619df452c98afd1a10e4197cbe81f09c20a66648e34443",
+    "sim_config.yaml": "b3717b7334bae1785a2fc6c94740a592511d14467d60f7a526a7b8d9a26fc76c",
+    "ground_truth_published.csv": "f438d40b54b0423b442d7163dbfe3b33f1aa21896c527fc82eb0c3fc59ac6cbf",
+    "friction_lookup.csv": "d00ee8c93524cd0aa688728e85fac6646091e989750bdbe18256da42a7c6723f",
+    "llm_cache_published_pilot.json": "d4e10fdb46241f0053f40821a652f9b4d11a344d4af33bf66c6a7297d2fd61a6"
+  },
+  "packages": {
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "drake": "1.58.0",
+    "manipulation": "2026.10.17",
+    "openai": "3.49.0"
+  },
+  "expected_rows": 144
+}
