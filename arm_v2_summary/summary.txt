@@ -1,0 +1,36 @@
+VALIDATED: 10 complete runs, 360 valid scored shots, identical settings/source hashes.
+Equal weighting: 3 pairs x 10 noise seeds per method/practice count.
+
+method    slides   RMSE mm   mu MAE   posterior coverage   mean width   at cap
+generic        0    11.247   0.1166               100.0%       1.0184     0.0%
+lookup         0    17.057   0.0834                66.7%       0.4182     0.0%
+llm_raw        0    21.239   0.0867                33.3%       0.2393     0.0%
+oracle         0     0.213   0.0000                  N/A          N/A     0.0%
+generic        1     2.599   0.0112                83.3%       0.0495     0.0%
+lookup         1     2.609   0.0108                83.3%       0.0487     0.0%
+llm_raw        1     2.542   0.0106                76.7%       0.0467     0.0%
+oracle         1     0.213   0.0000                  N/A          N/A     0.0%
+generic        2     1.970   0.0083                83.3%       0.0347     0.0%
+lookup         2     1.954   0.0083                83.3%       0.0344     0.0%
+llm_raw        2     1.963   0.0083                83.3%       0.0337     0.0%
+oracle         2     0.213   0.0000                  N/A          N/A     0.0%
+
+Within-pair noise sensitivity (planar RMSE, mm):
+pair slides   generic    lookup   llm_raw    oracle
+Y01      0     2.467    15.459    28.099     0.242
+Y01      1     2.725     2.838     2.924     0.242
+Y01      2     1.911     1.925     2.088     0.242
+Y02      0     2.467    22.758    23.343     0.242
+Y02      1     2.513     2.504     2.417     0.242
+Y02      2     1.482     1.482     1.491     0.242
+Y03      0    19.166    10.768     4.333     0.139
+Y03      1     2.554     2.469     2.235     0.139
+Y03      2     2.407     2.355     2.230     0.139
+
+Interpretation limits:
+- Coverage is for the fitted/truncated grid posterior, not the original LLM interval.
+- Zero-practice and oracle repetitions are deterministic duplicates, not independent evidence.
+- Ten seeds vary observation noise; they do not create ten new material pairs.
+- Only three material pairs, including two with the same simulator friction.
+- Fixed v2 pilot: raw LLM approximation, ideal release timing, noisy-state sensing; not the final project protocol.
+- Reported joint checks cover planned motion and feed-forward torque, not total actuator torque.

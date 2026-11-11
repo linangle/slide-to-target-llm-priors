@@ -1,0 +1,140 @@
+{
+  "7944573e9d89c84dbc430f302130892d5d6829f5403e5a9113fc9ec639708d80": {
+    "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A block with a stainless-steel contacting face\nTable surface: An ABS plastic sheet\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n",
+    "settings": {
+      "model": "gpt-5.4-mini-2026-03-17",
+      "reasoning": {
+        "effort": "none"
+      },
+      "max_output_tokens": 600,
+      "store": false,
+      "tools": [],
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "friction_estimate",
+          "strict": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "median": {
+                "type": "number"
+              },
+              "low": {
+                "type": "number"
+              },
+              "high": {
+                "type": "number"
+              },
+              "reasoning": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "median",
+              "low",
+              "high",
+              "reasoning"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "created_utc": "2026-11-10T21:41:57.368042+00:00",
+    "response": "{\"median\":0.28,\"low\":0.18,\"high\":0.42,\"reasoning\":\"For stainless steel sliding on ABS plastic, the kinetic friction coefficient is typically in the low-to-moderate range: ABS is a relatively smooth engineering plastic, while stainless steel is hard and smooth, so the pair usually does not produce very high friction unless the surfaces are roughened, dirty, or loaded heavily. A reasonable central estimate is around 0.28, with a broad 90% interval of about 0.18 to 0.42 to account for variation in surface finish, contamination, normal load, and whether the plastic sheet is glossy or textured.\"}",
+    "cache_version": 2
+  },
+  "4baa340fd32bb29302bc203aba1d13de03f1befaf6213c6c4437d838d076ee4d": {
+    "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A block with a stainless-steel contacting face\nTable surface: An acetal (Delrin) sheet\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n",
+    "settings": {
+      "model": "gpt-5.4-mini-2026-03-17",
+      "reasoning": {
+        "effort": "none"
+      },
+      "max_output_tokens": 600,
+      "store": false,
+      "tools": [],
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "friction_estimate",
+          "strict": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "median": {
+                "type": "number"
+              },
+              "low": {
+                "type": "number"
+              },
+              "high": {
+                "type": "number"
+              },
+              "reasoning": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "median",
+              "low",
+              "high",
+              "reasoning"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "created_utc": "2026-11-10T21:42:07.594949+00:00",
+    "response": "{\"median\":0.25,\"low\":0.15,\"high\":0.35,\"reasoning\":\"For stainless steel sliding on acetal (Delrin), the kinetic friction coefficient is typically in the low-to-mid 0.2s under dry, clean conditions. Acetal is a low-friction engineering plastic and stainless steel is relatively smooth, so friction is usually moderate rather than high, though surface finish, load, humidity, and contamination can shift it noticeably. I\u2019d center the estimate around 0.25 with a broad 90% interval of about 0.15 to 0.35 to account for common real-world variation.\"}",
+    "cache_version": 2
+  },
+  "4a57636736c84e81d346cb0e6f3de2f060d8fc15b8d131d3108bc6770928f57c": {
+    "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A block with a stainless-steel contacting face\nTable surface: A plywood sheet\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n",
+    "settings": {
+      "model": "gpt-5.4-mini-2026-03-17",
+      "reasoning": {
+        "effort": "none"
+      },
+      "max_output_tokens": 600,
+      "store": false,
+      "tools": [],
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "friction_estimate",
+          "strict": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "median": {
+                "type": "number"
+              },
+              "low": {
+                "type": "number"
+              },
+              "high": {
+                "type": "number"
+              },
+              "reasoning": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "median",
+              "low",
+              "high",
+              "reasoning"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "created_utc": "2026-11-10T21:42:11.632264+00:00",
+    "response": "{\"median\":0.25,\"low\":0.15,\"high\":0.4,\"reasoning\":\"For stainless steel sliding on plywood, the kinetic friction coefficient is typically in a moderate range because the metal face is relatively smooth but plywood is still somewhat rough and fibrous, especially if unfinished. A reasonable central estimate is around 0.25, with lower values if the plywood is smooth/sealed and the steel is polished, and higher values if the plywood is rough, dry, or has higher surface texture variability.\"}",
+    "cache_version": 2
+  }
+}

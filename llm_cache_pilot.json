@@ -1,0 +1,48 @@
+{
+  "2b061d275040a3ca808706151a89881fb120c6def2c337c97f7bf1d4407cc312": {
+    "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry PLA plastic block with a flat bottom\nTable surface: A clean, dry melamine-coated shelf\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n",
+    "settings": {
+      "model": "gpt-5.4-mini-2026-03-17",
+      "reasoning": {
+        "effort": "none"
+      },
+      "max_output_tokens": 600,
+      "store": false,
+      "tools": [],
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "friction_estimate",
+          "strict": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "median": {
+                "type": "number"
+              },
+              "low": {
+                "type": "number"
+              },
+              "high": {
+                "type": "number"
+              },
+              "reasoning": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "median",
+              "low",
+              "high",
+              "reasoning"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "created_utc": "2026-11-10T21:35:40.222557+00:00",
+    "response": "{\"median\":0.28,\"low\":0.2,\"high\":0.4,\"reasoning\":\"Clean, dry PLA sliding on a smooth melamine-coated shelf should have moderate kinetic friction: both surfaces are fairly hard and smooth, but PLA is slightly tacky compared with very low-friction plastics and can conform a bit to the coating. Typical dry polymer-on-laminate sliding values often fall around the mid-0.2s to low-0.4s depending on surface finish, contact pressure, and print texture. A reasonable central estimate is about 0.28, with a 90% interval of 0.20 to 0.40 to reflect uncertainty from PLA formulation, bottom roughness, and the exact melamine finish.\"}",
+    "cache_version": 2
+  }
+}
