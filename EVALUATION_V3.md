@@ -46,8 +46,8 @@ Check configuration without simulation:
 
 Run and summarize one pair:
 
-    python run_arm_evaluation.py --pair Y01 --seeds 7 --out arm_eval_v3_Y01_check
-    python summarize_arm_evaluation.py arm_eval_v3_Y01_check
+    python run_arm_evaluation.py --pair Y01 --seeds 7 --out results/evaluation_v3/arm_eval_v3_Y01_check
+    python summarize_arm_evaluation.py results/evaluation_v3/arm_eval_v3_Y01_check
 
 Supported controls:
 --pair Y01/Y02/Y03/all
@@ -81,7 +81,7 @@ with fixed scene configuration and no randomized execution disturbances.
 
 ## Completed development checks
 
-User-reported local results on November 11, 2026:
+Saved local development results (validated against the uploaded checkpoint):
 
 - All three v3 offline tests passed.
 - Y01, Y02, and Y03 each completed the seed-7 check.
@@ -95,8 +95,8 @@ conditions. They are infrastructure checks, not a final comparative study.
 
 ## Optional repeated-seed development evaluation
 
-    python run_arm_evaluation.py --pair all --seeds 0 1 2 3 4 5 6 7 8 9 --out arm_eval_v3_matrix
-    python summarize_arm_evaluation.py arm_eval_v3_matrix
+    python run_arm_evaluation.py --pair all --seeds 0 1 2 3 4 5 6 7 8 9 --out results/evaluation_v3/arm_eval_v3_matrix
+    python summarize_arm_evaluation.py results/evaluation_v3/arm_eval_v3_matrix
 
 This schedules 3,348 scored rows, including 108 no-added-noise diagnostic
 rows, plus six actual practice pushes. No API requests are made.

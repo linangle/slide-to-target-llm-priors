@@ -80,8 +80,8 @@ def summarize(rows):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--root', type=Path, default=Path('.'))
-    parser.add_argument('--out', type=Path, default=Path('arm_v2_summary'))
+    parser.add_argument('--root', type=Path, default=Path('results/pilot_v2'))
+    parser.add_argument('--out', type=Path, default=Path('results/pilot_v2/arm_v2_summary'))
     args = parser.parse_args()
     rows = read_runs(args.root)  # Validate everything before creating outputs.
     groups = defaultdict(list)

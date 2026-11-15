@@ -47,9 +47,11 @@ The runner still labels its configuration v2_candidate_not_final: this is intent
 
 ## Commands
 
+Saved folders were subsequently grouped under `results/pilot_v2/`; commands below use that layout. The experimental settings above are unchanged.
+
 ```bash
 for seed in {0..9}; do
-  python run_arm_comparison_v2.py --pair all --seed "$seed" --out "arm_v2_seed_${seed}" || break
+  python run_arm_comparison_v2.py --pair all --seed "$seed" --out "results/pilot_v2/arm_v2_seed_${seed}" || break
 done
 python summarize_arm_v2.py
 ```
