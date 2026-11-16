@@ -2,9 +2,10 @@
 import csv
 import pytest
 import llm_prior as L
+from paths import DATA
 
 def test_only_description_and_photo_columns_reach_the_prompt():
-    with open("ground_truth_placeholder.csv", newline="") as f:
+    with open(DATA/"ground_truth_placeholder.csv", newline="") as f:
         header = next(csv.reader(f))
     row = {k: f"SENTINEL_{k}" for k in header}        # a unique marker in every column
     row.update(description_object="a PLA block", description_surface="melamine shelf", photo_object="obj.jpg", photo_surface="")

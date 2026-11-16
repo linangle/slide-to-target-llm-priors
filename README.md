@@ -6,11 +6,11 @@ A simulated KUKA iiwa pushes a flat-bottomed object across a table and releases 
 
 ## Status
 
-Phase 1, Oct 25 – Nov 1: measuring ground-truth kinetic friction for 27 object–surface pairs (M01–M27) and 3 validation pairs (V01–V03). Output: `measured_friction.csv` (columns in `measured_friction_interface.md`). On 31 Oct the model specification, estimators, grid posterior, decision rule, Drake configuration and E0-1/E0-2 checks landed in response to the instructor's feedback; `model_specification.tex` is the reference note. On 5 Nov the team settled the open decisions (see *Decisions* below); decisions 1, 2, 3, 5, 6 and 8 are applied in the code and data, the rest are recorded there. On 5 Nov a prescribed-paddle push harness (`push.py`) stood in for the arm controller so that E0-3, E0-4 and E0-5 could run; all three pass, and decisions 7 and 8 now have their evidence. The same day the decision-10 SimReady audit (`simready_audit.md`) found that NVIDIA's library stores one friction pair per material class, so a C2-SimReady baseline is possible but coarse. On 6 Nov the arm controller landed (`arm.py`): the iiwa tracks the plate's push profile under Drake's implicit PD with inverse-dynamics feed-forward, passes the plate's acceptance test, and matches the plate's release speed within 0.13% on the 12-push re-run (`arm_rerun.py`). The decision-7 numbers came with it: the braking jerk is not the constraint, the joint speed is. With the base at the origin every grid push runs joint 4 at 1.3–3× its 75°/s limit (which the simulator does not enforce), so the real iiwa would deliver 0.35–0.47 m/s on that line; with the base beside the board, level with the middle of the push, it delivers 1.0 m/s within its limits. Where the base stands is the team's call. On 16 Nov the two arm controllers written on 6 Nov (Angelina's and Diego's, both `arm.py`) were merged into one file: Angelina's joint controller drives the arm, Diego's target planner and E1 validation run on top of it, and point targets now go through `decide.py`'s rule (see *The 16 Nov merge*). The same day Alejandro's evaluation branch was merged: the LLM query and cache, the generic / lookup / LLM / oracle comparison after 0, 1 and 2 practice slides, and the saved pilot results (see *The evaluation pipeline*).
+Phase 1, Oct 25 – Nov 1: measuring ground-truth kinetic friction for 27 object–surface pairs (M01–M27) and 3 validation pairs (V01–V03). Output: `measured_friction.csv` (columns in `measured_friction_interface.md`). On 31 Oct the model specification, estimators, grid posterior, decision rule, Drake configuration and E0-1/E0-2 checks landed in response to the instructor's feedback; `model_specification.tex` is the reference note. On 5 Nov the team settled the open decisions (see *Decisions* below); decisions 1, 2, 3, 5, 6 and 8 are applied in the code and data, the rest are recorded there. On 5 Nov a prescribed-paddle push harness (`push.py`) stood in for the arm controller so that E0-3, E0-4 and E0-5 could run; all three pass, and decisions 7 and 8 now have their evidence. The same day the decision-10 SimReady audit (`simready_audit.md`) found that NVIDIA's library stores one friction pair per material class, so a C2-SimReady baseline is possible but coarse. On 6 Nov the arm controller landed (`arm.py`): the iiwa tracks the plate's push profile under Drake's implicit PD with inverse-dynamics feed-forward, passes the plate's acceptance test, and matches the plate's release speed within 0.13% on the 12-push re-run (`arm_rerun.py`). The decision-7 numbers came with it: the braking jerk is not the constraint, the joint speed is. With the base at the origin every grid push runs joint 4 at 1.3–3× its 75°/s limit (which the simulator does not enforce), so the real iiwa would deliver 0.35–0.47 m/s on that line; with the base beside the board, level with the middle of the push, it delivers 1.0 m/s within its limits. Where the base stands is the team's call. On 16 Nov the two arm controllers written on 6 Nov (Angelina's and Diego's, both `arm.py`) were merged into one file: Angelina's joint controller drives the arm, Diego's target planner and E1 validation run on top of it, and point targets now go through `decide.py`'s rule (see *The 16 Nov merge*). The same day Alejandro's evaluation branch was merged: the LLM query and cache, the generic / lookup / LLM / oracle comparison after 0, 1 and 2 practice slides, and the saved pilot results (see *The evaluation pipeline*). The files were then grouped into folders (see *Repository layout*): after pulling, run `pip install -r requirements.txt` once more.
 
 ## The arm controller (6 Nov)
 
-The iiwa now pushes. `arm.py`'s `ArmPusher` has the plate's hook (`add`, `connect`, `q`, `qd`, `face_x`, `set_displacement`, `record`, `summary`), so `push_slide(..., pusher=ArmPusher())` runs the same settle → push → brake → slide with the arm, reads the release the same three ways and reports the same scalars, plus what the push asked of the iiwa. `python3 arm.py --mu 0.3 --v 0.8 --J 100` prints one push (`--meshcat` to watch; `--base-x`, `--base-y` move the base).
+The iiwa now pushes. `arm.py`'s `ArmPusher` has the plate's hook (`add`, `connect`, `q`, `qd`, `face_x`, `set_displacement`, `record`, `summary`), so `push_slide(..., pusher=ArmPusher())` runs the same settle → push → brake → slide with the arm, reads the release the same three ways and reports the same scalars, plus what the push asked of the iiwa. `python3 src/arm.py --mu 0.3 --v 0.8 --J 100` prints one push (`--meshcat` to watch; `--base-x`, `--base-y` move the base).
 
 **How it works.**
 - The push is a straight line, so the paddle pose fixes link 7's pose (the plate hangs 5 cm below the flange with its face along link-7 +z, as `scene.add_arm` welds it) and the task is a 6-DoF frame path with one redundant joint. `ArmModel` is a kinematics-and-dynamics copy of the arm (no contact). The start posture is picked among multi-start IK solutions by integrating each along the whole path with the minimum-norm joint tangent `dq/ds = J⁺ eₓ` and keeping the one with the smallest peak joint-speed ratio that stays inside the joint limits and away from singularities (6 of 8 solutions cover the acceptance push). `q(s)` is a Hermite spline over the displacement; the profile gives `q_d = q(x)`, `q̇_d = q'(x) v`, `q̈_d = q''(x) v² + q'(x) a`.
@@ -20,9 +20,9 @@ The iiwa now pushes. `arm.py`'s `ArmPusher` has the plate's hook (`add`, `connec
 
 **The bar, met.** The plate's acceptance test passes with the arm (`tests/test_arm.py`, same assertions as `tests/test_push.py`): at μ 0.3, 0.8 m/s, J 100 the object leaves at +0.11% of the release model (+0.06% on the arm's recorded motion), the force vanishes 1.6 ms after t*, the slide is within −0.20% of `v²/(2μg)`, release heading 0.001°, FK release point exact to 0.01 mm, paddle tracking 0.05 mm rms (max 0.22 mm, the first step of the acceleration), z drift 0.05 mm and tilt 0.008° while in contact, no torque clamping.
 
-**The 12-push re-run** (`python3 arm_rerun.py`, 24 pushes, ~15 s on 6 workers → `arm_rerun_results.csv`, `arm_rerun_summary.txt`, `arm_rerun_summary.png`): eight cases from the E0-4 grid spanning μ 0.1–0.5, v 0.6–1.0 and J 30–2000, and four from E0-3 (disc, COM at w/4, plate yaw 2°, paddle friction 0.6), each run with the plate and with the arm. The arm's speed at t* is within −0.13..−0.01% of the plate's in every case and within 1% of the release model in 11 of 12; the twelfth is E0-4's known worst case (μ 0.5, 0.6 m/s, J 30), +1.13% with the arm and +1.18% with the plate. Tracking is 0.045–0.086 mm rms (plate 0.029–0.050), the rest position agrees with the plate's within −0.4..+1.9 mm, the FK release point is exact except for the yawed plate (+2.1 mm, the same geometric offset the plate has). The one new number the plate could not supply is the arm's tracking error against the profile: ≤ 0.09 mm rms, ≤ 0.34 mm peak.
+**The 12-push re-run** (`python3 experiments/arm_rerun.py`, 24 pushes, ~15 s on 6 workers → `results/arm_rerun/arm_rerun_results.csv`, `results/arm_rerun/arm_rerun_summary.txt`, `results/arm_rerun/arm_rerun_summary.png`): eight cases from the E0-4 grid spanning μ 0.1–0.5, v 0.6–1.0 and J 30–2000, and four from E0-3 (disc, COM at w/4, plate yaw 2°, paddle friction 0.6), each run with the plate and with the arm. The arm's speed at t* is within −0.13..−0.01% of the plate's in every case and within 1% of the release model in 11 of 12; the twelfth is E0-4's known worst case (μ 0.5, 0.6 m/s, J 30), +1.13% with the arm and +1.18% with the plate. Tracking is 0.045–0.086 mm rms (plate 0.029–0.050), the rest position agrees with the plate's within −0.4..+1.9 mm, the FK release point is exact except for the yawed plate (+2.1 mm, the same geometric offset the plate has). The one new number the plate could not supply is the arm's tracking error against the profile: ≤ 0.09 mm rms, ≤ 0.34 mm peak.
 
-**What the iiwa can deliver (decision 7).** `python3 arm.py --feasibility` plans the pushes without contact and reports the peak joint-speed and torque ratios to the SDF limits; `--scan` repeats it for bases beside the board (y = 0.65 m is just off the 1.2 m wide board). Peak joint speed / limit, J = 100 (J = 2000 is within 0.05 of it):
+**What the iiwa can deliver (decision 7).** `python3 src/arm.py --feasibility` plans the pushes without contact and reports the peak joint-speed and torque ratios to the SDF limits; `--scan` repeats it for bases beside the board (y = 0.65 m is just off the 1.2 m wide board). Peak joint speed / limit, J = 100 (J = 2000 is within 0.05 of it):
 
 | iiwa base (x, y), m | 0.6 m/s | 0.8 m/s | 1.0 m/s | paddle speed the joint limits allow |
 |---|---|---|---|---|
@@ -63,9 +63,10 @@ Diego pushed his own `arm.py` on 6 Nov, a few hours after Angelina's was committ
 
 **Next steps for the team.**
 1. *Alejandro:* your branch is merged into `main` (16 Nov), with this README kept and extended instead of the branch's shorter one. Speeds planned from a belief move by up to 6 mm/s under the default loss, so the saved pilot results will not reproduce bit for bit; pass `loss=decide.loss_sq_abs` to get the old numbers, or rerun. Each run's `settings.json` hashes `arm.py`, `push.py` and `physics.py`, all of which changed in the arm merge.
-2. *Team:* choose the loss for point targets (the specification's relative loss, now the default, or the squared miss) and say in the report whether the evaluation scores the slide from the FK release point or the rest position on the board. The start-gap sensitivity in E1 part C exists only under the second.
+2. *Team:* choose the loss for point targets (the specification's relative loss, now the default, or the squared miss); it moves the zero-practice generic baseline from 1.9 to 7.4 mm on Y01 (*The evaluation pipeline*). Then say in the report whether the evaluation scores the slide from the FK release point or the rest position on the board. The start-gap sensitivity in E1 part C exists only under the second.
 3. *Team:* the base position is still open. Diego's planner caps a plan at the arm's reach by default, not at the joint speed limit; the evaluation passes `u_max=.45` by hand. `limited_peak_speed(J, x0, base=...)` computes that bound (0.49 m/s at the origin, 1.02 m/s at (0.6, 0.65) m).
-4. *Diego:* please read `ARM_CONTROLLER.md` and the planner section of `arm.py` and say if anything you relied on is missing. `solve_ik`, `joint_trajectory`, `Q_SEED`, `REACH_X` and `ArmPusher(kd=, feedforward=)` no longer exist.
+4. *Everyone:* after pulling the folder reorganisation, run `pip install -r requirements.txt` once (it adds the editable install). Work in progress on files at their old root paths merges normally, because the files were moved without being renamed; new scripts go in the matching folder and should take their default paths from `src/paths.py`.
+5. *Diego:* please read `docs/ARM_CONTROLLER.md` and the planner section of `arm.py` and say if anything you relied on is missing. `solve_ik`, `joint_trajectory`, `Q_SEED`, `REACH_X` and `ArmPusher(kd=, feedforward=)` no longer exist.
 
 ## The evaluation pipeline (Alejandro, merged 16 Nov)
 
@@ -79,63 +80,154 @@ The comparison the proposal is about now runs end to end on three published pair
 
 ```bash
 python3 -m pytest tests/test_evaluation_v3.py -q                           # offline checks, no Drake, no API
-python3 run_arm_evaluation.py --pair all --seeds 0 1 2 --check-only        # configuration and cache check
-python3 run_arm_evaluation.py --pair Y01 --seeds 8 --out results/evaluation_v3/Y01_seed8
-python3 summarize_arm_evaluation.py results/evaluation_v3/Y01_seed8
+python3 evaluation/run_arm_evaluation.py --pair all --seeds 0 1 2 --check-only        # configuration and cache check
+python3 evaluation/run_arm_evaluation.py --pair Y01 --seeds 8 --out results/evaluation_v3/Y01_seed8
+python3 evaluation/summarize_arm_evaluation.py results/evaluation_v3/Y01_seed8
 ```
 
 **Read before using the saved results.**
-- They were produced on Alejandro's branch, before the arm merge: with Diego's original controller and the squared-miss loss. They have not been rerun on the merged `arm.py`.
+- They were produced on Alejandro's branch, before the arm merge: with Diego's original controller and the squared-miss loss. The folders under `results/` have not been regenerated.
+- **The merged controller reproduces them.** The v3 Y01 check (seed 7, 144 rows) was rerun on 16 Nov on the merged, reorganised code with the squared-miss loss (`loss=decide.loss_sq_abs`): every landing RMSE is within 0.2 mm of the saved one (zero practice slides: generic 1.89 vs 1.87 mm, lookup 12.50 vs 12.33, LLM 22.01 vs 22.01, oracle 0.18 vs 0.21).
+- **The loss matters before any practice slide.** The same rerun with `plan_peak_speed`'s current default, the specification's squared relative loss, gives generic 7.40 mm (not 1.89) and lookup 10.53 mm (not 12.50) at zero practice slides; LLM and oracle are unchanged, and after one or two practice slides every method is within 0.02 mm of the squared-miss run. The wide generic prior is where the two losses disagree. The evaluators do not pass a loss, so a fresh run today uses the relative loss.
 - The evaluation is not frozen. It accepts only Y01–Y03; `measured_friction.csv` does not exist yet; the material descriptions for the measured pairs are not written.
 - The joint checks in the evaluators cover the planned position, speed and inverse-dynamics torque, at the 0.45 m/s cap with the base at the origin.
 
-## Contents
+## Repository layout
+
+Since 16 Nov the files are grouped into folders. Nothing was renamed, only moved, so `git log --follow <file>` still shows each file's history.
+
+```
+src/           the library: physics, scene, push, arm, decide, belief, observe, perception, llm_prior
+experiments/   E0 and E1 validation scripts, the arm re-run
+evaluation/    the method comparison: runners, summarisers, demonstrations
+friction/      rig analysis, lookup table, SimReady audit
+figures/       figure and video scripts with their outputs
+data/          inputs: ground truth, lookup table, LLM caches
+results/       saved outputs of experiments/ and evaluation/
+paper/         LaTeX and its generated rows
+docs/          guides and protocols
+tests/         pytest suite
+```
+
+**How things find each other.**
+- `pip install -r requirements.txt` installs this repository in editable mode (`pyproject.toml`), which puts `src/` on Python's import path. **If you set up before 16 Nov, run it once more.** Without it, scripts outside `src/` fail with `ModuleNotFoundError: No module named 'physics'`.
+- Scripts run by path from any directory: `python3 experiments/e0_4_release.py`, `python3 src/arm.py --target 0.75 --mu 0.3`.
+- Default input and output locations come from `src/paths.py`, not from the current directory. Paths you pass on the command line are still relative to where you are.
+- The tests need no install: `pyproject.toml` and `tests/conftest.py` add the code folders to the path.
+
+### `src/`
+
+The library. Every other folder imports from here (`import physics`, `from arm import ...`). Each module also runs as a script, e.g. `python3 src/arm.py --reach`.
 
 | File | Purpose |
 |---|---|
-| `friction_analysis.py` | Computes `μ_k` from phone-accelerometer (phyphox) recordings of a sled sliding on a flat board. Also does the six-position accelerometer calibration. |
-| `lookup_table.py` | Builds the published-value friction lookup table (baseline C2): `friction_lookup.csv` plus LaTeX rows `rows_*.tex`. |
-| `check_drake.py` | Smoke test for the Drake install: loads the iiwa 14 and checks a hydroelastic box slide against `d = v² / (2 μ g)`. |
 | `scene.py` | The Drake scene: patchy table, object, iiwa 14 with paddle. Also runs passive slides against the predicted stopping distance. |
-| `e0_sweep.py` | E0 contact-model study: passive slides across shapes and contact settings, checked against `d = v² / (2 μ g)`. |
 | `perception.py` | Landing pose from the scene's overhead depth camera: depth noise, plane removal, segmentation, outline ICP. Also measures the perception error. |
-| `demo_video.py` | Renders a demo video offscreen (VTK + ffmpeg): the scene, a passive slide, the four shapes, landing perception. |
-| `ground_truth_placeholder.csv` | Synthetic friction values in the `measured_friction.csv` columns, used until the measured file exists. **Not friction estimates.** |
-| `ground_truth_published.csv` | Yu et al. 2016's measured pairs (Y01–Y03, stainless steel on ABS, acetal, plywood; the polyurethane pair Y04 was dropped from the simulated set on 5 Nov, decision 6). Simulator friction comes from these plus our measured pairs. |
 | `physics.py` | Analytic model: release model `v_r = v_peak − (μg)²/2J`, free slide, slides across friction strips, uniform-pressure disk spin integrator, tipping check (A5). |
-| `observe.py` | Observation models A/B/C (frames, + rest pose, + FK release point) and the O1 ablation; least-squares fit; Cramér–Rao error budget; residual signatures. `python3 observe.py` prints the budget table and writes `error_budget_rows.tex`. |
+| `observe.py` | Observation models A/B/C (frames, + rest pose, + FK release point) and the O1 ablation; least-squares fit; Cramér–Rao error budget; residual signatures. `python3 src/observe.py` prints the budget table and writes `error_budget_rows.tex`. |
 | `belief.py` | Grid posterior over `ln μ` (500 points on [ln 0.05, ln 1]): prior from measured pairs, LLM observation model fitted leave-one-object-out, slide likelihood with `(x_r, v_r)` profiled out. |
 | `decide.py` | Release-speed decision by expected loss with the release model inside `d(μ, u)`; five losses; closed-form limit; practice speed; `point_target` turns a target point on the board into a target slide that moves with the speed. |
 | `llm_prior.py` | Prompt builder that can read only the `description_*` and `photo_*` columns (test 7); the text-only OpenAI request; response validation; a cache keyed on the prompt, model and request settings. `--query` makes a live request. |
-| `llm_cache_published_pilot.json`, `llm_cache_pilot.json` | Cached LLM responses for Y01–Y03 (used by the evaluators) and for the earlier pilot. |
-| `run_arm_evaluation.py`, `summarize_arm_evaluation.py` | Evaluation v3: methods × practice counts × targets × noise levels × seeds, with preflight feasibility checks; the summariser rejects partial or invalid runs. |
-| `run_arm_comparison_v2.py`, `summarize_arm_v2.py` | Pilot v2 (one target, ten seeds). v3 imports its execution and priors, so it is a live dependency. |
-| `run_arm_comparison.py`, `summarize_arm_pilot.py` | Pilot v1 (narrow generic prior), kept as history. |
-| `demo_published_comparison.py`, `demo_bayesian_integration.py`, `demo_compare_priors.py` | Small demonstrations of priors → update → plan. `demo_published_comparison.py` holds the Y01–Y03 descriptions and the raw-LLM prior, which v2 and v3 import. |
-| `EVALUATION_V3.md`, `PILOT_V2_PROTOCOL.md` | Settings, commands and caveats for v3 and v2. |
-| `docs/ALEJANDRO_CONTRIBUTION.md`, `docs/REPOSITORY_MAP.md` | Alejandro's contribution audit with the open items, and his map of the evaluation pipeline. |
-| `results/` | Saved evaluation runs: `pilot_v1/`, `pilot_v2/`, `evaluation_v3/`, indexed in `results/README.md`. |
 | `sim_config.yaml`, `drake_config.py` | The one Drake contact configuration every experiment loads (frozen by E0-1), and contact-result checks (`assert_hydro_only`). |
-| `e0_2_hydro_check.py` | E0-2: every contact hydroelastic at every step, in the passive and the push scene, with negative controls. |
-| `e0_1_free_slide.py` | E0-1: free slide vs `d = v²/(2μg)` over approximation × damping × step × margin, plus spin and heading launches. Freezes A6. |
 | `push.py` | Prescribed-paddle push harness: the plate on a prismatic joint under Drake's implicit PD, tracking a constant-jerk profile (`profile(..., a_max)` caps the brake); one push-and-slide with the release read three ways. Stood in for the arm in E0-3 to E0-5; `push_slide` drives any pusher with the same hook. |
 | `arm.py` | The iiwa 14 as the pusher: IK path for the straight push with the posture chosen by joint-speed ratio, implicit PD per joint with inverse-dynamics feed-forward, torque clamped at the SDF effort limits; `--feasibility` / `--scan` tabulate the joint-speed and torque ratios over v_peak, J and the base position (decision 7). Also Diego's target planner (16 Nov merge): `plan_peak_speed`, `slide_to_target`, the reach and joint-limit speed bounds, `--target` and `--reach`. |
-| `ARM_CONTROLLER.md` | Diego's guide to the arm: how to run it, the three layers, limits, and the E1 validation results; updated for the merged controller. |
+| `paths.py` | Where each folder is (`DATA`, `RESULTS`, `PAPER`, `FIGURES`, ...), so no script depends on the directory it is run from; `locate(name)` finds a source or input file by name. |
+
+### `experiments/`
+
+Validation runs. Each writes its CSV, summary and figure to `results/` by default.
+
+| File | Purpose |
+|---|---|
+| `check_drake.py` | Smoke test for the Drake install: loads the iiwa 14 and checks a hydroelastic box slide against `d = v² / (2 μ g)`. |
+| `e0_sweep.py` | E0 contact-model study: passive slides across shapes and contact settings, checked against `d = v² / (2 μ g)`. |
+| `e0_2_hydro_check.py` | E0-2: every contact hydroelastic at every step, in the passive and the push scene, with negative controls. |
+| `e0_1_free_slide.py` | E0-1: free slide vs `d = v²/(2μg)` over approximation × damping × step × margin, plus spin and heading launches. Freezes A6. |
 | `e1_arm_validation.py` | Diego's E1 arm milestone: 12 arm-vs-plate pushes, 21 targets with the true μ, 40 repeatability trials; writes `e1_arm_results.csv`, `e1_arm_summary.txt`, `e1_arm_summary.png`. |
 | `arm_rerun.py` | The 5 Nov arm re-run: 12 pushes from the E0-3/E0-4 grids with the arm beside the plate; writes `arm_rerun_results.csv`, `arm_rerun_summary.txt`, `arm_rerun_summary.png`. |
 | `e0_3_contact_geometry.py` | E0-3: box (line contact) vs disc (point), COM offset, plate yaw and paddle friction: release heading, spin, lateral miss, slide error. |
 | `e0_4_release.py` | E0-4: object speed at separation vs `v_peak − (μg)²/(2J)` over J, μ, v_peak and each contact approximation; the decision-7 table of what braking costs. |
 | `e0_5_observation.py` | E0-5: pushes replayed through the depth camera at 30, 60 and 120 Hz; models A, B, C and O1 fitted; bias and SE vs the Cramér–Rao bound; Tier B noise values (`e0_5_noise.csv`). |
+
+### `evaluation/`
+
+The method comparison (generic, lookup, LLM, oracle). Pass `--out results/<version>/<name>` for a new run.
+
+| File | Purpose |
+|---|---|
+| `run_arm_evaluation.py`, `summarize_arm_evaluation.py` | Evaluation v3: methods × practice counts × targets × noise levels × seeds, with preflight feasibility checks; the summariser rejects partial or invalid runs. |
+| `run_arm_comparison_v2.py`, `summarize_arm_v2.py` | Pilot v2 (one target, ten seeds). v3 imports its execution and priors, so it is a live dependency. |
+| `run_arm_comparison.py`, `summarize_arm_pilot.py` | Pilot v1 (narrow generic prior), kept as history. |
+| `demo_published_comparison.py`, `demo_bayesian_integration.py`, `demo_compare_priors.py` | Small demonstrations of priors → update → plan. `demo_published_comparison.py` holds the Y01–Y03 descriptions and the raw-LLM prior, which v2 and v3 import. |
+
+### `friction/`
+
+Rig data processing, the published-value lookup table and the SimReady audit.
+
+| File | Purpose |
+|---|---|
+| `friction_analysis.py` | Computes `μ_k` from phone-accelerometer (phyphox) recordings of a sled sliding on a flat board. Also does the six-position accelerometer calibration. |
+| `lookup_table.py` | Builds the published-value friction lookup table (baseline C2): `friction_lookup.csv` plus LaTeX rows `rows_*.tex`. |
 | `aggregate_pairs.py` | Per-pair aggregation of rig runs and friction profiles into `measured_friction.csv`. |
 | `make_mock_measured.py` | Regenerates `ground_truth_placeholder.csv` with the measured-file columns (values preserved, new columns mock). |
-| `measured_friction_interface.md` | Column contract and interface rules for the measured file, the run log, per-run results and `profiles.csv`. |
+| `simready_audit.py` | Decision-10 audit of NVIDIA's SimReady Central library (`nvidia/simready-assets` on Hugging Face): downloads each asset's small physics layers, reads every physics material's static/dynamic friction, restitution and density with `usd-core`, matches the rig's materials by name, and plots `simready_friction.png`. Read-only; nothing in the pipeline uses it. |
+
+### `figures/`
+
+Scripts that draw figures or render video, with their outputs.
+
+| File | Purpose |
+|---|---|
+| `demo_video.py` | Renders a demo video offscreen (VTK + ffmpeg): the scene, a passive slide, the four shapes, landing perception. |
+| `simready_friction.png` | Distribution of the static and dynamic friction values authored on the library's physics materials. |
+
+### `data/`
+
+Inputs. `measured_friction.csv` will live here once it exists.
+
+| File | Purpose |
+|---|---|
+| `ground_truth_placeholder.csv` | Synthetic friction values in the `measured_friction.csv` columns, used until the measured file exists. **Not friction estimates.** |
+| `ground_truth_published.csv` | Yu et al. 2016's measured pairs (Y01–Y03, stainless steel on ABS, acetal, plywood; the polyurethane pair Y04 was dropped from the simulated set on 5 Nov, decision 6). Simulator friction comes from these plus our measured pairs. |
+| `friction_lookup.csv` | The published-value lookup table (baseline C2), written by `friction/lookup_table.py`. |
+| `llm_cache_published_pilot.json`, `llm_cache_pilot.json` | Cached LLM responses for Y01–Y03 (used by the evaluators) and for the earlier pilot. |
 | `run_log_template.csv` | Run-log template: session, pair, file, lane, orientation, speed setting, `rest_mm`, accepted, reject reason. |
+
+### `results/`
+
+Saved outputs. `results/README.md` indexes the evaluation runs.
+
+| File | Purpose |
+|---|---|
+| `e0/` | E0 outputs: `e0_1_*` to `e0_5_*` (results, summaries, figures), the sweep's `e0_results.csv` and `e0_summary.txt`, and `e0_5_noise.csv`, the Tier B noise values. |
+| `e1/` | `e1_arm_results.csv`, `e1_arm_summary.txt`, `e1_arm_summary.png` from `e1_arm_validation.py`. |
+| `arm_rerun/` | `arm_rerun_results.csv`, `arm_rerun_summary.txt`, `arm_rerun_summary.png` from `arm_rerun.py`. |
+| `perception_results.csv` | Landing-perception error study from `perception.py --study`. |
+
+### `paper/`
+
+LaTeX. The `rows_*.tex` and `error_budget_rows.tex` files are generated; compile from inside `paper/`.
+
+| File | Purpose |
+|---|---|
 | `model_specification.tex` | Reference note: state and assumptions, contact table, generative model, observation models and error budget, inference, decision rule, fidelity ladder, E0 status. |
 | `friction_lookup_table.tex` | Lookup table v2 document; its tables are the generated `rows_*.tex`. |
-| `simready_audit.py` | Decision-10 audit of NVIDIA's SimReady Central library (`nvidia/simready-assets` on Hugging Face): downloads each asset's small physics layers, reads every physics material's static/dynamic friction, restitution and density with `usd-core`, matches the rig's materials by name, and plots `simready_friction.png`. Read-only; nothing in the pipeline uses it. |
+
+### `docs/`
+
+Guides and protocols.
+
+| File | Purpose |
+|---|---|
+| `EVALUATION_V3.md`, `PILOT_V2_PROTOCOL.md` | Settings, commands and caveats for v3 and v2. |
+| `ALEJANDRO_CONTRIBUTION.md`, `REPOSITORY_MAP.md` | Alejandro's contribution audit with the open items, and his map of the evaluation pipeline. |
+| `ARM_CONTROLLER.md` | Diego's guide to the arm: how to run it, the three layers, limits, and the E1 validation results; updated for the merged controller. |
+| `measured_friction_interface.md` | Column contract and interface rules for the measured file, the run log, per-run results and `profiles.csv`. |
 | `simready_audit.md` | The audit's finding: what the library stores, the friction distribution, the rig-material match table, timing, and the conclusion for decision 10. |
-| `simready_friction.png` | Distribution of the static and dynamic friction values authored on the library's physics materials. |
-| `tests/` | pytest suite (58 tests): spec tests 1–7, the rig self-checks, the push harness, the arm, the target planner, the E1 script and the offline evaluation checks. `python3 -m pytest tests` (`-m "not slow"` skips three simulated pushes). |
+
+### `tests/`
+
+pytest suite (58 tests): spec tests 1–7, the rig self-checks, the push harness, the arm, the target planner, the E1 script and the offline evaluation checks. `python3 -m pytest tests` (`-m "not slow"` skips three simulated pushes).
 
 ## Setup
 
@@ -145,12 +237,12 @@ You need Python 3.12 or newer. Drake 1.58 ships wheels for macOS 26 on Apple sil
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python3 friction_analysis.py --selftest
-python3 check_drake.py
+python3 friction/friction_analysis.py --selftest
+python3 experiments/check_drake.py
 python3 -m pytest tests
 ```
 
-`requirements.txt` pins Drake and `manipulation`, the 6.4210 course package.
+`requirements.txt` pins Drake and `manipulation`, the 6.4210 course package, and installs this repository in editable mode so that the modules in `src/` import from anywhere (see *Repository layout*).
 
 **`friction_analysis.py --selftest`** runs the analysis on synthetic slides with `μ = 0.30`. With a 2° board tilt and a 1° mounting tilt, the fwd/rev mean should come out close to 0.300.
 
@@ -179,7 +271,7 @@ The first run downloads Drake's model files, so it needs internet.
 **At the start of each session, calibrate.** Record about 10 s with each phone axis pointing straight up, one file per axis direction. Then run:
 
 ```bash
-python3 friction_analysis.py --make-calib px.csv mx.csv py.csv my.csv pz.csv mz.csv
+python3 friction/friction_analysis.py --make-calib px.csv mx.csv py.csv my.csv pz.csv mz.csv
 ```
 
 This writes `calib.json` to the current directory. Scales should be within 1–2% of 1, and biases below 0.1 m/s².
@@ -187,8 +279,8 @@ This writes `calib.json` to the current directory. Scales should be within 1–2
 **For each pair, analyse each orientation separately:**
 
 ```bash
-python3 friction_analysis.py M07_*fwd*.csv --pair M07 --direction fwd --calib calib.json --out results.csv
-python3 friction_analysis.py M07_*rev*.csv --pair M07 --direction rev --calib calib.json --out results.csv
+python3 friction/friction_analysis.py M07_*fwd*.csv --pair M07 --direction fwd --calib calib.json --out results.csv
+python3 friction/friction_analysis.py M07_*rev*.csv --pair M07 --direction rev --calib calib.json --out results.csv
 ```
 
 The script prints `μ_k` for each run and flags rejects: a short slide, lateral force, or yaw. `--out` appends to the CSV; rejected runs are written too, with `accepted = 0` and a `reject_reason`. If more than 3 of a pair's 12 runs are rejected, fix the cause and redo them. Runs where the sled touched the paddle again after release are marked in the run log (`reject_reason`), which `--runlog` reads.
@@ -196,8 +288,8 @@ The script prints `μ_k` for each run and flags rejects: a short slide, lateral 
 **Since 31 Oct** the script detects the true stop (along-force back at rest level for 50 ms) and integrates the untrimmed signal from there, so `v_start` no longer reads low by `μg × 0.03 s`. It also integrates twice for the slide distance `d_acc_m`, computes the endpoint estimate `mu_v2d = v_r²/(2 g d_tape)` from the run log's `rest_mm`, and bins the friction ratio by board position into `profiles.csv` (`--profiles`; 20 mm bins, features shorter than the 100 mm coupon are not resolvable). `--pair` and `--direction` default to the run log, then the file name. Then per pair:
 
 ```bash
-python3 friction_analysis.py data/raw/S1/M07_*.csv --runlog run_log.csv --calib calib.json --out results.csv --profiles profiles.csv
-python3 aggregate_pairs.py --results results.csv --profiles profiles.csv --runlog run_log.csv --meta ground_truth_placeholder.csv --out measured_friction.csv
+python3 friction/friction_analysis.py data/raw/S1/M07_*.csv --runlog run_log.csv --calib calib.json --out results.csv --profiles profiles.csv
+python3 friction/aggregate_pairs.py --results results.csv --profiles profiles.csv --runlog run_log.csv --meta data/ground_truth_placeholder.csv --out data/measured_friction.csv
 ```
 
 `aggregate_pairs.py` averages forward and reverse within each lane and speed first, then writes the pair's `mu_k_nominal`, `s_tab_log`, `speed_effect`, `mu_slope_per_mps`, `strip_scale_mm` (profile correlation length, floored at 100 mm: the simulated strip width), `profile_repeatability` and the reject counts. Column meanings are in `measured_friction_interface.md`.
@@ -221,9 +313,9 @@ python3 aggregate_pairs.py --results results.csv --profiles profiles.csv --runlo
 **Getting the friction right.** Drake combines two geometries' friction as `2 μa μb / (μa + μb)`. The object therefore carries a fixed μ, and each strip and the paddle are given the value that makes the *pair* coefficient equal to its target.
 
 ```bash
-python3 scene.py --pair M07 --meshcat                      # view the scene
-python3 scene.py --pair M07 --slide 0.8                    # passive slide vs prediction
-python3 scene.py --pair M07 --slide 0.8 --shape footed --foot-error 0.001 --patchiness 0
+python3 src/scene.py --pair M07 --meshcat                      # view the scene
+python3 src/scene.py --pair M07 --slide 0.8                    # passive slide vs prediction
+python3 src/scene.py --pair M07 --slide 0.8 --shape footed --foot-error 0.001 --patchiness 0
 ```
 
 **What `--slide` does:** it gives the object a speed and lets it slide to rest. It compares the stopping distance with the prediction `g ∫ μ̄ dx = v₀²/2`, where `μ̄` is the strip friction averaged over the object's footprint. It prints PASS within 2% in distance and 2° in yaw.
@@ -233,9 +325,9 @@ python3 scene.py --pair M07 --slide 0.8 --shape footed --foot-error 0.001 --patc
 ### E0 contact-model sweep
 
 ```bash
-python3 e0_sweep.py                            # about 2,700 slides, ~7 min on 10 cores
-python3 e0_sweep.py --quick                    # a few slides, to check it runs
-python3 e0_sweep.py --summarize e0_results.csv # reprint the summary from a saved run
+python3 experiments/e0_sweep.py                            # about 2,700 slides, ~7 min on 10 cores
+python3 experiments/e0_sweep.py --quick                    # a few slides, to check it runs
+python3 experiments/e0_sweep.py --summarize results/e0/e0_results.csv # reprint the summary from a saved run
 ```
 
 The sweep has three stages:
@@ -254,9 +346,9 @@ The scene's defaults passed on every shape: `lagged`, 1 ms, 10⁷ Pa, 1 s/m, 1 c
 ### E0-1 and E0-2 (31 Oct)
 
 ```bash
-python3 e0_2_hydro_check.py                 # every contact hydroelastic at every step; ~1 min
-python3 e0_1_free_slide.py                  # 396 slides, ~1 min on 10 cores; writes e0_1_results.csv, e0_1_summary.txt, e0_1_summary.png
-python3 e0_1_free_slide.py --summarize e0_1_results.csv
+python3 experiments/e0_2_hydro_check.py                 # every contact hydroelastic at every step; ~1 min
+python3 experiments/e0_1_free_slide.py                  # 396 slides, ~1 min on 10 cores; writes results/e0/e0_1_results.csv, results/e0/e0_1_summary.txt, results/e0/e0_1_summary.png
+python3 experiments/e0_1_free_slide.py --summarize results/e0/e0_1_results.csv
 ```
 
 Both build the plant from `sim_config.yaml` through `drake_config.py`, with the strict `hydroelastic` contact model: a rigid–rigid pair throws instead of silently falling back to point contact (`Contact.contact_model`; the scene's default stays `hydroelastic_with_fallback`). `Contact.margin` sets the hydroelastic margin.
@@ -269,10 +361,10 @@ Both build the plant from `sim_config.yaml` through `drake_config.py`, with the 
 The arm had no controller until 6 Nov, so `push.py` drives the paddle plate directly: a rigid plate on a prismatic joint along the push, under Drake's implicit PD actuator (`JointActuator.set_controller_gains`, which needs the SAP-family solver: `lagged`, `similar` or `sap`) tracking a constant-jerk speed profile with a feed-forward force. The profile accelerates at 2 m/s² and then runs one jerk segment −J through the peak into the brake, so braking starts from zero deceleration at `v_peak`, as the release model assumes. The command is fed one time step ahead (the implicit scheme reaches a step's desired state at its end); the plate then tracks to 0.05 mm. `build_scene(..., pusher=Pusher())` puts the plate in place of the arm. The release is read three ways: the simulator's object state at the model's instant t* = t_peak + μg/J (what the decision rule predicts), the model on the plate's recorded motion, and the instant the paddle–object force actually vanishes. Near separation both bodies decelerate at about μg, so a one-step shift moves the speed by μg·Δt, 1.4% of a 0.36 m/s release at 1 ms.
 
 ```bash
-python3 push.py --mu 0.3 --v 0.8 --J 100            # one push-and-slide, printed; --shape disc --com 0.02 --yaw 2 --mu-p 0.6 --meshcat
-python3 e0_3_contact_geometry.py                    # 132 pushes, ~1 min on 8 workers -> e0_3_results.csv, e0_3_summary.txt, e0_3_summary.png
-python3 e0_4_release.py                             # 66 pushes -> e0_4_results.csv, e0_4_summary.txt, e0_4_summary.png
-python3 e0_5_observation.py                         # 3 pushes replayed 180 times through the camera, ~3 min -> e0_5_results.csv, e0_5_frames.csv, e0_5_noise.csv, e0_5_summary.*
+python3 src/push.py --mu 0.3 --v 0.8 --J 100            # one push-and-slide, printed; --shape disc --com 0.02 --yaw 2 --mu-p 0.6 --meshcat
+python3 experiments/e0_3_contact_geometry.py                    # 132 pushes, ~1 min on 8 workers -> results/e0/e0_3_results.csv, results/e0/e0_3_summary.txt, results/e0/e0_3_summary.png
+python3 experiments/e0_4_release.py                             # 66 pushes -> results/e0/e0_4_results.csv, results/e0/e0_4_summary.txt, results/e0/e0_4_summary.png
+python3 experiments/e0_5_observation.py                         # 3 pushes replayed 180 times through the camera, ~3 min -> results/e0/e0_5_results.csv, results/e0/e0_5_frames.csv, results/e0/e0_5_noise.csv, e0_5_summary.*
 ```
 
 - **E0-3 (A2) passes for the box:** with the plate covering the whole face, the box leaves with |ψ_r| ≤ 0.004° and a lateral miss ≤ 2 mm for every COM offset up to w/4, every plate yaw (0, 0.5, 2°) and every paddle friction (0.1, 0.3, 0.6); a yawed plate turns the box to its own angle (rest yaw = plate yaw) without giving it a heading. A disc with an offset COM spins off (heading 5–27°, miss 23–116 mm at e = R/4 and R/2) and follows a yawed plate at about two thirds of its angle. The box with its COM 5 mm inside the footprint edge rocks onto that edge during the push (tilt 4–5°, heading up to 6°); every disc with the COM 5 mm inside the rim topples. Pushed by a plate slid sideways so the covered segment no longer straddles the COM, the box turns 90° and leaves 33–86% below the release model. The slide error stays within 0.8% wherever the object does not tilt.
@@ -289,9 +381,9 @@ python3 e0_5_observation.py                         # 3 pushes replayed 180 time
 5. Fit the object's top-view outline to the blob's edge with 2-D ICP, solving for x, y and yaw.
 
 ```bash
-python3 perception.py --study 50                 # 50 random landing poses per shape -> perception_results.csv
-python3 perception.py --study 50 --no-noise      # noise-free depth: the algorithm's own error
-python3 perception.py --pair M07 --slide 0.8     # passive slide, then perceive where it stopped
+python3 src/perception.py --study 50                 # 50 random landing poses per shape -> results/perception_results.csv
+python3 src/perception.py --study 50 --no-noise      # noise-free depth: the algorithm's own error
+python3 src/perception.py --pair M07 --slide 0.8     # passive slide, then perceive where it stopped
 ```
 
 From another script: `perceive(depth, camera, obj, rng, x_window=...)` returns the estimated pose. With the arm in the scene, use `x_window` to leave out the paddle.
@@ -299,9 +391,9 @@ From another script: `perceive(depth, camera, obj, rng, x_window=...)` returns t
 ### Demo video
 
 ```bash
-python3 demo_video.py                          # demo.mp4: pair Y03, v0 = 1.4 m/s, 1920 x 1080, ~30 s to render
-python3 demo_video.py --no-text                # no captions, to add your own in an editor
-python3 demo_video.py --pair M07 --v0 1.2 --size 1280 720 --out m07.mp4
+python3 figures/demo_video.py                          # demo.mp4: pair Y03, v0 = 1.4 m/s, 1920 x 1080, ~30 s to render
+python3 figures/demo_video.py --no-text                # no captions, to add your own in an editor
+python3 figures/demo_video.py --pair M07 --v0 1.2 --size 1280 720 --out m07.mp4
 ```
 
 You need `ffmpeg` on the PATH (`brew install ffmpeg` or `apt install ffmpeg`). The video has four parts: the scene, a slow-motion passive slide with the predicted stop drawn on the table, the same slide for each shape, and the perception steps on the overhead depth image. The arm is posed by IK with the paddle behind the object but is not simulated; the controller (`arm.py`, 6 Nov) is not in the video yet. As with `--slide`, the object starts at `--v0`.
@@ -309,7 +401,7 @@ You need `ffmpeg` on the PATH (`brew install ffmpeg` or `apt install ffmpeg`). T
 ## Lookup table
 
 ```bash
-python3 lookup_table.py
+python3 friction/lookup_table.py
 ```
 
 This writes `friction_lookup.csv` (v2) and the LaTeX row files that `friction_lookup_table.tex` inputs. v2 keeps v1's 11 columns and appends `role` (secondary L01–L20, yu_pair Y01–Y03, rig M01–M27 and V01–V03), `tier` (A exact pair, B same object on a similar surface class, C different counterface or reversed geometry, none), `static_upper`, `source_speed_mps`, `source_method`, `verified`. Rules:

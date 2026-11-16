@@ -4,11 +4,13 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 import numpy as np
-sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+for _d in ('src','evaluation'):  # also when run through unittest, which does not read conftest.py
+    sys.path.insert(0,str(Path(__file__).resolve().parents[1]/_d))
 import run_arm_evaluation as E
 import summarize_arm_evaluation as S
 import llm_prior as L
 from physics import OBJECT_SIZE
+import paths as P
 
 
 def fake_shot(mu,u):
@@ -47,8 +49,9 @@ class EvaluationTests(unittest.TestCase):
     def test_orchestration_and_failures(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
-            for f in E.ROOT.iterdir():
-                if f.is_file() and f.suffix in ('.py','.yaml','.csv'): shutil.copy(f,root/f.name)
+            for folder in (P.SRC,P.DATA,P.EVALUATION):   # a flat copy of every source and input the runner hashes
+                for f in folder.iterdir():
+                    if f.is_file() and f.suffix in ('.py','.yaml','.csv'): shutil.copy(f,root/f.name)
             prompt=L.build_prompt(dict(description_object=E.OBJECT,description_surface=E.SURFACES['Y01']))
             raw=json.dumps(dict(median=.28,low=.18,high=.42,reasoning='Offline test fixture'))
             L.cached_response(prompt,root/'llm_cache_published_pilot.json',query=lambda p:raw)

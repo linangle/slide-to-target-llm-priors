@@ -4,8 +4,9 @@ import numpy as np
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
+for _d in ("src", "friction"):
+    if os.path.join(ROOT, _d) not in sys.path:
+        sys.path.insert(0, os.path.join(ROOT, _d))
 import friction_analysis as fa
 import aggregate_pairs as ag
 
@@ -110,7 +111,7 @@ def test_cli_results_profiles_and_aggregate(tmp_path):
     with open(tmp_path/"run_log.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(log[0])); w.writeheader(); w.writerows(log)
     py = sys.executable
-    cmd = [py, os.path.join(ROOT, "friction_analysis.py"), *runs, "--runlog", str(tmp_path/"run_log.csv"),
+    cmd = [py, os.path.join(ROOT, "friction", "friction_analysis.py"), *runs, "--runlog", str(tmp_path/"run_log.csv"),
            "--out", str(tmp_path/"results.csv"), "--profiles", str(tmp_path/"profiles.csv")]
     out = subprocess.run(cmd, capture_output=True, text=True, cwd=tmp_path)
     assert out.returncode == 0, out.stderr
@@ -135,9 +136,9 @@ def test_cli_results_profiles_and_aggregate(tmp_path):
     prof = ag.read_csv(tmp_path/"profiles.csv")
     assert set(r["file"].split("/")[-1] for r in prof) == {os.path.basename(r) for r in runs[:8]}
     # aggregate
-    cmd = [py, os.path.join(ROOT, "aggregate_pairs.py"), "--results", str(tmp_path/"results.csv"), "--profiles",
+    cmd = [py, os.path.join(ROOT, "friction", "aggregate_pairs.py"), "--results", str(tmp_path/"results.csv"), "--profiles",
            str(tmp_path/"profiles.csv"), "--runlog", str(tmp_path/"run_log.csv"), "--meta",
-           os.path.join(ROOT, "ground_truth_placeholder.csv"), "--out", str(tmp_path/"measured_friction.csv")]
+           os.path.join(ROOT, "data", "ground_truth_placeholder.csv"), "--out", str(tmp_path/"measured_friction.csv")]
     out = subprocess.run(cmd, capture_output=True, text=True, cwd=tmp_path)
     assert out.returncode == 0, out.stderr
     with open(tmp_path/"measured_friction.csv", newline="") as f:

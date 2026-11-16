@@ -1,0 +1,19 @@
+# `pip install -r requirements.txt` installs this in editable mode, which puts src/ on the import path:
+# scripts in experiments/, evaluation/, friction/ and figures/ then `import physics`, `import arm`, ... from any directory.
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "slide-to-target"
+version = "0.1.0"
+description = "MIT 6.4210 project: sliding an object to a target with LLM friction priors"
+requires-python = ">=3.10"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["arm", "belief", "decide", "drake_config", "llm_prior", "observe", "paths", "perception", "physics", "push", "scene"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "experiments", "evaluation", "friction", "figures"]

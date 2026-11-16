@@ -1,12 +1,19 @@
 # Saved experiment results
 
-Run all Python commands from the repository root. Do not pool v1, v2, and v3 as independent evidence.
+Commands below are written from the repository root. Do not pool v1, v2, and v3 as independent evidence.
 
 | Folder | Meaning | Start with |
 |---|---|---|
 | `pilot_v1/` | Early narrow-prior pilot; superseded configuration, retained as history | [360-row summary](pilot_v1/pilot_summary/summary.txt) |
 | `pilot_v2/` | Proposal-width generic prior; one target; ten noise seeds | [360-row summary](pilot_v2/arm_v2_summary/summary.txt) |
 | `evaluation_v3/` | Same v2 priors; three targets; low/nominal/high noise and deterministic no-added-noise check | [Y01](evaluation_v3/arm_eval_v3_Y01_check/summary/summary.txt), [Y02](evaluation_v3/arm_eval_v3_Y02_check/summary/summary.txt), [Y03](evaluation_v3/arm_eval_v3_Y03_check/summary/summary.txt) |
+
+| `e0/` | E0 contact, release and observation checks (`experiments/e0_*.py`): results, summaries, figures, and `e0_5_noise.csv` | `e0/e0_4_summary.txt`, `e0/e0_5_summary.txt` |
+| `e1/` | Arm validation with known friction (`experiments/e1_arm_validation.py`), rerun 16 Nov on the merged controller | `e1/e1_arm_summary.txt` |
+| `arm_rerun/` | 12 pushes with the arm beside the plate (`experiments/arm_rerun.py`) | `arm_rerun/arm_rerun_summary.txt` |
+| `perception_results.csv` | Landing-perception error study (`src/perception.py --study`) | |
+
+The three evaluation folders were produced before the 16 Nov arm merge (Diego's original controller, squared-miss loss) and have not been rerun since.
 
 V1 and v2 also retain single-pair checks. V2's `arm_v2_Y01_grid4000` is a grid-resolution diagnostic, not an additional independent experiment.
 

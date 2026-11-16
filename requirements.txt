@@ -6,3 +6,4 @@ manipulation==2026.10.17
 pyyaml
 pytest
 openai==3.49.0
+-e .    # this repository's src/ modules (physics, scene, arm, ...) on the import path; see pyproject.toml
