@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""
-llm_prior.py -- the prompt side of the LLM observation model (spec constraint 2 and test 7).
+"""Text-only friction estimates via OpenAI, with validated, settings-aware caching.
 
-The language model is a sensor: it sees a text description of the object and the table (and photos, when
-there are any) and returns a median and a 90% interval for mu.  It must never see ground-truth friction,
-intervals, sources or notes, so the prompt builder reads ONLY the `description_*` and `photo_*` columns of
-the pair file and refuses anything else.  Prompts are frozen and responses cached before the real measured
-file exists; the cache key is the prompt text, so a changed prompt is a new query.
-
-This module is the interface guard; the model call itself belongs to the LLM owner (fill in `query_llm`).
+Existing prompt-building helpers remain compatible. The live query path refuses
+photo references (it does not upload images). Use --query explicitly for an API
+request on a cache miss; otherwise the CLI only previews the prompt.
 """
-import hashlib, json, os
+import argparse
+import hashlib
+import json
+import math
+import os
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
 
 PROMPT_PREFIXES = ("description_", "photo_")
 FORBIDDEN_SUBSTRINGS = ("mu_", "interval", "sources", "notes", "s_tab", "se", "n_runs", "in_sim_range", "speed_effect", "load_effect")
@@ -40,21 +42,128 @@ def build_prompt(row):
             raise ValueError(f"column {k!r} reached the prompt")
     return text
 
+MODEL = "gpt-5.4-mini-2026-03-17"
+SCHEMA = {
+    "type": "object",
+    "properties": {
+        "median": {"type": "number"},
+        "low": {"type": "number"},
+        "high": {"type": "number"},
+        "reasoning": {"type": "string"},
+    },
+    "required": ["median", "low", "high", "reasoning"],
+    "additionalProperties": False,
+}
+
+
+def request_settings():
+    """All output-affecting request settings are included in the cache identity."""
+    return {
+        "model": MODEL,
+        "reasoning": {"effort": "none"},
+        "max_output_tokens": 600,
+        "store": False,
+        "tools": [],
+        "text": {"format": {"type": "json_schema", "name": "friction_estimate",
+                            "strict": True, "schema": SCHEMA}},
+    }
+
+
 def prompt_key(prompt):
-    return hashlib.sha256(prompt.encode()).hexdigest()[:16]
+    payload = {"cache_version": 2, "endpoint": "https://api.openai.com/v1/responses",
+               "prompt": prompt, "settings": request_settings()}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+def parse_response(raw):
+    """Check numeric semantics too: JSON schema alone cannot order the interval."""
+    data = json.loads(raw)
+    if not isinstance(data, dict) or set(data) != set(SCHEMA["required"]):
+        raise ValueError("Expected median, low, high, and reasoning only")
+    for name in ("median", "low", "high"):
+        value = data[name]
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"{name} must be numeric")
+        if not math.isfinite(value) or value <= 0:
+            raise ValueError(f"{name} must be finite and positive")
+    if not data["low"] <= data["median"] <= data["high"] or data["low"] >= data["high"]:
+        raise ValueError("Expected 0 < low <= median <= high, with low < high")
+    if not isinstance(data["reasoning"], str) or not data["reasoning"].strip():
+        raise ValueError("Expected a nonempty explanation")
+    # Do not silently clip estimates to the inference grid or claim calibration.
+    return data
+
 
 def cached_response(prompt, cache_path="llm_cache.json", query=None):
-    """Response for a frozen prompt: from the cache, or from `query(prompt)` and then cached.  Without a
-    query function and a cache miss, returns None."""
-    cache = json.load(open(cache_path)) if os.path.exists(cache_path) else {}
+    """Return validated raw JSON; no call on a miss unless query is supplied.
+
+    Old prompt-only entries are retained but not reused. Intended for one writer
+    at a time. Cache hits need neither an API key nor the OpenAI package.
+    """
+    path = Path(cache_path)
+    cache = json.loads(path.read_text()) if path.exists() else {}
     key = prompt_key(prompt)
-    if key not in cache:
-        if query is None:
-            return None
-        cache[key] = {"prompt": prompt, "response": query(prompt)}
-        json.dump(cache, open(cache_path, "w"), indent=1)
-    return cache[key]["response"]
+    if key in cache:
+        raw = cache[key]["response"]
+        parse_response(raw)
+        return raw
+    if query is None:
+        return None
+    raw = query(prompt)
+    parse_response(raw)  # Never cache malformed estimates.
+    cache[key] = {"prompt": prompt, "settings": request_settings(),
+                  "created_utc": datetime.now(timezone.utc).isoformat(),
+                  "response": raw, "cache_version": 2}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_name = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, delete=False) as f:
+            temp_name = f.name
+            json.dump(cache, f, indent=2, allow_nan=False)
+            f.write("\n")
+        os.replace(temp_name, path)
+    finally:
+        if temp_name is not None and os.path.exists(temp_name):
+            os.unlink(temp_name)
+    return raw
+
 
 def query_llm(prompt):
-    """Placeholder for the model call (LLM owner): return the raw response text."""
-    raise NotImplementedError("wire the LLM API here; keep prompts frozen and cache every response")
+    """One API request, no automatic retries; credentials come from the environment."""
+    if any(line.startswith("Photo:") for line in prompt.splitlines()):
+        raise ValueError("This experiment is text-only; remove photo fields before querying")
+    from openai import OpenAI
+    client = OpenAI(base_url="https://api.openai.com/v1", max_retries=0, timeout=60.0)
+    response = client.responses.create(input=prompt, **request_settings())
+    if response.status != "completed" or not response.output_text:
+        raise ValueError(f"No complete estimate: status={response.status}; possible refusal or output limit")
+    parse_response(response.output_text)
+    return response.output_text
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--object", required=True, help="Object material description")
+    parser.add_argument("--surface", required=True, help="Contact surface description")
+    parser.add_argument("--query", action="store_true", help="Allow one paid request on a cache miss")
+    parser.add_argument("--cache", default="llm_cache_pilot.json", help="Pilot cache, separate from final data")
+    args = parser.parse_args()
+    if not args.object.strip() or not args.surface.strip():
+        parser.error("Both descriptions must be nonempty")
+    prompt = build_prompt({"description_object": args.object, "description_surface": args.surface})
+    print(f"Model: {MODEL}\nPrompt:\n{prompt}")
+    raw = cached_response(prompt, args.cache)
+    if raw is not None:
+        print("CACHE HIT -- no API request")
+    elif args.query:
+        print("CACHE MISS -- making one API request", flush=True)
+        raw = cached_response(prompt, args.cache, query=query_llm)
+    else:
+        print("Preview only -- add --query to request and cache an estimate")
+        return
+    print(json.dumps(parse_response(raw), indent=2))
+    print("Pilot estimate only; the reported interval has not been calibrated.")
+
+
+if __name__ == "__main__":
+    main()

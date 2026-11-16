@@ -1,0 +1,69 @@
+VALIDATED: 144 scored rows; complete selected matrix; all validity flags pass.
+Conditions reported separately; friction metrics count each shared belief once across targets.
+
+CONDITION: low
+method    slides   RMSE mm    mu MAE   coverage   width   at cap
+generic        0     1.866    0.1566    100.0%  1.0184     0.0%
+lookup         0    12.333    0.1219    100.0%  0.4951     0.0%
+llm_raw        0    22.008    0.1400      0.0%  0.2444     0.0%
+oracle         0     0.212    0.0000       N/A     N/A     0.0%
+generic        1     0.748    0.0017    100.0%  0.0098     0.0%
+lookup         1     0.711    0.0017    100.0%  0.0099     0.0%
+llm_raw        1     0.555    0.0011    100.0%  0.0099     0.0%
+oracle         1     0.212    0.0000       N/A     N/A     0.0%
+generic        2     0.243    0.0001    100.0%  0.0071     0.0%
+lookup         2     0.232    0.0000    100.0%  0.0071     0.0%
+llm_raw        2     0.161    0.0002    100.0%  0.0071     0.0%
+oracle         2     0.212    0.0000       N/A     N/A     0.0%
+
+CONDITION: nominal
+method    slides   RMSE mm    mu MAE   coverage   width   at cap
+generic        0     1.866    0.1566    100.0%  1.0184     0.0%
+lookup         0    12.333    0.1219    100.0%  0.4951     0.0%
+llm_raw        0    22.008    0.1400      0.0%  0.2444     0.0%
+oracle         0     0.212    0.0000       N/A     N/A     0.0%
+generic        1     1.319    0.0037    100.0%  0.0190     0.0%
+lookup         1     1.211    0.0034    100.0%  0.0190     0.0%
+llm_raw        1     0.675    0.0014    100.0%  0.0192     0.0%
+oracle         1     0.212    0.0000       N/A     N/A     0.0%
+generic        2     0.455    0.0006    100.0%  0.0140     0.0%
+lookup         2     0.403    0.0005    100.0%  0.0140     0.0%
+llm_raw        2     0.097    0.0006    100.0%  0.0140     0.0%
+oracle         2     0.212    0.0000       N/A     N/A     0.0%
+
+CONDITION: high
+method    slides   RMSE mm    mu MAE   coverage   width   at cap
+generic        0     1.866    0.1566    100.0%  1.0184     0.0%
+lookup         0    12.333    0.1219    100.0%  0.4951     0.0%
+llm_raw        0    22.008    0.1400      0.0%  0.2444     0.0%
+oracle         0     0.212    0.0000       N/A     N/A     0.0%
+generic        1     2.356    0.0068    100.0%  0.0360     0.0%
+lookup         1     2.184    0.0057    100.0%  0.0361     0.0%
+llm_raw        1     0.096    0.0017    100.0%  0.0371     0.0%
+oracle         1     0.212    0.0000       N/A     N/A     0.0%
+generic        2     0.805    0.0014    100.0%  0.0273     0.0%
+lookup         2     0.569    0.0008    100.0%  0.0273     0.0%
+llm_raw        2     0.385    0.0031    100.0%  0.0278     0.0%
+oracle         2     0.212    0.0000       N/A     N/A     0.0%
+
+CONDITION: no_added
+method    slides   RMSE mm    mu MAE   coverage   width   at cap
+generic        0     1.866    0.1566    100.0%  1.0184     0.0%
+lookup         0    12.333    0.1219    100.0%  0.4951     0.0%
+llm_raw        0    22.008    0.1400      0.0%  0.2444     0.0%
+oracle         0     0.212    0.0000       N/A     N/A     0.0%
+generic        1     0.109    0.0009    100.0%  0.0204     0.0%
+lookup         1     0.070    0.0013    100.0%  0.0204     0.0%
+llm_raw        1     0.594    0.0034    100.0%  0.0206     0.0%
+oracle         1     0.212    0.0000       N/A     N/A     0.0%
+generic        2     0.117    0.0008    100.0%  0.0144     0.0%
+lookup         2     0.087    0.0009    100.0%  0.0144     0.0%
+llm_raw        2     0.181    0.0020    100.0%  0.0145     0.0%
+oracle         2     0.212    0.0000       N/A     N/A     0.0%
+
+Limits: three previously inspected published pairs; seeds are not new materials.
+No-added-noise is one deterministic diagnostic with nominal likelihood SDs.
+Coverage is of fitted grid posteriors, not original LLM intervals.
+Repeated zero-practice/oracle rows and reused rollouts are not independent evidence.
+Simulator-state sensing and ideal contact-event timing; no rendered camera or calibration.
+Joint checks cover planned position/velocity and feed-forward torque only.

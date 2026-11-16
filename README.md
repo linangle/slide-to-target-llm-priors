@@ -6,7 +6,7 @@ A simulated KUKA iiwa pushes a flat-bottomed object across a table and releases 
 
 ## Status
 
-Phase 1, Oct 25 – Nov 1: measuring ground-truth kinetic friction for 27 object–surface pairs (M01–M27) and 3 validation pairs (V01–V03). Output: `measured_friction.csv` (columns in `measured_friction_interface.md`). On 31 Oct the model specification, estimators, grid posterior, decision rule, Drake configuration and E0-1/E0-2 checks landed in response to the instructor's feedback; `model_specification.tex` is the reference note. On 5 Nov the team settled the open decisions (see *Decisions* below); decisions 1, 2, 3, 5, 6 and 8 are applied in the code and data, the rest are recorded there. On 5 Nov a prescribed-paddle push harness (`push.py`) stood in for the arm controller so that E0-3, E0-4 and E0-5 could run; all three pass, and decisions 7 and 8 now have their evidence. The same day the decision-10 SimReady audit (`simready_audit.md`) found that NVIDIA's library stores one friction pair per material class, so a C2-SimReady baseline is possible but coarse. On 6 Nov the arm controller landed (`arm.py`): the iiwa tracks the plate's push profile under Drake's implicit PD with inverse-dynamics feed-forward, passes the plate's acceptance test, and matches the plate's release speed within 0.13% on the 12-push re-run (`arm_rerun.py`). The decision-7 numbers came with it: the braking jerk is not the constraint, the joint speed is. With the base at the origin every grid push runs joint 4 at 1.3–3× its 75°/s limit (which the simulator does not enforce), so the real iiwa would deliver 0.35–0.47 m/s on that line; with the base beside the board, level with the middle of the push, it delivers 1.0 m/s within its limits. Where the base stands is the team's call. On 16 Nov the two arm controllers written on 6 Nov (Angelina's and Diego's, both `arm.py`) were merged into one file: Angelina's joint controller drives the arm, Diego's target planner and E1 validation run on top of it, and point targets now go through `decide.py`'s rule (see *The 16 Nov merge*).
+Phase 1, Oct 25 – Nov 1: measuring ground-truth kinetic friction for 27 object–surface pairs (M01–M27) and 3 validation pairs (V01–V03). Output: `measured_friction.csv` (columns in `measured_friction_interface.md`). On 31 Oct the model specification, estimators, grid posterior, decision rule, Drake configuration and E0-1/E0-2 checks landed in response to the instructor's feedback; `model_specification.tex` is the reference note. On 5 Nov the team settled the open decisions (see *Decisions* below); decisions 1, 2, 3, 5, 6 and 8 are applied in the code and data, the rest are recorded there. On 5 Nov a prescribed-paddle push harness (`push.py`) stood in for the arm controller so that E0-3, E0-4 and E0-5 could run; all three pass, and decisions 7 and 8 now have their evidence. The same day the decision-10 SimReady audit (`simready_audit.md`) found that NVIDIA's library stores one friction pair per material class, so a C2-SimReady baseline is possible but coarse. On 6 Nov the arm controller landed (`arm.py`): the iiwa tracks the plate's push profile under Drake's implicit PD with inverse-dynamics feed-forward, passes the plate's acceptance test, and matches the plate's release speed within 0.13% on the 12-push re-run (`arm_rerun.py`). The decision-7 numbers came with it: the braking jerk is not the constraint, the joint speed is. With the base at the origin every grid push runs joint 4 at 1.3–3× its 75°/s limit (which the simulator does not enforce), so the real iiwa would deliver 0.35–0.47 m/s on that line; with the base beside the board, level with the middle of the push, it delivers 1.0 m/s within its limits. Where the base stands is the team's call. On 16 Nov the two arm controllers written on 6 Nov (Angelina's and Diego's, both `arm.py`) were merged into one file: Angelina's joint controller drives the arm, Diego's target planner and E1 validation run on top of it, and point targets now go through `decide.py`'s rule (see *The 16 Nov merge*). The same day Alejandro's evaluation branch was merged: the LLM query and cache, the generic / lookup / LLM / oracle comparison after 0, 1 and 2 practice slides, and the saved pilot results (see *The evaluation pipeline*).
 
 ## The arm controller (6 Nov)
 
@@ -62,10 +62,32 @@ Diego pushed his own `arm.py` on 6 Nov, a few hours after Angelina's was committ
 **Checked against Alejandro's branch.** With the merged files copied over a checkout of `alejandro/bayesian-integration`, its 58 tests pass and `run_arm_comparison_v2.execute(0.3, 0.45)` runs and is valid (peak joint speed 0.91 of the limit).
 
 **Next steps for the team.**
-1. *Alejandro:* merge `main` into `alejandro/bayesian-integration`. `arm.py`, `push.py` and `tests/test_arm.py` should take main's side without conflicts, because the branch has not touched them since Diego's commit. `README.md` will conflict (the branch rewrote it). Speeds planned from a belief move by up to 6 mm/s under the default loss, so pilot results will not reproduce bit for bit; pass `loss=decide.loss_sq_abs` to get the old numbers, or rerun. `settings.json` hashes `arm.py`, `push.py` and `physics.py`, all of which changed.
+1. *Alejandro:* your branch is merged into `main` (16 Nov), with this README kept and extended instead of the branch's shorter one. Speeds planned from a belief move by up to 6 mm/s under the default loss, so the saved pilot results will not reproduce bit for bit; pass `loss=decide.loss_sq_abs` to get the old numbers, or rerun. Each run's `settings.json` hashes `arm.py`, `push.py` and `physics.py`, all of which changed in the arm merge.
 2. *Team:* choose the loss for point targets (the specification's relative loss, now the default, or the squared miss) and say in the report whether the evaluation scores the slide from the FK release point or the rest position on the board. The start-gap sensitivity in E1 part C exists only under the second.
 3. *Team:* the base position is still open. Diego's planner caps a plan at the arm's reach by default, not at the joint speed limit; the evaluation passes `u_max=.45` by hand. `limited_peak_speed(J, x0, base=...)` computes that bound (0.49 m/s at the origin, 1.02 m/s at (0.6, 0.65) m).
 4. *Diego:* please read `ARM_CONTROLLER.md` and the planner section of `arm.py` and say if anything you relied on is missing. `solve_ik`, `joint_trajectory`, `Q_SEED`, `REACH_X` and `ArmPusher(kd=, feedforward=)` no longer exist.
+
+## The evaluation pipeline (Alejandro, merged 16 Nov)
+
+The comparison the proposal is about now runs end to end on three published pairs (Y01–Y03, stainless steel on ABS, acetal and plywood). `docs/ALEJANDRO_CONTRIBUTION.md` is Alejandro's audit of what it adds and what is still open; `EVALUATION_V3.md` and `PILOT_V2_PROTOCOL.md` are the protocols; `results/README.md` indexes the saved runs.
+
+**What runs.**
+- **LLM estimate.** `llm_prior.py` sends the text-only prompt to OpenAI (`gpt-5.4-mini-2026-03-17`, structured JSON: median, low, high, reasoning) and validates the numbers. Responses are cached with the model and request settings in the key (`llm_cache_published_pilot.json` for Y01–Y03, `llm_cache_pilot.json` for the earlier pilot). A live request needs `--query`; the evaluators never query on a cache miss.
+- **Four methods.** Generic prior (ln μ normal, 5th/95th percentiles 0.08/1.1), lookup (the generic prior times `belief.loglik_lookup`), raw LLM (a lognormal from the returned median and interval, not calibrated), and an oracle that plans with the true friction.
+- **Practice, then a scored push.** Each pair gets two practice pushes at 0.45 m/s. Every method sees the same noisy observations (frames at 60 Hz, rest position, FK release point; observation model C) and updates its belief after 0, 1 or 2 of them. The scored push is planned by `arm.plan_peak_speed` on the belief, capped at 0.45 m/s, and never feeds back into the belief.
+- **Three versions, not to be pooled.** v1 (`run_arm_comparison.py`): an early narrow generic prior, kept as history. v2 (`run_arm_comparison_v2.py`): the proposal-width prior, target x = 0.64 m, ten noise seeds, 360 scored rows. v3 (`run_arm_evaluation.py`): targets 0.60, 0.62 and 0.64 m, low / nominal / high noise plus a no-added-noise check, 432 scored rows at one seed.
+
+```bash
+python3 -m pytest tests/test_evaluation_v3.py -q                           # offline checks, no Drake, no API
+python3 run_arm_evaluation.py --pair all --seeds 0 1 2 --check-only        # configuration and cache check
+python3 run_arm_evaluation.py --pair Y01 --seeds 8 --out results/evaluation_v3/Y01_seed8
+python3 summarize_arm_evaluation.py results/evaluation_v3/Y01_seed8
+```
+
+**Read before using the saved results.**
+- They were produced on Alejandro's branch, before the arm merge: with Diego's original controller and the squared-miss loss. They have not been rerun on the merged `arm.py`.
+- The evaluation is not frozen. It accepts only Y01–Y03; `measured_friction.csv` does not exist yet; the material descriptions for the measured pairs are not written.
+- The joint checks in the evaluators cover the planned position, speed and inverse-dynamics torque, at the 0.45 m/s cap with the base at the origin.
 
 ## Contents
 
@@ -84,7 +106,15 @@ Diego pushed his own `arm.py` on 6 Nov, a few hours after Angelina's was committ
 | `observe.py` | Observation models A/B/C (frames, + rest pose, + FK release point) and the O1 ablation; least-squares fit; Cramér–Rao error budget; residual signatures. `python3 observe.py` prints the budget table and writes `error_budget_rows.tex`. |
 | `belief.py` | Grid posterior over `ln μ` (500 points on [ln 0.05, ln 1]): prior from measured pairs, LLM observation model fitted leave-one-object-out, slide likelihood with `(x_r, v_r)` profiled out. |
 | `decide.py` | Release-speed decision by expected loss with the release model inside `d(μ, u)`; five losses; closed-form limit; practice speed; `point_target` turns a target point on the board into a target slide that moves with the speed. |
-| `llm_prior.py` | Prompt builder that can read only the `description_*` and `photo_*` columns (test 7), plus a frozen-prompt response cache. The model call is a stub for the LLM owner. |
+| `llm_prior.py` | Prompt builder that can read only the `description_*` and `photo_*` columns (test 7); the text-only OpenAI request; response validation; a cache keyed on the prompt, model and request settings. `--query` makes a live request. |
+| `llm_cache_published_pilot.json`, `llm_cache_pilot.json` | Cached LLM responses for Y01–Y03 (used by the evaluators) and for the earlier pilot. |
+| `run_arm_evaluation.py`, `summarize_arm_evaluation.py` | Evaluation v3: methods × practice counts × targets × noise levels × seeds, with preflight feasibility checks; the summariser rejects partial or invalid runs. |
+| `run_arm_comparison_v2.py`, `summarize_arm_v2.py` | Pilot v2 (one target, ten seeds). v3 imports its execution and priors, so it is a live dependency. |
+| `run_arm_comparison.py`, `summarize_arm_pilot.py` | Pilot v1 (narrow generic prior), kept as history. |
+| `demo_published_comparison.py`, `demo_bayesian_integration.py`, `demo_compare_priors.py` | Small demonstrations of priors → update → plan. `demo_published_comparison.py` holds the Y01–Y03 descriptions and the raw-LLM prior, which v2 and v3 import. |
+| `EVALUATION_V3.md`, `PILOT_V2_PROTOCOL.md` | Settings, commands and caveats for v3 and v2. |
+| `docs/ALEJANDRO_CONTRIBUTION.md`, `docs/REPOSITORY_MAP.md` | Alejandro's contribution audit with the open items, and his map of the evaluation pipeline. |
+| `results/` | Saved evaluation runs: `pilot_v1/`, `pilot_v2/`, `evaluation_v3/`, indexed in `results/README.md`. |
 | `sim_config.yaml`, `drake_config.py` | The one Drake contact configuration every experiment loads (frozen by E0-1), and contact-result checks (`assert_hydro_only`). |
 | `e0_2_hydro_check.py` | E0-2: every contact hydroelastic at every step, in the passive and the push scene, with negative controls. |
 | `e0_1_free_slide.py` | E0-1: free slide vs `d = v²/(2μg)` over approximation × damping × step × margin, plus spin and heading launches. Freezes A6. |
@@ -105,7 +135,7 @@ Diego pushed his own `arm.py` on 6 Nov, a few hours after Angelina's was committ
 | `simready_audit.py` | Decision-10 audit of NVIDIA's SimReady Central library (`nvidia/simready-assets` on Hugging Face): downloads each asset's small physics layers, reads every physics material's static/dynamic friction, restitution and density with `usd-core`, matches the rig's materials by name, and plots `simready_friction.png`. Read-only; nothing in the pipeline uses it. |
 | `simready_audit.md` | The audit's finding: what the library stores, the friction distribution, the rig-material match table, timing, and the conclusion for decision 10. |
 | `simready_friction.png` | Distribution of the static and dynamic friction values authored on the library's physics materials. |
-| `tests/` | pytest suite (55 tests): spec tests 1–7, the rig self-checks, the push harness, the arm, the target planner and the E1 script. `python3 -m pytest tests` (`-m "not slow"` skips three simulated pushes). |
+| `tests/` | pytest suite (58 tests): spec tests 1–7, the rig self-checks, the push harness, the arm, the target planner, the E1 script and the offline evaluation checks. `python3 -m pytest tests` (`-m "not slow"` skips three simulated pushes). |
 
 ## Setup
 
