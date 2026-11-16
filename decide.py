@@ -16,6 +16,15 @@ check).  practice_speed() is the fastest speed that keeps the slide on the board
 plausible mu; slide_room() gives it that length: from the release point to the far edge of the 48 in board
 (physics.BOARD_X_MAX, 5 Nov decision 1), less the object's half length.  The release point is the start plus
 the push's travel to release (physics.release_push_distance), so the room shrinks as the speed grows.
+
+Point targets.  d* is the free slide, measured from the release point; that is the quantity the proposal, the
+error budget and observation model C are about.  A target POINT x* on the board is the same rule with a d* that
+moves with the speed: the paddle carries the object further before it lets go when it pushes faster, so
+    d*(u, mu) = x* - x_r(u, mu),     x_r = x0 - gap + release_push_distance(u, mu, J).
+point_target() builds that function and expected_loss / choose_speed take it in place of a number (as
+practice_speed takes slide_room).  Feeding a point target as a fixed d*, with the release point of some nominal
+speed, lands short by the difference between that release point and the chosen speed's (about 2 cm at mu 0.3,
+x* 0.75 m under ln mu ~ N(ln 0.3, 0.3^2)); arm.plan_peak_speed uses point_target for that reason.
 """
 import math
 from dataclasses import dataclass
@@ -35,15 +44,25 @@ def distance(u, mu, rel):
 
 # ----------------------------------------------------------------------------- losses L(d, d*)
 
+# d_star is a number, or an array that broadcasts against d (a point target: d* per speed and mu, point_target).
+# A point target's d* reaches zero and goes negative once the release point passes the target; the relative
+# losses divide by at least D_STAR_MIN so those speeds cost a huge, finite amount instead of dividing by zero.
+D_STAR_MIN = 1e-6    # m
+
 def loss_sq_rel(d, d_star):
-    return ((d - d_star)/d_star)**2
+    return ((d - d_star)/np.maximum(d_star, D_STAR_MIN))**2
 
 def loss_abs_rel(d, d_star):
-    return np.abs(d - d_star)/d_star
+    return np.abs(d - d_star)/np.maximum(d_star, D_STAR_MIN)
+
+def loss_sq_abs(d, d_star):
+    """Squared miss in m^2.  With a fixed d* it picks the same speed as loss_sq_rel (they differ by the constant
+    d*^2); with a point target it is E[(x_rest - x*)^2], the objective of the 6 Nov arm planner."""
+    return (d - d_star)**2 + 0.0*np.asarray(d_star, float)
 
 def loss_miss(d, d_star, tol=None):
     """1 outside the success window max(0.1 d*, 1 cm), else 0."""
-    tol = max(0.1*d_star, 0.01) if tol is None else tol
+    tol = np.maximum(0.1*np.asarray(d_star, float), 0.01) if tol is None else tol
     return (np.abs(d - d_star) > tol).astype(float)
 
 def loss_table_edge(d, d_star, L=None, penalty=10.0):
@@ -51,20 +70,25 @@ def loss_table_edge(d, d_star, L=None, penalty=10.0):
     L = 1.3*d_star if L is None else L
     return loss_sq_rel(d, d_star) + penalty*(d > L)
 
-LOSSES = {"sq_rel": loss_sq_rel, "abs_rel": loss_abs_rel, "miss": loss_miss, "edge": loss_table_edge}
+LOSSES = {"sq_rel": loss_sq_rel, "abs_rel": loss_abs_rel, "sq_abs": loss_sq_abs, "miss": loss_miss, "edge": loss_table_edge}
 
 # ----------------------------------------------------------------------------- expected loss and its minimizer
 
 def expected_loss(u, post, rel, d_star, loss=loss_sq_rel):
-    """E[L] over the grid posterior post (from belief.posterior) for commanded speed u (scalar or array)."""
+    """E[L] over the grid posterior post (from belief.posterior) for commanded speed u (scalar or array).
+    d_star is the target slide in m, or a function (u, mu, rel) -> the target slide for that speed and friction
+    when the target is a point on the board (point_target)."""
     mu = np.exp(post["grid"])
     u = np.asarray(u, float)
-    d = distance(u[..., None], mu, rel) if u.ndim else distance(u, mu, rel)
-    return (loss(d, d_star)*post["pmf"]).sum(axis=-1)
+    uu = u[..., None] if u.ndim else u
+    d = distance(uu, mu, rel)
+    ds = d_star(uu, mu, rel) if callable(d_star) else d_star
+    return (loss(d, ds)*post["pmf"]).sum(axis=-1)
 
 def choose_speed(post, rel, d_star, loss=loss_sq_rel, u_max=1.5, u_min=0.0, n_coarse=600):
     """Bounded 1-D search: a coarse grid over [u_min, u_max], then a golden-section refinement in the best
-    bracket.  Returns dict(u, expected_loss, clipped)."""
+    bracket.  d_star is a slide length in m or point_target(...) for a target point.  Returns
+    dict(u, expected_loss, clipped); clipped means the optimum sits on u_max (the arm's speed bound)."""
     us = np.linspace(u_min, u_max, n_coarse)
     el = expected_loss(us, post, rel, d_star, loss)
     k = int(np.argmin(el))
@@ -95,6 +119,15 @@ def practice_speed(u_max, length_limit, post, rel, quantile=0.05):
     if f(0.0) > 0:
         raise ValueError(f"no room to slide: the length limit is {room(0.0, mu_low, rel):.3f} m at u = 0")
     return brentq(f, 0.0, u_max)
+
+def point_target(x_target, x0, gap=0.001, a_push=A_PUSH):
+    """choose_speed's d* for a target POINT: a function (u, mu, rel) -> x_target - x_r(u, mu), the slide still
+    needed from where the paddle lets go.  x_target and x0 are the object centre's target and start (world x, m);
+    the paddle closes `gap` before it touches the object, so the release point is x0 - gap plus the push's
+    travel to release (physics.release_push_distance).  Broadcasts over u and mu."""
+    def d_star(u, mu, rel):
+        return x_target - (x0 - gap + release_push_distance(u, mu, rel.J, a_push, rel.g))
+    return d_star
 
 def slide_room(x0, a_push=A_PUSH, half_length=OBJECT_SIZE[0]/2, x_end=BOARD_X_MAX):
     """practice_speed's length limit on the board for an object whose centre starts at x0: a function

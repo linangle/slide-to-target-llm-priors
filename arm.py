@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """
-arm.py -- the iiwa 14 as the pusher: a joint-space controller that drives the paddle along push.profile().
+arm.py -- the iiwa 14 as the pusher: a joint-space controller that drives the paddle along push.profile(), and the
+target planner that picks the push's peak speed for a point on the board.
+
+Two 6 Nov implementations are merged here (16 Nov).  The controller (ArmModel, ArmPusher, feasibility) is Angelina's; the
+target planner (rest_x, plan_peak_speed, max_peak_speed, limited_peak_speed, slide_to_target, report, the --target and
+--reach commands) is Diego's, now running on that controller.  Diego's differential-IK trajectory and his ArmPusher are
+replaced by the controller below; joint_limit_report(pusher.traj) and the planner's signatures are kept, so callers of his
+arm.py (e1_arm_validation.py, the evaluation scripts) run unchanged.
 
 ArmPusher has the plate's hook (push.Pusher: add, connect, q, qd, face_x, set_displacement, record, summary), so
 push.push_slide and the E0 scripts run with the arm by swapping `Pusher()` for `ArmPusher()`.
@@ -28,19 +35,36 @@ tabulates it with the torque ratio over v_peak, J and the base position.  With t
 the wrist is radial from the shoulder, which only the elbow (joint 4, 75 deg/s) can produce: that caps the paddle speed
 near 0.5 m/s.  A base beside the line lets joints 1 and 2 sweep the paddle instead.
 
+The target planner.  The object rides on the paddle to the release point and then slides d = v_r^2 / (2 mu g), so its centre
+rests at
+    x_rest(u, mu) = x0 - gap + release_push_distance(u, mu, J)  +  v_r(u, mu, J)^2 / (2 mu g),    v_r = u - (mu g)^2 / (2 J).
+plan_peak_speed(x_target, mu) solves x_rest(u) = x_target for a friction value.  For a belief over mu it is decide.py's rule
+with the target slide moving with the speed, d*(u, mu) = x_target - x_r(u, mu) (decide.point_target): one decision rule and one
+loss for slide targets and point targets.  Speeds are bounded by u_max: by default the arm's reach along the line
+(max_peak_speed); limited_peak_speed is the tighter bound from the joint speed (and torque) limits, which the simulator does
+not enforce.
+
     python3 arm.py --mu 0.3 --v 0.8 --J 100            # one push with the arm, same report as push.py (+ arm metrics); --meshcat
+    python3 arm.py --target 0.75 --mu 0.3              # plan the speed for a target point with the true mu, push, report the miss
+    python3 arm.py --target 0.75 --mu 0.3 --mu-est 0.25   # plan with a wrong friction estimate
+    python3 arm.py --target 0.75 --mu 0.3 --plate      # the same plan pushed by push.py's prescribed plate
+    python3 arm.py --reach                             # the arm's stroke along the push line and the fastest pushes it allows
     python3 arm.py --plan --v 0.8 --J 100              # the plan alone: posture, joint-speed and torque ratios, no contact
     python3 arm.py --feasibility                       # ratios over v_peak x J at the default base
     python3 arm.py --scan                              # ratios over the base's lateral offset from the push line
 """
 import argparse, math, time
 from dataclasses import dataclass, field
+from functools import lru_cache
 import numpy as np
+from scipy.optimize import brentq
 from pydrake.all import (AddDefaultVisualization, InverseKinematics, JacobianWrtVariable, JointActuatorIndex, MultibodyForces,
                          MultibodyPlant, PdControllerGains, PiecewisePolynomial, RigidTransform, RotationMatrix, Solve, StartMeshcat,
                          TrajectorySource)
+from physics import A_PUSH, G, OBJECT_SIZE, release_push_distance, release_speed
+from decide import Release, choose_speed, loss_sq_rel, point_target
 from scene import FLANGE_Z, PADDLE, PADDLE_MU, PADDLE_Y, add_arm
-from push import PLATE, profile
+from push import PLATE, Pusher, profile, push_slide, summary
 
 # link-7 axes in the world during the push: x_L7 = +y_W (plate width), y_L7 = +z_W (the plate hangs below the flange),
 # z_L7 = +x_W (the plate's far face pushes).  Columns are the link-7 axes.
@@ -48,6 +72,8 @@ R_WL7 = RotationMatrix(np.array([[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.
 X_L7P = RigidTransform([0.0, PADDLE_Y, FLANGE_Z + PADDLE[2]/2])        # paddle body (plate centre) in link 7, as add_arm welds it
 Q_DISPLAY = np.array([0.0, 0.6, 0.0, -1.4, 0.0, 1.1, 0.0])              # scene.py's display pose, one IK seed
 V_LIM_DEG = (85, 85, 100, 75, 130, 135, 135)                            # KUKA LBR iiwa 14 R820 joint speed limits, deg/s (the SDF's)
+A_BRAKE = 12.0                                                          # m/s^2, the arm's cap on the braking deceleration (ArmPusher.a_brake_max)
+BASE = (0.0, 0.0, 0.0)                                                  # iiwa base (link 0) in the world, m: the team's scene has it at the origin
 
 def link7_pose(x_face, lateral, yaw_deg, clearance, plate=PLATE):
     """Link-7 pose that puts the plate's face (nearest point to the object) at world x_face, the plate centre at y = lateral,
@@ -139,14 +165,15 @@ class ArmModel:
 
     def path(self, q0, X0, length, ds=1e-3, margin=0.02, sigma_min=0.03):
         """Integrates the straight +x path of length `length` from posture q0 at pose X0 with the minimum-norm joint tangent.
-        Returns dict(s, q, dqds, sigma, ok, reason, qd_per_mps, qd_joint, tau_g_ratio, limit_margin) -- qd_per_mps is the peak
-        over the path of max_i |dq_i/ds| / v_lim_i, the joint-speed ratio per 1 m/s of paddle speed."""
+        Returns dict(s, q, dqds, sigma, ok, reason, s_ok, qd_per_mps, qd_joint, tau_g_ratio, limit_margin) -- qd_per_mps is the
+        peak over the path of max_i |dq_i/ds| / v_lim_i, the joint-speed ratio per 1 m/s of paddle speed; s_ok is how far along
+        the line this posture stays inside the joint limits and away from singularities (= length when ok)."""
         s = np.arange(0.0, length + ds/2, ds)
         if s[-1] < length:
             s = np.append(s, length)
         n = len(s)
         q, dq, sig = np.empty((n, self.n)), np.empty((n, self.n)), np.empty(n)
-        qk, ok, reason = np.array(q0, float), True, ""
+        qk, ok, reason, s_ok = np.array(q0, float), True, "", float(s[-1])
         e_x = np.array([0, 0, 0, 1.0, 0, 0])
         for k, sk in enumerate(s):
             X = RigidTransform(X0.rotation(), X0.translation() + np.array([sk, 0, 0]))
@@ -156,16 +183,16 @@ class ArmModel:
             q[k], sig[k] = qk, sv[-1]
             dq[k] = np.linalg.lstsq(Jk, e_x, rcond=None)[0]
             if ok and (err > 1e-6 or sv[-1] < sigma_min):
-                ok, reason = False, f"singular at s = {sk:.3f} m (sigma_min {sv[-1]:.3f}, pose error {err:.1e})"
+                ok, reason, s_ok = False, f"singular at s = {sk:.3f} m (sigma_min {sv[-1]:.3f}, pose error {err:.1e})", float(s[max(k - 1, 0)])
             if ok and (np.any(qk < self.q_lo + margin) or np.any(qk > self.q_hi - margin)):
                 j = int(np.argmin(np.minimum(qk - self.q_lo, self.q_hi - qk)))
-                ok, reason = False, f"joint {j + 1} at its limit at s = {sk:.3f} m"
+                ok, reason, s_ok = False, f"joint {j + 1} at its limit at s = {sk:.3f} m", float(s[max(k - 1, 0)])
             if k + 1 < n:
                 qk = qk + dq[k]*(s[k + 1] - sk)
         ratio = np.abs(dq)/self.v_lim
         kmax = np.unravel_index(np.argmax(ratio), ratio.shape)
         tau_g = np.array([self.inverse_dynamics(qq, np.zeros(self.n), np.zeros(self.n)) for qq in q[::max(1, n//20)]])
-        return {"s": s, "q": q, "dqds": dq, "sigma": sig, "ok": ok, "reason": reason, "qd_per_mps": float(ratio[kmax]),
+        return {"s": s, "q": q, "dqds": dq, "sigma": sig, "ok": ok, "reason": reason, "s_ok": s_ok, "qd_per_mps": float(ratio[kmax]),
                 "qd_joint": int(kmax[1]) + 1, "tau_g_ratio": float(np.max(np.abs(tau_g)/self.tau_lim)),
                 "limit_margin": float(np.min(np.minimum(q - self.q_lo, self.q_hi - q)))}
 
@@ -183,8 +210,8 @@ class ArmPusher:
     gap: float = 0.001         # initial gap between the face's nearest point and the object's back face, m
     clearance: float = 0.003   # plate's lower edge above the table, m
     plate: tuple = PLATE
-    base: tuple = (0.0, 0.0, 0.0)   # iiwa base (link 0) position in the world, m; the team's scene has it at the origin
-    a_brake_max: float = 12.0  # cap on the braking deceleration, m/s^2 (> mu g for every pair, so the release is unchanged)
+    base: tuple = BASE         # iiwa base (link 0) position in the world, m; the team's scene has it at the origin
+    a_brake_max: float = A_BRAKE   # cap on the braking deceleration, m/s^2 (> mu g for every pair, so the release is unchanged)
     kp: float = 4e4            # joint PD stiffness, N m/rad (about 1e5 N/m at the paddle, the plate's value)
     zeta: float = 1.0          # joint PD damping ratio against the diagonal mass (incl. rotor inertia) at the display pose
     posture_seed: int = 0      # RNG seed of the multi-start IK
@@ -244,7 +271,7 @@ class ArmPusher:
         rv, ra, rt = np.abs(qd_d)/m.v_lim, np.abs(qdd_d)/m.a_lim, np.abs(tau)/m.tau_lim
         i_v, i_a, i_t = (np.unravel_index(np.argmax(r[move]), r[move].shape) for r in (rv, ra, rt))
         self.mass = m.effective_mass(best["q"][0])
-        self.plan = dict(best, n_candidates=len(cands), n_ok=len(ok), q_start=best["q"][0], t=t, q_d=q_d, qd_d=qd_d, qdd_d=qdd_d, tau_ff=tau,
+        self.plan = dict(best, n_candidates=len(cands), n_ok=len(ok), q_start=best["q"][0], t=t, q_d=q_d, qd_d=qd_d, qdd_d=qdd_d, tau_ff=tau, move=move,
                          qd_ratio=float(rv[move][i_v]), qd_ratio_joint=int(i_v[1]) + 1, qdd_ratio=float(ra[move][i_a]), qdd_ratio_joint=int(i_a[1]) + 1,
                          tau_ratio=float(rt[move][i_t]), tau_ratio_joint=int(i_t[1]) + 1, tau_max=np.abs(tau[move]).max(axis=0),
                          qd_max=np.abs(qd_d[move]).max(axis=0), m_eff=self.mass, length=length, sigma_min=float(best["sigma"].min()))
@@ -265,6 +292,16 @@ class ArmPusher:
     def face_x(self, q):
         """World x of the face's nearest point to the object at displacement q."""
         return self.x_touch0 + q
+
+    @property
+    def traj(self):
+        """The planned joint trajectory while the paddle moves, in the layout joint_limit_report reads: dict(t, q, v, vdot, tau)
+        of n x 7 arrays plus the iiwa's limits (q_lo, q_hi, v_lim, tau_lim).  None before a push has been planned."""
+        if self.plan is None:
+            return None
+        p, m, k = self.plan, self.model, self.plan["move"]
+        return {"t": p["t"][k], "q": p["q_d"][k], "v": p["qd_d"][k], "vdot": p["qdd_d"][k], "tau": p["tau_ff"][k],
+                "q_lo": m.q_lo, "q_hi": m.q_hi, "v_lim": m.v_lim, "tau_lim": m.tau_lim}
 
     def q(self, ctx):
         """Paddle displacement along the push from its start pose, from forward kinematics, m."""
@@ -312,14 +349,13 @@ def m_lim(pusher):
 
 # ---------------------------------------------------------------------- feasibility: what the iiwa can deliver
 
-def feasibility(v_peak, J, base=(0.0, 0.0, 0.0), x0=0.55, a_max=12.0, lateral=0.0, yaw_deg=0.0, obj_size_x=0.10):
+def feasibility(v_peak, J, base=BASE, x0=0.55, a_max=A_BRAKE, lateral=0.0, yaw_deg=0.0, obj_size_x=OBJECT_SIZE[0], gap=0.001, a_push=A_PUSH):
     """Plans the push without contact and returns the plan's ratios (or the reason it is impossible)."""
-    from scene import Obj
-    pu = ArmPusher(lateral=lateral, yaw_deg=yaw_deg, base=base, a_brake_max=a_max)
+    pu = ArmPusher(lateral=lateral, yaw_deg=yaw_deg, gap=gap, base=tuple(base), a_brake_max=a_max)
     pu.x_touch0 = x0 - obj_size_x/2 - pu.gap
     pu.model = ArmModel(base)
     pu.X0 = link7_pose(pu.x_touch0, lateral, yaw_deg, pu.clearance)
-    prof = profile(v_peak, J, a_max=a_max)
+    prof = profile(v_peak, J, a_push, a_max=a_max)
     try:
         p = pu.make_plan(prof)
     except RuntimeError as ex:
@@ -339,10 +375,136 @@ def table(rows, key, title):
         lines.append(f"{v:>7} | " + " | ".join(cells))
     return "\n".join(lines)
 
+# ---------------------------------------------------------------------- the target planner: target point -> peak paddle speed
+
+def rest_x(u, mu, J, x0=0.55, gap=0.001, a_push=A_PUSH, g=G):
+    """Where the object's centre comes to rest for commanded peak speed u (the release model plus the free slide)."""
+    v_r = float(release_speed(u, mu, J, g))
+    return x0 - gap + release_push_distance(u, mu, J, a_push, g) + v_r*v_r/(2*mu*g)
+
+def plan_peak_speed(x_target, mu, J=100.0, x0=0.55, gap=0.001, a_push=A_PUSH, u_max=None, g=G, loss=None, base=BASE):
+    """Commanded peak paddle speed that lands the object's centre at x_target.
+
+    mu: a friction value (a point estimate, or the true value for the reference method): solves rest_x(u) = x_target.
+        Or a belief dict with 'grid' (ln mu) and 'pmf' (belief.posterior's output): decide.choose_speed with the target slide
+        d*(u, mu) = x_target - x_r(u, mu) (decide.point_target) under `loss` (default decide.loss_sq_rel, the specification's;
+        decide.loss_sq_abs is the squared miss E[(x_rest - x_target)^2]).
+    u_max: the fastest push allowed (default: max_peak_speed, the arm's reach from x0 with the base at `base`; pass
+        limited_peak_speed(...) to stay inside the joint speed limits).  A belief's speed is clipped at u_max.
+    Raises ValueError for a friction value whose target is behind the release point or beyond what u_max can reach."""
+    u_max = max_peak_speed(J, x0, gap, a_push, base=base) if u_max is None else u_max
+    if isinstance(mu, dict):
+        return float(choose_speed(mu, Release(J=J, g=g), point_target(x_target, x0, gap, a_push), loss or loss_sq_rel, u_max=u_max)["u"])
+    f = lambda u: rest_x(u, mu, J, x0, gap, a_push, g) - x_target
+    if f(0.0) >= 0:
+        raise ValueError(f"target x = {x_target:.3f} m is behind the object's start ({x0:.3f} m)")
+    if f(u_max) < 0:
+        raise ValueError(f"target x = {x_target:.3f} m needs more than the fastest push allowed, u = {u_max:.2f} m/s "
+                         f"(reaches {rest_x(u_max, mu, J, x0, gap, a_push, g):.3f} m at mu = {mu}); move x0 or the base, or raise u_max")
+    return float(brentq(f, 0.0, u_max, xtol=1e-9))
+
+@lru_cache(maxsize=64)
+def reach(base=BASE, x0=0.55, gap=0.001, obj_len=OBJECT_SIZE[0], lateral=0.0, clearance=0.003):
+    """Longest straight stroke of the paddle from its start pose behind an object at x0, m: the furthest any IK posture
+    follows the push line inside the joint limits and away from singularities (ArmModel.path's s_ok)."""
+    m = ArmModel(tuple(base))
+    X0 = link7_pose(x0 - obj_len/2 - gap, lateral, 0.0, clearance)
+    return max((m.path(q, X0, 1.2)["s_ok"] for q in m.candidates(X0)), default=0.0)
+
+def max_peak_speed(J=100.0, x0=0.55, gap=0.001, a_push=A_PUSH, obj_len=OBJECT_SIZE[0], base=BASE, a_max=A_BRAKE):
+    """Fastest commanded peak speed whose whole paddle stroke (profile x_stop, plus the 2 mm ArmPusher plans past it) stays
+    inside the arm's reach.  Says nothing about the joint speed limits: see limited_peak_speed."""
+    room = reach(tuple(base), x0, gap, obj_len) - 0.002
+    f = lambda u: profile(u, J, a_push, a_max=a_max)["x_stop"] - room
+    if f(1e-3) >= 0:
+        return 0.0
+    return float(brentq(f, 1e-3, 5.0, xtol=1e-6)) if f(5.0) > 0 else 5.0
+
+@lru_cache(maxsize=64)
+def limited_peak_speed(J=100.0, x0=0.55, gap=0.001, a_push=A_PUSH, obj_len=OBJECT_SIZE[0], which=("v",), tol=0.005, base=BASE, a_max=A_BRAKE):
+    """Fastest commanded peak speed whose planned joint trajectory stays within the iiwa's limits: which = ("v",) checks the
+    joint speeds (the binding ones, and not enforced by the simulator), add "tau" for the inverse-dynamics torques.
+    Bisection on u to tol m/s over feasibility(), about 8 plans (a few seconds); cached."""
+    key = {"v": "qd_ratio", "tau": "tau_ratio"}
+    def worst(u):
+        r = feasibility(u, J, tuple(base), x0, a_max, obj_size_x=obj_len, gap=gap, a_push=a_push)
+        return max(r[key[k]] for k in which) if r["ok"] else math.inf
+    lo, hi = 0.02, max_peak_speed(J, x0, gap, a_push, obj_len, tuple(base), a_max)
+    if hi <= lo:
+        return 0.0
+    if worst(hi) <= 1.0:
+        return hi
+    while hi - lo > tol:
+        mid = 0.5*(lo + hi)
+        lo, hi = (mid, hi) if worst(mid) <= 1.0 else (lo, mid)
+    return lo
+
+def joint_limit_report(traj):
+    """Peak |q|, |qdot| and |tau| per joint as a fraction of the iiwa's limits (1.0 = at the limit), from a planned joint
+    trajectory (ArmPusher.traj).  These are the plan's numbers (desired motion and inverse-dynamics torque); the torques the
+    simulation actually applied are in push_slide's result (arm_tau_ratio)."""
+    if "v_lim" not in traj:
+        m = ArmModel()
+        traj = dict(traj, q_lo=m.q_lo, q_hi=m.q_hi, v_lim=m.v_lim, tau_lim=m.tau_lim)
+    return {"q": np.max(np.maximum(traj["q"]/traj["q_hi"], traj["q"]/traj["q_lo"]), axis=0),
+            "v": np.max(np.abs(traj["v"]), axis=0)/traj["v_lim"], "tau": np.max(np.abs(traj["tau"]), axis=0)/traj["tau_lim"]}
+
+def slide_to_target(x_target, mu, mu_est=None, J=100.0, x0=0.55, a_push=A_PUSH, obj=None, pusher=None, meshcat=None,
+                    keep_traj=False, u_max=None, loss=None, contact=None):
+    """Plan with mu_est (default: the true mu, i.e. the reference method), push on a table of friction mu with the arm
+    (or any pusher, e.g. push.Pusher()), and report where the object stopped.  mu_est may be a belief dict (see plan_peak_speed).
+    Returns push_slide's dict plus x_target, mu_est, u (the planned peak speed), x_pred, miss (x_rest - x_target), miss_y
+    and, for the arm, joint_limits (peak fraction of each joint's position, speed and torque limit) and over_limits."""
+    from scene import Obj
+    obj = obj if obj is not None else Obj()
+    pusher = pusher if pusher is not None else ArmPusher()
+    is_arm = isinstance(pusher, ArmPusher)
+    est = mu if mu_est is None else mu_est
+    if u_max is None:      # the arm's reach from this start; the plate has no reach to respect
+        u_max = max_peak_speed(J, x0, pusher.gap, a_push, obj.size[0], tuple(pusher.base), pusher.a_brake_max) if is_arm else 5.0
+    u = plan_peak_speed(x_target, est, J, x0, pusher.gap, a_push, u_max, loss=loss)
+    r = push_slide(mu, u, J, contact, obj, pusher, a_push, x0=x0, meshcat=meshcat, keep_traj=keep_traj)
+    r.update(x_target=x_target, mu_est=est if not isinstance(est, dict) else float("nan"), u=u,
+             x_pred=rest_x(u, mu, J, x0, pusher.gap, a_push), miss=r["x_rest"] - x_target, miss_y=r["y_rest"])
+    if is_arm:
+        r["joint_limits"] = jl = joint_limit_report(pusher.traj)
+        r["over_limits"] = [f"joint {i+1} {k} x{jl[k][i]:.2f}" for k in ("q", "v", "tau") for i in range(len(jl[k])) if jl[k][i] > 1.0]
+    return r
+
+def report(r):
+    """slide_to_target's result as text: the plan, the landing, push.summary and the joint use."""
+    lines = [f"target x = {r['x_target']:.3f} m, true mu = {r['mu']}, planned with mu = {r['mu_est']}, J = {r['J']:g} m/s^3 "
+             f"-> peak paddle speed u = {r['u']:.4f} m/s, release speed (model) {r['v_r_cmd']:.4f} m/s",
+             f"  landed at x = {r['x_rest']:.4f} m, y = {r['y_rest']*1e3:+.2f} mm: miss {r['miss']*1e3:+.2f} mm along the push "
+             f"(model with the true mu predicted {r['x_pred']:.4f} m)",
+             summary(r)]
+    if "joint_limits" in r:
+        jl = r["joint_limits"]
+        lines.append("  joint use, plan (peak / limit, joints 1-7): position " + " ".join(f"{x:.2f}" for x in jl["q"]) +
+                     " | speed " + " ".join(f"{x:.2f}" for x in jl["v"]) + " | torque " + " ".join(f"{x:.2f}" for x in jl["tau"]))
+        if r["over_limits"]:
+            lines.append("  WARNING: this push exceeds the real iiwa's limits (the simulator does not enforce joint speed limits): "
+                         + ", ".join(r["over_limits"]))
+    return "\n".join(lines)
+
+def print_reach(J=100.0, x0=0.55, base=BASE):
+    face0, stroke = x0 - OBJECT_SIZE[0]/2 - 0.001, reach(tuple(base), x0)
+    print(f"base at ({base[0]:+.2f}, {base[1]:+.2f}) m, object at x0 = {x0} m: the paddle face starts at x = {face0:.3f} m and can follow the "
+          f"push line for {stroke:.3f} m, to x = {face0 + stroke:.3f} m")
+    print(f"fastest peak speed with the stroke inside that reach (J = {J:g}): {max_peak_speed(J, x0, base=base):.3f} m/s")
+    print(f"fastest peak speed within the joint speed limits: {limited_peak_speed(J, x0, base=tuple(base)):.3f} m/s; "
+          f"within speed and torque limits: {limited_peak_speed(J, x0, which=('v', 'tau'), base=tuple(base)):.3f} m/s")
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mu", type=float, default=0.3)
-    ap.add_argument("--v", type=float, default=0.8, help="commanded peak speed, m/s")
+    ap.add_argument("--mu", type=float, default=0.3, help="true table friction in the simulator")
+    ap.add_argument("--v", type=float, default=0.8, help="commanded peak speed, m/s (ignored with --target)")
+    ap.add_argument("--target", type=float, default=None, help="plan the speed for this target: where the object's centre should stop, world x, m")
+    ap.add_argument("--mu-est", type=float, default=None, help="with --target: the friction the planner believes (default: the true mu)")
+    ap.add_argument("--x0", type=float, default=0.55, help="object start x, m")
+    ap.add_argument("--a-push", type=float, default=A_PUSH)
+    ap.add_argument("--plate", action="store_true", help="with --target: push with push.py's prescribed plate instead of the arm")
+    ap.add_argument("--reach", action="store_true", help="print the arm's stroke along the push line and the fastest pushes, then exit")
     ap.add_argument("--J", type=float, default=100.0, help="braking jerk, m/s^3")
     ap.add_argument("--a-max", type=float, default=12.0, help="cap on the braking deceleration, m/s^2")
     ap.add_argument("--shape", default="box", choices=["box", "disc", "ring", "footed"])
@@ -356,6 +518,8 @@ def main():
     ap.add_argument("--meshcat", action="store_true")
     a = ap.parse_args()
     base = (a.base_x, a.base_y, 0.0)
+    if a.reach:
+        return print_reach(a.J, a.x0, base)
     if a.feasibility or a.scan:
         vs, js = (0.6, 0.8, 1.0), (30.0, 100.0, 500.0, 2000.0) if a.feasibility else (100.0, 2000.0)
         # --scan: the team's base at the origin, then bases beside the push line (y = 0.65 m is just off the 1.2 m wide board),
@@ -381,13 +545,22 @@ def main():
         print(r); return
     from scene import Obj
     from drake_config import contact_from_config, describe
-    from push import push_slide, summary
     contact = contact_from_config()
     print(describe(contact))
     meshcat = StartMeshcat() if a.meshcat else None
+    obj = Obj(shape=a.shape, com_offset=(0.0, a.com, 0.0))
     pu = ArmPusher(mu_p=a.mu_p, lateral=a.lateral, yaw_deg=a.yaw, base=base, a_brake_max=a.a_max, kp=a.kp)
-    r = push_slide(a.mu, a.v, a.J, contact, Obj(shape=a.shape, com_offset=(0.0, a.com, 0.0)), pu, meshcat=meshcat)
-    print(summary(r))
+    if a.target is not None:
+        pu = Pusher(mu_p=a.mu_p, lateral=a.lateral, yaw_deg=a.yaw) if a.plate else pu
+        r = slide_to_target(a.target, a.mu, a.mu_est, a.J, a.x0, a.a_push, obj, pu, meshcat, contact=contact)
+        print(report(r))
+        if a.plate:
+            if meshcat:
+                input("meshcat is showing the recording; press enter to quit")
+            return
+    else:
+        r = push_slide(a.mu, a.v, a.J, contact, obj, pu, a.a_push, x0=a.x0, meshcat=meshcat)
+        print(summary(r))
     print(pu.describe())
     print(f"  in the push: torque peak {r['arm_tau_ratio']:.2f} x limit (joint {r['arm_tau_joint']}), joint speed peak {r['arm_qd_ratio']:.2f} x limit (joint {r['arm_qd_joint']}); "
           f"paddle z drift {r['arm_z_drift_mm']:.2f} mm, y drift {r['arm_y_drift_mm']:.2f} mm, tilt {r['arm_tilt_max_deg']:.3f} deg")

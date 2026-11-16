@@ -62,3 +62,27 @@ def test_practice_speed_without_room_raises():
     for limit in (-0.1, D.slide_room(D.BOARD_X_MAX)):          # a release past the far edge used to crash brentq
         with pytest.raises(ValueError, match="no room"):
             D.practice_speed(1.2, limit, post, D.Release())
+
+def test_point_target_is_the_slide_left_after_the_release_point():
+    """point_target gives d*(u, mu) = x* - x_r(u, mu), broadcast over the speed grid and the mu grid.  With a belief concentrated
+    on one mu the chosen speed puts the object on the point; the losses stay finite where the release point passes the target."""
+    g = np.linspace(math.log(0.02), math.log(2.0), 2000)
+    pmf = np.exp(-0.5*((g - math.log(0.3))/0.002)**2)
+    post = {"grid": g, "pmf": pmf/pmf.sum()}
+    rel, x0, x_t = D.Release(J=100.0), 0.55, 0.75
+    ds = D.point_target(x_t, x0)
+    assert abs(ds(0.6, 0.3, rel) - (x_t - (x0 - 0.001 + D.release_push_distance(0.6, 0.3, rel.J)))) < 1e-12
+    us = np.linspace(0.0, 1.5, 7)
+    assert ds(us[:, None], np.exp(g), rel).shape == (7, 2000)
+    assert ds(1.5, 0.3, rel) < 0                              # at 1.5 m/s the paddle carries the object past the point
+    for name in D.LOSSES:
+        el = D.expected_loss(us, post, rel, ds, D.LOSSES[name])
+        assert el.shape == (7,) and np.all(np.isfinite(el))
+    for loss in (D.loss_sq_rel, D.loss_sq_abs, D.loss_abs_rel):
+        u = D.choose_speed(post, rel, ds, loss, u_max=1.5)["u"]
+        x_rest = x0 - 0.001 + D.release_push_distance(u, 0.3, rel.J) + float(D.distance(u, 0.3, rel))
+        assert abs(x_rest - x_t) < 2e-4
+    # a fixed d*: the squared miss and the squared relative loss differ by the constant d*^2 and pick the same speed
+    wide = np.exp(-0.5*((g - math.log(0.3))/0.3)**2)
+    wide = {"grid": g, "pmf": wide/wide.sum()}
+    assert abs(D.choose_speed(wide, rel, 0.2, D.loss_sq_rel, u_max=2.0)["u"] - D.choose_speed(wide, rel, 0.2, D.loss_sq_abs, u_max=2.0)["u"]) < 1e-6

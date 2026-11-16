@@ -126,16 +126,21 @@ def release_push_distance(v_peak, mu, J, a_push=A_PUSH, g=G):
     accelerate at a_push (capped at sqrt(2 J v_peak)), then one constant-jerk segment -J through the speed peak
     into the brake.  The object leaves when the deceleration reaches mu g, (a_push + mu g) / J into that segment,
     or stays on until the paddle stops if that comes first (release_speed = 0).  J = inf releases at the peak,
-    after v_peak^2 / (2 a_push).  Scalars; the release point is the start plus this distance."""
-    if v_peak <= 0:
-        return 0.0
+    after v_peak^2 / (2 a_push).  v_peak and mu are scalars (returns a float) or arrays that broadcast (returns an
+    array: decide.point_target evaluates it over a speed grid and the belief's mu grid); the release point is the
+    start plus this distance."""
+    scalar = np.ndim(v_peak) == 0 and np.ndim(mu) == 0
+    v, mu = np.maximum(np.asarray(v_peak, float), 0.0), np.asarray(mu, float)
     if math.isinf(J):
-        return v_peak*v_peak/(2*a_push)
-    a = min(a_push, math.sqrt(2*J*v_peak))
-    v1 = max(v_peak - a*a/(2*J), 0.0)                     # speed when the jerk segment starts
-    tau_stop = (a + math.sqrt(a*a + 2*J*v1))/J            # v1 + a tau - J tau^2 / 2 = 0
-    tau = min((a + mu*g)/J, tau_stop)
-    return v1*v1/(2*a) + v1*tau + 0.5*a*tau**2 - J*tau**3/6
+        out = v*v/(2*a_push) + 0.0*mu
+    else:
+        a = np.minimum(a_push, np.sqrt(2*J*v))
+        v1 = np.maximum(v - a*a/(2*J), 0.0)                  # speed when the jerk segment starts
+        tau_stop = (a + np.sqrt(a*a + 2*J*v1))/J             # v1 + a tau - J tau^2 / 2 = 0
+        tau = np.minimum((a + mu*g)/J, tau_stop)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            out = np.where(v > 0, v1*v1/(2*a) + v1*tau + 0.5*a*tau**2 - J*tau**3/6, 0.0)
+    return float(out) if scalar else out
 
 def release_from_profile(t, v_p, a_p, mu, g=G):
     """Separation (t*, v_r) from any sampled paddle profile: the first time after the speed peak at which
