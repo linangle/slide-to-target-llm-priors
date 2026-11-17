@@ -49,6 +49,8 @@ not enforce.
     python3 src/arm.py --target 0.75 --mu 0.3 --mu-est 0.25   # plan with a wrong friction estimate
     python3 src/arm.py --target 0.75 --mu 0.3 --plate      # the same plan pushed by push.py's prescribed plate
     python3 src/arm.py --reach                             # the arm's stroke along the push line and the fastest pushes it allows
+    python3 src/arm.py --reach --layout side               # the same with the base beside the board (16 Nov trial)
+    python3 src/arm.py --target 1.0 --mu 0.3 --layout side --a-max 4   # a push inside the speed, torque and acceleration limits
     python3 src/arm.py --plan --v 0.8 --J 100              # the plan alone: posture, joint-speed and torque ratios, no contact
     python3 src/arm.py --feasibility                       # ratios over v_peak x J at the default base
     python3 src/arm.py --scan                              # ratios over the base's lateral offset from the push line
@@ -74,6 +76,17 @@ Q_DISPLAY = np.array([0.0, 0.6, 0.0, -1.4, 0.0, 1.1, 0.0])              # scene.
 V_LIM_DEG = (85, 85, 100, 75, 130, 135, 135)                            # KUKA LBR iiwa 14 R820 joint speed limits, deg/s (the SDF's)
 A_BRAKE = 12.0                                                          # m/s^2, the arm's cap on the braking deceleration (ArmPusher.a_brake_max)
 BASE = (0.0, 0.0, 0.0)                                                  # iiwa base (link 0) in the world, m: the team's scene has it at the origin
+# Named base positions.  "origin" is the scene's: the push runs radially out from the base, so the elbow (joint 4, 75 deg/s)
+# makes nearly all of the paddle speed.  "side" stands beside the 1.2 m wide board, level with the middle of the push, so
+# joints 1 and 2 sweep the paddle across the arm's front (16 Nov trial; the default everywhere is still "origin").
+LAYOUTS = {"origin": BASE, "side": (0.6, 0.65, 0.0)}
+
+def layout_base(layout):
+    """Base position for a layout name ("origin", "side") or an (x, y[, z]) position."""
+    if isinstance(layout, str):
+        return LAYOUTS[layout]
+    b = tuple(float(v) for v in layout)
+    return b if len(b) == 3 else (*b, 0.0)
 
 def link7_pose(x_face, lateral, yaw_deg, clearance, plate=PLATE):
     """Link-7 pose that puts the plate's face (nearest point to the object) at world x_face, the plate centre at y = lateral,
@@ -296,12 +309,12 @@ class ArmPusher:
     @property
     def traj(self):
         """The planned joint trajectory while the paddle moves, in the layout joint_limit_report reads: dict(t, q, v, vdot, tau)
-        of n x 7 arrays plus the iiwa's limits (q_lo, q_hi, v_lim, tau_lim).  None before a push has been planned."""
+        of n x 7 arrays plus the iiwa's limits (q_lo, q_hi, v_lim, tau_lim, a_lim).  None before a push has been planned."""
         if self.plan is None:
             return None
         p, m, k = self.plan, self.model, self.plan["move"]
         return {"t": p["t"][k], "q": p["q_d"][k], "v": p["qd_d"][k], "vdot": p["qdd_d"][k], "tau": p["tau_ff"][k],
-                "q_lo": m.q_lo, "q_hi": m.q_hi, "v_lim": m.v_lim, "tau_lim": m.tau_lim}
+                "q_lo": m.q_lo, "q_hi": m.q_hi, "v_lim": m.v_lim, "tau_lim": m.tau_lim, "a_lim": m.a_lim}
 
     def q(self, ctx):
         """Paddle displacement along the push from its start pose, from forward kinematics, m."""
@@ -332,7 +345,8 @@ class ArmPusher:
         ang = np.array([np.linalg.norm(pose_error(RigidTransform(self.X0.rotation(), Xk.translation()), Xk)[:3]) for Xk in X])
         return {"arm_tau_ratio": float(rt[it]), "arm_tau_joint": int(it[1]) + 1, "arm_qd_ratio": float(rv[iv]), "arm_qd_joint": int(iv[1]) + 1,
                 "arm_plan_qd_ratio": p["qd_ratio"], "arm_plan_qd_joint": p["qd_ratio_joint"], "arm_plan_tau_ratio": p["tau_ratio"],
-                "arm_plan_tau_joint": p["tau_ratio_joint"], "arm_plan_qdd_ratio": p["qdd_ratio"], "arm_m_eff": p["m_eff"],
+                "arm_plan_tau_joint": p["tau_ratio_joint"], "arm_plan_qdd_ratio": p["qdd_ratio"], "arm_plan_qdd_joint": p["qdd_ratio_joint"],
+                "arm_m_eff": p["m_eff"],
                 "arm_sigma_min": p["sigma_min"], "arm_postures": p["n_ok"], "arm_z_drift_mm": float((pz.max() - pz.min())*1e3),
                 "arm_y_drift_mm": float((py.max() - py.min())*1e3), "arm_tilt_max_deg": float(math.degrees(ang.max())), "arm_base_y": self.base[1]}
 
@@ -342,7 +356,8 @@ class ArmPusher:
                 f"effective mass along x {p['m_eff']:.1f} kg; sigma_min {p['sigma_min']:.3f}\n"
                 f"  joint speed: peak {p['qd_ratio']:.2f} x limit (joint {p['qd_ratio_joint']}); max |qd| deg/s = {np.round(np.degrees(p['qd_max']), 0)}\n"
                 f"  torque:      peak {p['tau_ratio']:.2f} x effort limit (joint {p['tau_ratio_joint']}); max |tau| N m = {np.round(p['tau_max'], 0)} of {m_lim(self)}\n"
-                f"  acceleration (SDF drake:acceleration, informational): peak {p['qdd_ratio']:.2f} x (joint {p['qdd_ratio_joint']})")
+                f"  acceleration: peak {p['qdd_ratio']:.2f} x the SDF's drake:acceleration limit (joint {p['qdd_ratio_joint']}); set by the brake cap, "
+                f"see --reach")
 
 def m_lim(pusher):
     return np.round(pusher.model.tau_lim, 0)
@@ -361,7 +376,7 @@ def feasibility(v_peak, J, base=BASE, x0=0.55, a_max=A_BRAKE, lateral=0.0, yaw_d
     except RuntimeError as ex:
         return {"v_peak": v_peak, "J": J, "base_y": base[1], "ok": False, "reason": str(ex), "x_face_end": pu.x_touch0 + prof["x_stop"]}
     return {"v_peak": v_peak, "J": J, "base_y": base[1], "ok": True, "qd_ratio": p["qd_ratio"], "qd_joint": p["qd_ratio_joint"], "tau_ratio": p["tau_ratio"],
-            "tau_joint": p["tau_ratio_joint"], "qdd_ratio": p["qdd_ratio"], "m_eff": p["m_eff"], "sigma_min": p["sigma_min"], "x_face_end": pu.x_touch0 + prof["x_stop"],
+            "tau_joint": p["tau_ratio_joint"], "qdd_ratio": p["qdd_ratio"], "qdd_joint": p["qdd_ratio_joint"], "m_eff": p["m_eff"], "sigma_min": p["sigma_min"], "x_face_end": pu.x_touch0 + prof["x_stop"],
             "v_max_by_speed": v_peak/p["qd_ratio"], "postures": p["n_ok"]}
 
 def table(rows, key, title):
@@ -382,7 +397,7 @@ def rest_x(u, mu, J, x0=0.55, gap=0.001, a_push=A_PUSH, g=G):
     v_r = float(release_speed(u, mu, J, g))
     return x0 - gap + release_push_distance(u, mu, J, a_push, g) + v_r*v_r/(2*mu*g)
 
-def plan_peak_speed(x_target, mu, J=100.0, x0=0.55, gap=0.001, a_push=A_PUSH, u_max=None, g=G, loss=None, base=BASE):
+def plan_peak_speed(x_target, mu, J=100.0, x0=0.55, gap=0.001, a_push=A_PUSH, u_max=None, g=G, loss=None, base=BASE, clip=False):
     """Commanded peak paddle speed that lands the object's centre at x_target.
 
     mu: a friction value (a point estimate, or the true value for the reference method): solves rest_x(u) = x_target.
@@ -391,7 +406,9 @@ def plan_peak_speed(x_target, mu, J=100.0, x0=0.55, gap=0.001, a_push=A_PUSH, u_
         decide.loss_sq_abs is the squared miss E[(x_rest - x_target)^2]).
     u_max: the fastest push allowed (default: max_peak_speed, the arm's reach from x0 with the base at `base`; pass
         limited_peak_speed(...) to stay inside the joint speed limits).  A belief's speed is clipped at u_max.
-    Raises ValueError for a friction value whose target is behind the release point or beyond what u_max can reach."""
+    Raises ValueError for a friction value whose target is behind the release point or beyond what u_max can reach.
+    clip=True returns u_max for a target beyond reach instead of raising: the push is made at the cap and its miss is
+    scored, as a belief's is (the proposal's rule for requests above the speed bound)."""
     u_max = max_peak_speed(J, x0, gap, a_push, base=base) if u_max is None else u_max
     if isinstance(mu, dict):
         return float(choose_speed(mu, Release(J=J, g=g), point_target(x_target, x0, gap, a_push), loss or loss_sq_rel, u_max=u_max)["u"])
@@ -399,6 +416,8 @@ def plan_peak_speed(x_target, mu, J=100.0, x0=0.55, gap=0.001, a_push=A_PUSH, u_
     if f(0.0) >= 0:
         raise ValueError(f"target x = {x_target:.3f} m is behind the object's start ({x0:.3f} m)")
     if f(u_max) < 0:
+        if clip:
+            return float(u_max)
         raise ValueError(f"target x = {x_target:.3f} m needs more than the fastest push allowed, u = {u_max:.2f} m/s "
                          f"(reaches {rest_x(u_max, mu, J, x0, gap, a_push, g):.3f} m at mu = {mu}); move x0 or the base, or raise u_max")
     return float(brentq(f, 0.0, u_max, xtol=1e-9))
@@ -423,14 +442,17 @@ def max_peak_speed(J=100.0, x0=0.55, gap=0.001, a_push=A_PUSH, obj_len=OBJECT_SI
 @lru_cache(maxsize=64)
 def limited_peak_speed(J=100.0, x0=0.55, gap=0.001, a_push=A_PUSH, obj_len=OBJECT_SIZE[0], which=("v",), tol=0.005, base=BASE, a_max=A_BRAKE):
     """Fastest commanded peak speed whose planned joint trajectory stays within the iiwa's limits: which = ("v",) checks the
-    joint speeds (the binding ones, and not enforced by the simulator), add "tau" for the inverse-dynamics torques.
-    Bisection on u to tol m/s over feasibility(), about 8 plans (a few seconds); cached."""
-    key = {"v": "qd_ratio", "tau": "tau_ratio"}
+    joint speeds (the binding ones, and not enforced by the simulator), add "tau" for the inverse-dynamics torques and "a"
+    for the joint accelerations (the SDF's drake:acceleration values, 8.6-15.7 rad/s^2; KUKA publishes none).  The
+    accelerations are set mostly by the brake cap a_max, not by the speed: at 12 m/s^2 they are over the limit at any useful
+    speed, at 4 m/s^2 they are inside it up to the speed limit (but a cap must stay above mu g for the object to leave).
+    Bisection on u to tol m/s over feasibility(), about 8 plans (a few seconds); cached.  0.0 if even a 2 cm/s push is over."""
+    key = {"v": "qd_ratio", "tau": "tau_ratio", "a": "qdd_ratio"}
     def worst(u):
         r = feasibility(u, J, tuple(base), x0, a_max, obj_size_x=obj_len, gap=gap, a_push=a_push)
         return max(r[key[k]] for k in which) if r["ok"] else math.inf
     lo, hi = 0.02, max_peak_speed(J, x0, gap, a_push, obj_len, tuple(base), a_max)
-    if hi <= lo:
+    if hi <= lo or worst(lo) > 1.0:
         return 0.0
     if worst(hi) <= 1.0:
         return hi
@@ -440,14 +462,33 @@ def limited_peak_speed(J=100.0, x0=0.55, gap=0.001, a_push=A_PUSH, obj_len=OBJEC
     return lo
 
 def joint_limit_report(traj):
-    """Peak |q|, |qdot| and |tau| per joint as a fraction of the iiwa's limits (1.0 = at the limit), from a planned joint
-    trajectory (ArmPusher.traj).  These are the plan's numbers (desired motion and inverse-dynamics torque); the torques the
-    simulation actually applied are in push_slide's result (arm_tau_ratio)."""
-    if "v_lim" not in traj:
+    """Peak |q|, |qdot|, |tau| and |qddot| per joint as a fraction of the iiwa's limits (1.0 = at the limit), from a planned
+    joint trajectory (ArmPusher.traj): keys "q", "v", "tau", "a".  These are the plan's numbers (desired motion and
+    inverse-dynamics torque); the torques the simulation actually applied are in push_slide's result (arm_tau_ratio).
+    The acceleration limits are the SDF's drake:acceleration values; the simulator enforces neither them nor the speeds."""
+    if "a_lim" not in traj:
         m = ArmModel()
-        traj = dict(traj, q_lo=m.q_lo, q_hi=m.q_hi, v_lim=m.v_lim, tau_lim=m.tau_lim)
+        traj = dict(traj, q_lo=m.q_lo, q_hi=m.q_hi, v_lim=m.v_lim, tau_lim=m.tau_lim, a_lim=m.a_lim)
     return {"q": np.max(np.maximum(traj["q"]/traj["q_hi"], traj["q"]/traj["q_lo"]), axis=0),
-            "v": np.max(np.abs(traj["v"]), axis=0)/traj["v_lim"], "tau": np.max(np.abs(traj["tau"]), axis=0)/traj["tau_lim"]}
+            "v": np.max(np.abs(traj["v"]), axis=0)/traj["v_lim"], "tau": np.max(np.abs(traj["tau"]), axis=0)/traj["tau_lim"],
+            "a": np.max(np.abs(traj["vdot"]), axis=0)/traj["a_lim"]}
+
+def affordable(u_max, mu, J=100.0, x0=0.55, gap=0.001, a_push=A_PUSH, g=G):
+    """What a speed bound affords on friction mu: dict(slide, x_release, x_rest) for a push at u_max -- the longest free slide
+    v_r^2 / (2 mu g), where the paddle lets go, and the farthest point the object's centre can be sent to."""
+    v_r = float(release_speed(u_max, mu, J, g))
+    x_r = x0 - gap + release_push_distance(u_max, mu, J, a_push, g)
+    return {"slide": v_r*v_r/(2*mu*g), "x_release": x_r, "x_rest": x_r + v_r*v_r/(2*mu*g)}
+
+def target_grid(u_max, mu_hi, n=3, J=100.0, x0=0.55, near=0.05, headroom=0.9, gap=0.001, a_push=A_PUSH):
+    """Target points (world x of the object's centre) re-derived from a speed bound: n evenly spaced from x0 + near to the
+    farthest point the HIGHEST-friction pair reaches at `headroom` of u_max, rounded down to the centimetre.  Every pair
+    then reaches every target with a plan below the cap, so a push at the cap means a method asked for more than the arm
+    has; the headroom leaves room for that to show without the true-friction plan sitting on the cap itself."""
+    far = math.floor(affordable(headroom*u_max, mu_hi, J, x0, gap, a_push)["x_rest"]*100)/100
+    if far <= x0 + near:
+        raise ValueError(f"a {u_max:.2f} m/s cap sends mu = {mu_hi} only to x = {far:.2f} m: no room for targets beyond x0 + {near} m")
+    return [round(float(x), 3) for x in np.linspace(x0 + near, far, n)]
 
 def slide_to_target(x_target, mu, mu_est=None, J=100.0, x0=0.55, a_push=A_PUSH, obj=None, pusher=None, meshcat=None,
                     keep_traj=False, u_max=None, loss=None, contact=None):
@@ -468,7 +509,7 @@ def slide_to_target(x_target, mu, mu_est=None, J=100.0, x0=0.55, a_push=A_PUSH, 
              x_pred=rest_x(u, mu, J, x0, pusher.gap, a_push), miss=r["x_rest"] - x_target, miss_y=r["y_rest"])
     if is_arm:
         r["joint_limits"] = jl = joint_limit_report(pusher.traj)
-        r["over_limits"] = [f"joint {i+1} {k} x{jl[k][i]:.2f}" for k in ("q", "v", "tau") for i in range(len(jl[k])) if jl[k][i] > 1.0]
+        r["over_limits"] = [f"joint {i+1} {k} x{jl[k][i]:.2f}" for k in ("q", "v", "tau", "a") for i in range(len(jl[k])) if jl[k][i] > 1.0]
     return r
 
 def report(r):
@@ -481,19 +522,31 @@ def report(r):
     if "joint_limits" in r:
         jl = r["joint_limits"]
         lines.append("  joint use, plan (peak / limit, joints 1-7): position " + " ".join(f"{x:.2f}" for x in jl["q"]) +
-                     " | speed " + " ".join(f"{x:.2f}" for x in jl["v"]) + " | torque " + " ".join(f"{x:.2f}" for x in jl["tau"]))
+                     " | speed " + " ".join(f"{x:.2f}" for x in jl["v"]) + " | torque " + " ".join(f"{x:.2f}" for x in jl["tau"]) +
+                     " | acceleration " + " ".join(f"{x:.2f}" for x in jl["a"]))
         if r["over_limits"]:
-            lines.append("  WARNING: this push exceeds the real iiwa's limits (the simulator does not enforce joint speed limits): "
+            lines.append("  WARNING: this push exceeds the real iiwa's limits (the simulator enforces neither joint speed nor acceleration limits): "
                          + ", ".join(r["over_limits"]))
     return "\n".join(lines)
 
-def print_reach(J=100.0, x0=0.55, base=BASE):
-    face0, stroke = x0 - OBJECT_SIZE[0]/2 - 0.001, reach(tuple(base), x0)
+def print_reach(J=100.0, x0=0.55, base=BASE, a_max=A_BRAKE):
+    base = tuple(base)
+    face0, stroke = x0 - OBJECT_SIZE[0]/2 - 0.001, reach(base, x0)
     print(f"base at ({base[0]:+.2f}, {base[1]:+.2f}) m, object at x0 = {x0} m: the paddle face starts at x = {face0:.3f} m and can follow the "
           f"push line for {stroke:.3f} m, to x = {face0 + stroke:.3f} m")
-    print(f"fastest peak speed with the stroke inside that reach (J = {J:g}): {max_peak_speed(J, x0, base=base):.3f} m/s")
-    print(f"fastest peak speed within the joint speed limits: {limited_peak_speed(J, x0, base=tuple(base)):.3f} m/s; "
-          f"within speed and torque limits: {limited_peak_speed(J, x0, which=('v', 'tau'), base=tuple(base)):.3f} m/s")
+    print(f"fastest peak speed with the stroke inside that reach (J = {J:g}, brake cap {a_max:g} m/s^2): {max_peak_speed(J, x0, base=base, a_max=a_max):.3f} m/s")
+    lim = {w: limited_peak_speed(J, x0, which=w, base=base, a_max=a_max) for w in (("v",), ("v", "tau"), ("v", "tau", "a"))}
+    print(f"fastest peak speed within the joint speed limits: {lim[('v',)]:.3f} m/s; within speed and torque: {lim[('v', 'tau')]:.3f} m/s; "
+          f"within speed, torque and acceleration: {lim[('v', 'tau', 'a')]:.3f} m/s")
+    print("the acceleration bound against the brake cap (the cap must stay above mu g, or the object never leaves the paddle):")
+    for cap in (4.0, 6.0, 8.0, 12.0):
+        u = limited_peak_speed(J, x0, which=("v", "tau", "a"), base=base, a_max=cap)
+        print(f"  brake cap {cap:4.0f} m/s^2 (releases mu < {cap/G:.2f}): {u:.3f} m/s within speed, torque and acceleration")
+    u = lim[("v", "tau")]
+    print(f"what {u:.2f} m/s affords (longest slide, farthest rest point of the object's centre):")
+    for mu in (0.1, 0.3, 0.5):
+        a = affordable(u, mu, J, x0)
+        print(f"  mu {mu}: slide {a['slide']*100:.0f} cm, to x = {a['x_rest']:.2f} m")
 
 def main():
     ap = argparse.ArgumentParser()
@@ -510,6 +563,7 @@ def main():
     ap.add_argument("--shape", default="box", choices=["box", "disc", "ring", "footed"])
     ap.add_argument("--com", type=float, default=0.0); ap.add_argument("--lateral", type=float, default=0.0)
     ap.add_argument("--yaw", type=float, default=0.0); ap.add_argument("--mu-p", type=float, default=PADDLE_MU)
+    ap.add_argument("--layout", choices=list(LAYOUTS), default=None, help="a named base position: origin (the scene's) or side (beside the board)")
     ap.add_argument("--base-x", type=float, default=0.0, help="iiwa base position along the push, m (the scene's is 0)")
     ap.add_argument("--base-y", type=float, default=0.0, help="iiwa base offset from the push line along y, m")
     ap.add_argument("--kp", type=float, default=4e4)
@@ -517,9 +571,9 @@ def main():
     ap.add_argument("--feasibility", action="store_true"); ap.add_argument("--scan", action="store_true")
     ap.add_argument("--meshcat", action="store_true")
     a = ap.parse_args()
-    base = (a.base_x, a.base_y, 0.0)
+    base = layout_base(a.layout) if a.layout else (a.base_x, a.base_y, 0.0)
     if a.reach:
-        return print_reach(a.J, a.x0, base)
+        return print_reach(a.J, a.x0, base, a.a_max)
     if a.feasibility or a.scan:
         vs, js = (0.6, 0.8, 1.0), (30.0, 100.0, 500.0, 2000.0) if a.feasibility else (100.0, 2000.0)
         # --scan: the team's base at the origin, then bases beside the push line (y = 0.65 m is just off the 1.2 m wide board),

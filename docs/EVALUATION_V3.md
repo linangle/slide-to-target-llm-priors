@@ -56,6 +56,20 @@ Supported controls:
 --seeds followed by nonnegative integers
 --grid-points (default 2000)
 
+## Arm setup options (added 16 Nov)
+
+With none of these the run is exactly the protocol above (checked cell for cell on Y01, seed 7). They exist to try other arm setups; `settings.json` records the setup under `arm`, and such runs go in their own results folder (`results/side_base/evaluation/`), never pooled with the v3 checks.
+
+--layout side (or --base-x/--base-y): where the iiwa's base stands
+--a-brake: cap on the paddle's braking deceleration in m/s^2 (default 12)
+--check-accel: also require the planned joint accelerations within the SDF limits
+--peak-cap auto: the layout's fastest push within the checked limits, instead of 0.45
+--practice-peak auto: the fastest practice push that keeps the slide on the board
+--targets auto (with --n-targets): targets derived from the cap
+--clip-unreachable: a target beyond the cap is pushed at the cap and scored as a miss
+
+results.csv has one more column, accel_limit_fraction (planned joint acceleration over the SDF limit).
+
 ## Validation and outputs
 
 The configuration-only check does not establish physical feasibility.

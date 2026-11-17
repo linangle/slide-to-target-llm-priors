@@ -6,7 +6,7 @@ A simulated KUKA iiwa pushes a flat-bottomed object across a table and releases 
 
 ## Status
 
-Phase 1, Oct 25 – Nov 1: measuring ground-truth kinetic friction for 27 object–surface pairs (M01–M27) and 3 validation pairs (V01–V03). Output: `measured_friction.csv` (columns in `measured_friction_interface.md`). On 31 Oct the model specification, estimators, grid posterior, decision rule, Drake configuration and E0-1/E0-2 checks landed in response to the instructor's feedback; `model_specification.tex` is the reference note. On 5 Nov the team settled the open decisions (see *Decisions* below); decisions 1, 2, 3, 5, 6 and 8 are applied in the code and data, the rest are recorded there. On 5 Nov a prescribed-paddle push harness (`push.py`) stood in for the arm controller so that E0-3, E0-4 and E0-5 could run; all three pass, and decisions 7 and 8 now have their evidence. The same day the decision-10 SimReady audit (`simready_audit.md`) found that NVIDIA's library stores one friction pair per material class, so a C2-SimReady baseline is possible but coarse. On 6 Nov the arm controller landed (`arm.py`): the iiwa tracks the plate's push profile under Drake's implicit PD with inverse-dynamics feed-forward, passes the plate's acceptance test, and matches the plate's release speed within 0.13% on the 12-push re-run (`arm_rerun.py`). The decision-7 numbers came with it: the braking jerk is not the constraint, the joint speed is. With the base at the origin every grid push runs joint 4 at 1.3–3× its 75°/s limit (which the simulator does not enforce), so the real iiwa would deliver 0.35–0.47 m/s on that line; with the base beside the board, level with the middle of the push, it delivers 1.0 m/s within its limits. Where the base stands is the team's call. On 16 Nov the two arm controllers written on 6 Nov (Angelina's and Diego's, both `arm.py`) were merged into one file: Angelina's joint controller drives the arm, Diego's target planner and E1 validation run on top of it, and point targets now go through `decide.py`'s rule (see *The 16 Nov merge*). The same day Alejandro's evaluation branch was merged: the LLM query and cache, the generic / lookup / LLM / oracle comparison after 0, 1 and 2 practice slides, and the saved pilot results (see *The evaluation pipeline*). The files were then grouped into folders (see *Repository layout*): after pulling, run `pip install -r requirements.txt` once more.
+Phase 1, Oct 25 – Nov 1: measuring ground-truth kinetic friction for 27 object–surface pairs (M01–M27) and 3 validation pairs (V01–V03). Output: `measured_friction.csv` (columns in `measured_friction_interface.md`). On 31 Oct the model specification, estimators, grid posterior, decision rule, Drake configuration and E0-1/E0-2 checks landed in response to the instructor's feedback; `model_specification.tex` is the reference note. On 5 Nov the team settled the open decisions (see *Decisions* below); decisions 1, 2, 3, 5, 6 and 8 are applied in the code and data, the rest are recorded there. On 5 Nov a prescribed-paddle push harness (`push.py`) stood in for the arm controller so that E0-3, E0-4 and E0-5 could run; all three pass, and decisions 7 and 8 now have their evidence. The same day the decision-10 SimReady audit (`simready_audit.md`) found that NVIDIA's library stores one friction pair per material class, so a C2-SimReady baseline is possible but coarse. On 6 Nov the arm controller landed (`arm.py`): the iiwa tracks the plate's push profile under Drake's implicit PD with inverse-dynamics feed-forward, passes the plate's acceptance test, and matches the plate's release speed within 0.13% on the 12-push re-run (`arm_rerun.py`). The decision-7 numbers came with it: the braking jerk is not the constraint, the joint speed is. With the base at the origin every grid push runs joint 4 at 1.3–3× its 75°/s limit (which the simulator does not enforce), so the real iiwa would deliver 0.35–0.47 m/s on that line; with the base beside the board, level with the middle of the push, it delivers 1.0 m/s within its limits. Where the base stands is the team's call. On 16 Nov the two arm controllers written on 6 Nov (Angelina's and Diego's, both `arm.py`) were merged into one file: Angelina's joint controller drives the arm, Diego's target planner and E1 validation run on top of it, and point targets now go through `decide.py`'s rule (see *The 16 Nov merge*). The same day Alejandro's evaluation branch was merged: the LLM query and cache, the generic / lookup / LLM / oracle comparison after 0, 1 and 2 practice slides, and the saved pilot results (see *The evaluation pipeline*). The files were then grouped into folders (see *Repository layout*): after pulling, run `pip install -r requirements.txt` once more. A trial with the base beside the board, a computed speed cap, derived targets and an acceleration check was then run alongside the existing results (see *The side-base trial*).
 
 ## The arm controller (6 Nov)
 
@@ -33,7 +33,7 @@ The iiwa now pushes. `arm.py`'s `ArmPusher` has the plate's hook (`add`, `connec
 
 - **Speed.** With the base on the push line the wrist moves radially from the shoulder, which only the elbow can produce (`d ḋ = l₁ l₂ sin θₑ θ̇ₑ`, with joint 4's limit 75°/s), so the paddle is capped near 0.45 m/s whatever the posture or lateral offset of the base (y = 0.2–0.5 m at the scene's x tried too: no better). Beside the board, level with the middle of the push, joints 1 and 2 sweep the paddle across the arm's front: at (0.6, 0.65) m the iiwa delivers 1.0 m/s at 0.96 of joint 1's limit, tracking 0.07 mm rms in simulation (release +0.10%), with the effective mass at the paddle 13 kg instead of 24–34 kg. The simulator enforces torque limits but not speed limits, so the frontal pushes in the re-run are physically consistent but run joint 4 at 1.3–3× its rated speed; they stand as the comparison with the plate, not as something the real iiwa would do.
 - **Jerk.** The release needs the ramp to reach −μg, which takes μg/J (49 ms at J = 100 and μ 0.5, 2.5 ms at J = 2000) and costs torque set by the deceleration reached, not by J: with the 12 m/s² cap the torque ratio is 0.83–0.89 at 0.8 m/s frontal for every J in the E0-4 table, 0.43–0.66 beside the board. So the iiwa delivers J = 2000 m/s³ (ramp loss ≤ 2% of the distance at μ ≤ 0.5, `e0_4_summary.txt`), and the release model holds there (−0.16..−0.34% in the re-run and the beside-the-board check). The 5 Nov reading (brake hard) is available: `decide.py` still carries J = 100 m/s³, a one-line change once the team confirms the speed and the base. At 1.0 m/s frontal the brake needs 1.08–1.37× joint 4's torque; the simulator clamps it after the release, which the release does not see (+0.06%, −0.19% in cases 5 and 7).
-- **Not modelled.** The SDF's `drake:acceleration` limits (8.6–15.7 rad/s²) are exceeded 2–4× in every push, including beside the board; they are Drake's conservative values, reported by `--plan` and not enforced. The command runs at the 1 ms plant step; a real iiwa's 4 ms FRI cycle, joint friction and sensor noise are not in the model.
+- **Acceleration (checked since 16 Nov).** The SDF's `drake:acceleration` limits (8.6–15.7 rad/s²) are exceeded 2–4× in every push made with the default 12 m/s² brake cap, at either base. The overshoot comes from that cap, not from the speed: with a 4 m/s² cap the plan is inside them (see *The side-base trial*). They are Drake's model values (KUKA publishes none) and the simulator does not enforce them. **Not modelled:** the command runs at the 1 ms plant step; a real iiwa's 4 ms FRI cycle, joint friction and sensor noise are not in the model.
 
 **Next steps for whoever picks this up.**
 1. Decide where the base stands. `ArmPusher(base=(0.6, 0.65, 0))` is one argument and `scene.add_arm(plant, contact, X_WB=...)` places the base; the scene's default, `scene.py --meshcat` and `demo_video.py` still have it at the origin, and `physics.BOARD_X_MIN` (0.3 m in front of the base) assumed the frontal layout.
@@ -64,7 +64,7 @@ Diego pushed his own `arm.py` on 6 Nov, a few hours after Angelina's was committ
 **Next steps for the team.**
 1. *Alejandro:* your branch is merged into `main` (16 Nov), with this README kept and extended instead of the branch's shorter one. Speeds planned from a belief move by up to 6 mm/s under the default loss, so the saved pilot results will not reproduce bit for bit; pass `loss=decide.loss_sq_abs` to get the old numbers, or rerun. Each run's `settings.json` hashes `arm.py`, `push.py` and `physics.py`, all of which changed in the arm merge.
 2. *Team:* choose the loss for point targets (the specification's relative loss, now the default, or the squared miss); it moves the zero-practice generic baseline from 1.9 to 7.4 mm on Y01 (*The evaluation pipeline*). Then say in the report whether the evaluation scores the slide from the FK release point or the rest position on the board. The start-gap sensitivity in E1 part C exists only under the second.
-3. *Team:* the base position is still open. Diego's planner caps a plan at the arm's reach by default, not at the joint speed limit; the evaluation passes `u_max=.45` by hand. `limited_peak_speed(J, x0, base=...)` computes that bound (0.49 m/s at the origin, 1.02 m/s at (0.6, 0.65) m).
+3. *Team:* the base position is still open, now with a trial behind it (*The side-base trial*): beside the board the joint limits allow 1.02 m/s instead of 0.49, and every E1 push is within them. The evaluators still pass `u_max=.45` by hand unless run with `--peak-cap auto`.
 4. *Everyone:* after pulling the folder reorganisation, run `pip install -r requirements.txt` once (it adds the editable install). Work in progress on files at their old root paths merges normally, because the files were moved without being renamed; new scripts go in the matching folder and should take their default paths from `src/paths.py`.
 5. *Diego:* please read `docs/ARM_CONTROLLER.md` and the planner section of `arm.py` and say if anything you relied on is missing. `solve_ik`, `joint_trajectory`, `Q_SEED`, `REACH_X` and `ArmPusher(kd=, feedforward=)` no longer exist.
 
@@ -91,6 +91,49 @@ python3 evaluation/summarize_arm_evaluation.py results/evaluation_v3/Y01_seed8
 - **The loss matters before any practice slide.** The same rerun with `plan_peak_speed`'s current default, the specification's squared relative loss, gives generic 7.40 mm (not 1.89) and lookup 10.53 mm (not 12.50) at zero practice slides; LLM and oracle are unchanged, and after one or two practice slides every method is within 0.02 mm of the squared-miss run. The wide generic prior is where the two losses disagree. The evaluators do not pass a loss, so a fresh run today uses the relative loss.
 - The evaluation is not frozen. It accepts only Y01–Y03; `measured_friction.csv` does not exist yet; the material descriptions for the measured pairs are not written.
 - The joint checks in the evaluators cover the planned position, speed and inverse-dynamics torque, at the 0.45 m/s cap with the base at the origin.
+
+## The side-base trial (16 Nov)
+
+A trial of the decisions the team has open, run without changing any default: the base still stands at the origin unless a script is told otherwise, and the trial's outputs are in `results/side_base/` beside the originals (index: `results/side_base/README.md`). `docs/ARM_CONTROLLER.md` has the full tables.
+
+**What was tried.**
+1. **Base beside the board**, at (0.6, 0.65) m (`arm.LAYOUTS["side"]`; `--layout side` on `arm.py`, `e1_arm_validation.py`, `arm_rerun.py`, `e0_5_observation.py` and `run_arm_evaluation.py`).
+2. **A speed cap computed from the layout** instead of the hand-set 0.45 m/s (`arm.limited_peak_speed`; `--peak-cap auto`), a practice speed that keeps the slide on the board (`decide.practice_speed`; `--practice-peak auto`), and requests above the cap pushed at the cap and scored (`plan_peak_speed(clip=True)`; `--clip-unreachable`).
+3. **Targets re-derived from the cap** (`arm.target_grid`; `--targets auto`): from x0 + 5 cm to what the highest-friction pair reaches at 90% of the cap.
+4. **Joint acceleration checked** as well as speed and torque (`joint_limit_report(...)["a"]`; `--check-accel`; `--a-brake` sets the brake cap).
+
+**What it showed.**
+
+| | origin | side base |
+|---|---|---|
+| Fastest push within joint speed and torque limits | 0.49 m/s | 1.02 m/s |
+| Longest slide at μ 0.1 / 0.3 / 0.5 | 12 / 3 / 1 cm | 53 / 16 / 8 cm |
+| E1: arm pushes within joint speed limits | 22 of 73 | 73 of 73 |
+| E1: targeting with the true friction, RMS and worst miss | 0.74, 2.4 mm | 0.77, 2.3 mm |
+| Arm re-run: pushes within speed and torque limits | 0 of 12 | 12 of 12 |
+| E0-5 through the camera: worst bias of A/B/C, missed frames | 0.90%, 0 (plate) | 0.92%, 0 (arm in view) |
+| Targets for Y01–Y03 | 0.60, 0.62, 0.64 m (hand-picked) | 0.60, 0.77, 0.94 m (derived) |
+
+- **The arm in the camera's view is not a problem.** It fills up to 14% of the image, all behind the paddle face, which the perception window already leaves out.
+- **Acceleration is set by the brake, not the speed.** With the default 12 m/s² brake cap every push is over the SDF's acceleration limits, at either base. With a 4 m/s² cap the side base still reaches 1.02 m/s inside speed, torque and acceleration limits. The catch: the cap has to exceed μg or the object never leaves the paddle, so 4 m/s² only works for friction below about 0.4 (Y01–Y03 are 0.14, 0.14, 0.26). At 6 m/s² (friction below 0.6) the bound is 0.84 m/s.
+- **The camera sees x from 0.30 to 1.21 m.** A practice push at the cap on μ 0.14 rests at x = 1.20 m, partly out of view. The evaluation reads simulator state, so it is unaffected; a camera-based run would need the camera moved or a slower practice push.
+
+**The evaluation at the side base** (`results/side_base/evaluation/`; Y01–Y03, seed 7, 432 scored rows per run). The computed cap is 1.017 m/s with a 4 m/s² brake (speed, torque and acceleration required) and 1.019 m/s with the default 12 m/s² (speed and torque required); practice pushes run at 1.01 m/s; the derived targets are x = 0.60, 0.77 and 0.94 m. Landing RMSE at nominal noise, 4 m/s² brake:
+
+| practice slides | generic | lookup | LLM | oracle |
+|---|---|---|---|---|
+| 0 | 54.8 mm | 50.7 mm | 65.1 mm | 0.4 mm |
+| 1 | 1.5 mm | 1.5 mm | 1.5 mm | 0.4 mm |
+| 2 | 0.5 mm | 0.6 mm | 0.6 mm | 0.4 mm |
+
+- **Every push is valid in both runs.** With the 4 m/s² brake the scored pushes peak at 0.80 of the joint speed limit, 0.25 of the torque limit and 0.75 of the acceleration limit; the practice pushes at 0.98, 0.25 and 0.85. With the 12 m/s² brake the acceleration reaches 2.1× (scored) and 2.3× (practice).
+- **The brake cap does not change the outcome.** Every RMSE in the 12 m/s² run is within 0.1 mm of the table above.
+- **No push reached the cap**, so the clip-and-score rule had nothing to do here: the derived targets are in reach by construction. It will matter for higher-friction pairs or targets placed beyond reach.
+- **Farther targets make the starting belief matter much more.** Before any practice the methods miss by 51–65 mm, against 9–17 mm in the saved origin runs whose targets stop at 0.64 m. One practice slide brings all three to 1.5 mm. The two sets are not like for like: different targets, and the saved runs used the squared-miss loss (*The evaluation pipeline*).
+
+**Checked that nothing old moved.** With no options, `run_arm_evaluation.py` gives the same 144 rows as before these changes, cell for cell (Y01, seed 7). The saved E1 and arm re-run CSVs summarise as before. `git status` shows no saved result modified.
+
+**For the team.** These are the open decisions with evidence attached, not decisions taken: the base position, whether the cap and targets are computed this way, and which brake cap to use (a soft one needs a stated upper bound on friction).
 
 ## Repository layout
 
@@ -203,6 +246,7 @@ Saved outputs. `results/README.md` indexes the evaluation runs.
 | `e1/` | `e1_arm_results.csv`, `e1_arm_summary.txt`, `e1_arm_summary.png` from `e1_arm_validation.py`. |
 | `arm_rerun/` | `arm_rerun_results.csv`, `arm_rerun_summary.txt`, `arm_rerun_summary.png` from `arm_rerun.py`. |
 | `perception_results.csv` | Landing-perception error study from `perception.py --study`. |
+| `side_base/` | The 16 Nov trial with the base beside the board: E1, arm re-run, E0-5 with the arm in view, and the evaluation with a computed cap and derived targets. Indexed in `results/side_base/README.md`. |
 
 ### `paper/`
 
@@ -227,7 +271,7 @@ Guides and protocols.
 
 ### `tests/`
 
-pytest suite (58 tests): spec tests 1–7, the rig self-checks, the push harness, the arm, the target planner, the E1 script and the offline evaluation checks. `python3 -m pytest tests` (`-m "not slow"` skips three simulated pushes).
+pytest suite (62 tests): spec tests 1–7, the rig self-checks, the push harness, the arm, the target planner, the E1 script, the offline evaluation checks and the layout trial (base positions, acceleration, speed cap, derived targets). `python3 -m pytest tests` (`-m "not slow"` skips three simulated pushes).
 
 ## Setup
 
@@ -445,7 +489,7 @@ What the team decided on 5 Nov, against what the code and data still carry. "App
 | new | First-frame rule | A gap rule: use frames once the object is 0.5 mm clear of the plate face (31 ms after release at J = 100) | E0-5 perceives in a 0.5 mm window and showed the 30 ms effect, but `observe.py`'s fits do not apply the rule. |
 | new | Tier B noise | Inflate to a stated sensor model; keep the as-measured values as a lower-bound arm | `e0_5_noise.csv` holds the as-measured values only; the sensor model is not written. |
 | new | Arm re-run | Re-run 12 pushes with the arm, not the E0-3/E0-4 grids | Done 6 Nov (`arm_rerun.py`): the arm's release speed within 0.13% of the plate's in all 12, 11 of 12 within 1% of the model (the twelfth is the plate's known +1.18% case). |
-| new | iiwa base position | Not discussed (the scene has it at the origin) | Open. At the origin the push is radial from the shoulder and joint 4's 75°/s caps the paddle at 0.32–0.47 m/s; beside the board at (0.6, 0.65) m the iiwa delivers 1.0 m/s within its limits (`arm.py --scan`). `ArmPusher(base=...)` and `scene.add_arm(X_WB=...)` take any base; the scene, demo and `BOARD_X_MIN` keep the origin. |
+| new | iiwa base position | Not discussed (the scene has it at the origin) | Open. At the origin the push is radial from the shoulder and joint 4's 75°/s caps the paddle at 0.32–0.47 m/s; beside the board at (0.6, 0.65) m the iiwa delivers 1.0 m/s within its limits (`arm.py --scan`). `ArmPusher(base=...)` and `scene.add_arm(X_WB=...)` take any base; the scene, demo and `BOARD_X_MIN` keep the origin. **16 Nov trial** at (0.6, 0.65) m: 1.02 m/s within speed and torque limits, all 73 E1 pushes within them, same accuracy, camera study unchanged with the arm in view (`results/side_base/`). Defaults not changed; the team decides. |
 | new | Extra published pairs | Last resort, as a labelled subset | Nothing in the code. |
 
 `model_specification.tex` and `friction_lookup_table.tex` record decisions 1, 2, 3, 5, 6 and 8 as applied (5 Nov). Still open in the code: decision 7's J in `decide.py` and the base position (both one-line changes once decided); `model_specification.tex` does not yet describe the arm controller.

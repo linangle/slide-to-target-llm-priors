@@ -4,9 +4,26 @@ No API calls. Uses existing published-pair cache. Positions come from Drake stat
 not camera perception; release timing uses the ideal contact event. Dataset remains
 three exploratory pairs. Old runners/results are untouched. Deterministic scored
 rollouts with the exact same (pair, speed) are reused within a run.
+
+Arm setup (16 Nov). With no options the run is the v3 protocol as saved: base at the
+origin, 0.45 m/s cap and practice speed, targets 0.60/0.62/0.64 m. The options below
+try another setup without changing that default; settings.json records which one ran,
+and such runs belong in their own results folder, never pooled with the v3 checks.
+  --layout side          the iiwa beside the board (arm.LAYOUTS), or --base-x/--base-y
+  --a-brake 4            cap on the paddle's braking deceleration, m/s^2 (default 12)
+  --check-accel          also require the planned joint accelerations within the SDF limits
+  --peak-cap auto        the layout's fastest push within the checked joint limits
+                         (arm.limited_peak_speed) instead of a hand-set number
+  --practice-peak auto   the fastest practice push, at most the cap, that keeps the slide
+                         on the board for the generic prior's slipperiest 5% (decide.practice_speed)
+  --targets auto         targets re-derived from the cap (arm.target_grid): from x0 + 5 cm to
+                         what the highest-friction pair reaches at 90% of the cap
+  --clip-unreachable     a target the cap cannot reach is pushed at the cap and scored as a
+                         miss (the proposal's rule) instead of stopping the run
 """
 import argparse
 import csv
+import functools
 import hashlib
 import itertools
 import json
@@ -30,7 +47,8 @@ NOISE = {'low': .5, 'nominal': 1., 'high': 2., 'no_added': 0.}
 FIELDS = ['pair','condition','seed','target_x','method','slides','mu_true','mu_median',
           'mu_low','mu_high','peak_speed','at_cap','x_rest','y_rest','error_x_mm',
           'error_xy_mm','q_limit_fraction','v_limit_fraction','ff_torque_limit_fraction',
-          'valid','reused_rollout']
+          'valid','reused_rollout','accel_limit_fraction']
+X0, JERK, V3_CAP = .55, 100., .45
 
 
 def write_json(path, value):
@@ -77,8 +95,56 @@ def obs_record(obs):
                 sigma_f=obs.sigma_f,sigma_rest=obs.sigma_rest,sigma_fk=obs.sigma_fk)
 
 
-def checked_execute(mu,u):
-    r,p,limits,valid = execute(mu,u)
+def arm_setup(args, truth, generic_post):
+    """The arm's layout, speed cap, practice speed and targets for this run. Defaults reproduce v3
+    and, like the rest of a configuration check, need no Drake: arm.py is imported only for the options."""
+    BASE, A_BRAKE = (0.,0.,0.), 12.       # arm.BASE, arm.A_BRAKE
+    layout = getattr(args,'layout',None)
+    bx, by = getattr(args,'base_x',None), getattr(args,'base_y',None)
+    base = (bx or 0., by or 0., 0.) if bx is not None or by is not None else None
+    if layout:
+        from arm import layout_base
+        base = layout_base(layout)
+    a_brake = getattr(args,'a_brake',None)
+    check = ('q','v','tau','a') if getattr(args,'check_accel',False) else ('q','v','tau')
+    cap = getattr(args,'peak_cap',V3_CAP)
+    cap_rule = 'fixed'
+    if cap == 'auto':
+        from arm import limited_peak_speed
+        which = tuple(k for k in check if k != 'q')
+        cap = math.floor(1000*limited_peak_speed(JERK,X0,which=which,base=tuple(base or BASE),a_max=a_brake or A_BRAKE))/1000
+        cap_rule = f"arm.limited_peak_speed within {'/'.join(which)} limits, floored to the mm/s"
+        if cap <= 0:
+            raise ValueError('No push is within the checked joint limits for this layout and brake cap')
+    cap = float(cap)
+    practice = getattr(args,'practice_peak',None)
+    practice_rule = 'fixed' if practice is not None else 'equal to the peak cap'
+    if practice == 'auto':
+        from decide import Release, practice_speed, slide_room
+        practice = math.floor(1000*practice_speed(cap,slide_room(X0),generic_post,Release(J=JERK)))/1000
+        practice_rule = "decide.practice_speed: on the board for the generic prior's 5% quantile, at most the cap"
+    practice = cap if practice is None else float(practice)
+    targets = list(getattr(args,'targets',[.60,.62,.64]))
+    targets_rule = 'given'
+    if targets == ['auto']:
+        from arm import target_grid
+        mu_hi = max(truth[p] for p in SURFACES)
+        targets = target_grid(cap,mu_hi,getattr(args,'n_targets',3),JERK,X0)
+        targets_rule = f'arm.target_grid: x0 + 5 cm to the reach of mu = {mu_hi} (the highest among {"/".join(SURFACES)}) at 90% of the cap'
+    targets = [float(t) for t in targets]
+    options = {}
+    if base is not None: options['base'] = tuple(base)
+    if a_brake is not None: options['a_brake'] = float(a_brake)
+    if check != ('q','v','tau'): options['check'] = check
+    record = dict(layout=layout or ('custom' if base is not None else 'origin'),base=list(base or BASE),
+                  brake_cap=float(a_brake or A_BRAKE),checked_limits=list(check),peak_cap_rule=cap_rule,
+                  practice_rule=practice_rule,targets_rule=targets_rule,
+                  clip_unreachable=bool(getattr(args,'clip_unreachable',False)))
+    return dict(cap=cap,practice=practice,targets=targets,options=options,record=record)
+
+
+def checked_execute(mu,u,**options):
+    r,p,limits,valid = execute(mu,u,**options)
     valid = bool(valid and all(math.isfinite(float(r[k])) for k in ('x_rest','y_rest'))
                  and all(math.isfinite(v) for v in limits.values()))
     return r,p,limits,valid
@@ -101,9 +167,14 @@ def run(args, executor=checked_execute, planner=None):
         initials[pair] = dict(generic=generic,
             lookup=generic.copy() if table is None else generic+loglik_lookup(g,*table),
             llm_raw=raw_llm_logprior(g,parse_response(raw)))
+    setup = arm_setup(args,truth,posterior(g,generic))
+    cap, practice_peak, args.targets = setup['cap'], setup['practice'], setup['targets']
+    if executor is checked_execute and setup['options']:
+        executor = functools.partial(checked_execute,**setup['options'])
+    plan_options = dict(clip=True) if setup['record']['clip_unreachable'] else {}
     config = dict(version=VERSION,status='infrastructure_for_exploratory_pairs',
                   pairs=pairs,conditions=args.noise,seeds=args.seeds,targets=args.targets,
-                  x0=.55,peak_cap=.45,practice_peak=.45,jerk=100.,fps=60,
+                  x0=X0,peak_cap=cap,practice_peak=practice_peak,jerk=JERK,fps=60,arm=setup['record'],
                   noise_scales={c:NOISE[c] for c in args.noise},nominal_sd=[.002,.0005,.0005],
                   no_added_likelihood='nominal positive SDs; zero injected noise; seed label -1',
                   grid_points=args.grid_points,grid_mu_bounds=[.005,5.],
@@ -128,6 +199,7 @@ def run(args, executor=checked_execute, planner=None):
         p=posterior(g,generic)
         print(f"Configuration/cache check passed: {config['expected_rows']} scored rows planned.")
         print(f"Default median={p['mu_median']:.5f}, interval=[{p['mu_q05']:.5f}, {p['mu_q95']:.5f}]")
+        print(f"Arm: {setup['record']}; peak cap {cap} m/s, practice {practice_peak} m/s, targets {args.targets}")
         print('No Drake feasibility check performed. No files written or API requests made.')
         return
     if planner is None:
@@ -151,7 +223,7 @@ def run(args, executor=checked_execute, planner=None):
         # Check all selected targets, without inspecting estimated-method scores.
         for pair,target in itertools.product(pairs,args.targets):
             try:
-                u=planner(target,truth[pair],J=100,x0=.55,u_max=.45)
+                u=planner(target,truth[pair],J=JERK,x0=X0,u_max=cap,**plan_options)
                 r,lim,valid,_=shot(pair,u)
                 item=dict(pair=pair,target_x=target,peak_speed=u,valid=valid,limits=lim)
                 oracle[(pair,target)]=u
@@ -168,7 +240,7 @@ def run(args, executor=checked_execute, planner=None):
                 practice=[]
                 practice_limits=[]
                 for i in range(2):
-                    r,p,lim,valid=executor(truth[pair],.45)
+                    r,p,lim,valid=executor(truth[pair],practice_peak)
                     practice_limits.append(dict(slide=i+1,valid=valid,limits=lim))
                     write_json(args.out/f'{pair}_practice_validity.json',practice_limits)
                     if not valid:
@@ -185,18 +257,18 @@ def run(args, executor=checked_execute, planner=None):
                             posts={m:update_with_slides(g,lp,observations[:n],model='C') for m,lp in initials[pair].items()}
                             for target,method in itertools.product(args.targets,METHODS):
                                 post=posts.get(method)
-                                u=oracle[(pair,target)] if method=='oracle' else planner(target,post,J=100,x0=.55,u_max=.45)
-                                if not math.isfinite(u) or not 0<=u<=.45+1e-8:
+                                u=oracle[(pair,target)] if method=='oracle' else planner(target,post,J=JERK,x0=X0,u_max=cap)
+                                if not math.isfinite(u) or not 0<=u<=cap+1e-8:
                                     raise ValueError('Planner violated peak-speed bounds')
                                 r,lim,valid,reused=shot(pair,u)
                                 dx,dy=r['x_rest']-target,r['y_rest']
                                 row=dict(pair=pair,condition=condition,seed=seed,target_x=target,method=method,slides=n,
                                     mu_true=truth[pair],mu_median=truth[pair] if post is None else post['mu_median'],
                                     mu_low=truth[pair] if post is None else post['mu_q05'],
-                                    mu_high=truth[pair] if post is None else post['mu_q95'],peak_speed=u,at_cap=u>=.45-1e-4,
+                                    mu_high=truth[pair] if post is None else post['mu_q95'],peak_speed=u,at_cap=u>=cap-1e-4,
                                     x_rest=r['x_rest'],y_rest=dy,error_x_mm=1000*dx,error_xy_mm=1000*math.hypot(dx,dy),
                                     q_limit_fraction=lim['q'],v_limit_fraction=lim['v'],ff_torque_limit_fraction=lim['tau'],
-                                    valid=valid,reused_rollout=reused)
+                                    valid=valid,reused_rollout=reused,accel_limit_fraction=lim.get('a',''))
                                 writer.writerow(row);f.flush();status['rows_written']+=1
                                 if not valid:
                                     status['invalid_rows']+=1
@@ -216,7 +288,15 @@ def run(args, executor=checked_execute, planner=None):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--pair',choices=[*SURFACES,'all'],default='Y01')
-    p.add_argument('--targets',nargs='+',type=float,default=[.60,.62,.64])
+    p.add_argument('--targets',nargs='+',default=['0.60','0.62','0.64'],help="world-x positions, or 'auto' (see the module docstring)")
+    p.add_argument('--n-targets',type=int,default=3,help='how many targets --targets auto makes')
+    p.add_argument('--layout',choices=['origin','side'],default=None)
+    p.add_argument('--base-x',type=float,default=None);p.add_argument('--base-y',type=float,default=None)
+    p.add_argument('--a-brake',type=float,default=None,help='brake cap in m/s^2 (default: the arm\'s 12)')
+    p.add_argument('--check-accel',action='store_true')
+    p.add_argument('--peak-cap',default=str(V3_CAP),help="m/s, or 'auto'")
+    p.add_argument('--practice-peak',default=None,help="m/s, or 'auto'; default: the peak cap")
+    p.add_argument('--clip-unreachable',action='store_true')
     p.add_argument('--noise',nargs='+',choices=list(NOISE),default=list(NOISE))
     p.add_argument('--seeds',nargs='+',type=int,default=[0])
     p.add_argument('--grid-points',type=int,default=2000)
@@ -226,7 +306,17 @@ def main():
     if a.grid_points<500 or any(s<0 for s in a.seeds): p.error('Use >=500 grid points and nonnegative seeds')
     for name,values in [('targets',a.targets),('noise',a.noise),('seeds',a.seeds)]:
         if len(values)!=len(set(values)): p.error(f'Duplicate {name}')
-    if any(not math.isfinite(t) or t<=.55 for t in a.targets): p.error('Targets must be finite and beyond x0=.55')
+    if a.targets!=['auto']:
+        try: a.targets=[float(t) for t in a.targets]
+        except ValueError: p.error("Targets are world-x positions in m, or the single word 'auto'")
+        if any(not math.isfinite(t) or t<=X0 for t in a.targets): p.error('Targets must be finite and beyond x0=.55')
+    for name in ('peak_cap','practice_peak'):
+        value=getattr(a,name)
+        if value not in (None,'auto'):
+            try: setattr(a,name,float(value))
+            except ValueError: p.error(f"--{name.replace('_','-')} is a speed in m/s or 'auto'")
+            if not 0<getattr(a,name)<=5: p.error('Speeds must be positive')
+    if a.a_brake is not None and a.a_brake<=0: p.error('--a-brake must be positive')
     run(a)
 
 

@@ -45,14 +45,21 @@ def make_observation(result, pusher, rng):
     return Obs(ts, positions, rest, fk, .002, .0005, .0005)
 
 
-def execute(mu, speed):
+def execute(mu, speed, base=None, a_brake=None, check=('q', 'v', 'tau')):
+    """One arm push.  The defaults are the v2/v3 protocol: base at the origin, the arm's 12 m/s^2 brake cap, validity from
+    the planned position, speed and feed-forward torque.  base / a_brake move the iiwa and soften the brake (the 16 Nov
+    layout trial); add 'a' to `check` to require the planned joint accelerations within the SDF limits too.  The peak
+    acceleration fraction is always reported (maxima['a'])."""
     from arm import ArmPusher, joint_limit_report
     from push import push_slide
-    pusher = ArmPusher()
+    options = {} if base is None else {'base': tuple(base)}
+    if a_brake is not None:
+        options['a_brake_max'] = float(a_brake)
+    pusher = ArmPusher(**options)
     result = push_slide(mu, speed, 100.0, x0=.55, pusher=pusher, keep_traj=True)
     limits = joint_limit_report(pusher.traj)
-    maxima = {k: float(np.max(limits[k])) for k in ('q', 'v', 'tau')}
-    valid = all(v <= 1.0 for v in maxima.values()) and bool(result['separated'])
+    maxima = {k: float(np.max(limits[k])) for k in ('q', 'v', 'tau', 'a')}
+    valid = all(maxima[k] <= 1.0 for k in check) and bool(result['separated'])
     # These limits describe the planned trajectory and feed-forward torque,
     # not a full certificate of actual actuator torque including feedback.
     return result, pusher, maxima, valid

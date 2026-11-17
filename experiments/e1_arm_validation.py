@@ -24,7 +24,8 @@ the run once the team has decided where it stands (the default is the scene's or
 
     python3 experiments/e1_arm_validation.py                   # 85 pushes, ~1 min on 4 workers -> results/e1/e1_arm_results.csv, results/e1/e1_arm_summary.txt, results/e1/e1_arm_summary.png
     python3 experiments/e1_arm_validation.py --quick           # one case per part, to check it runs (~10 s)
-    python3 experiments/e1_arm_validation.py --base-x 0.6 --base-y 0.65 --out results/e1/e1_arm_side     # the same run with the base beside the board
+    python3 experiments/e1_arm_validation.py --layout side --out results/side_base/e1_arm              # the same run with the base beside the board
+    python3 experiments/e1_arm_validation.py --layout side --a-brake 4 --out results/side_base/e1_arm_brake4   # ... and a brake inside the acceleration limits
     python3 experiments/e1_arm_validation.py --summarize results/e1/e1_arm_results.csv
 """
 import argparse, csv, math, os, time
@@ -43,11 +44,12 @@ CASES_C = [(0.3, 0.75), (0.1, 0.80), (0.5, 0.70), (0.3, 0.64), (0.1, 0.70)]   # 
 N_C = 8
 FIELDS = ["part", "case", "pusher", "shape", "mu", "v_peak", "J", "x_target", "gap_mm", "lateral_mm", "mass",
           "v_r_model", "v_sep", "v_err_pct", "d_err_pct", "psi_deg", "yaw_rest_deg", "x_rest", "y_rest", "miss_mm",
-          "track_rms_mm", "track_max_mm", "v_lim_frac", "tau_lim_frac", "joint_v_worst", "separated", "point_contacts", "wall_s"]
+          "track_rms_mm", "track_max_mm", "v_lim_frac", "tau_lim_frac", "joint_v_worst", "separated", "point_contacts", "wall_s",
+          "a_lim_frac", "base_x", "base_y", "a_brake"]      # added 16 Nov: planned joint acceleration / SDF limit, and the arm setup
 
 # ----------------------------------------------------------------------------- the jobs
 
-def jobs(quick=False, base=(0.0, 0.0, 0.0)):
+def jobs(quick=False, base=(0.0, 0.0, 0.0), a_brake=None):
     out = []
     for i, (shape, mu, v, J) in enumerate(CASES_A[:1] if quick else CASES_A):
         for pusher in ("arm", "plate"):
@@ -62,7 +64,7 @@ def jobs(quick=False, base=(0.0, 0.0, 0.0)):
                             gap=float(rng.uniform(0.0005, 0.003)), lateral=float(rng.uniform(-0.003, 0.003)),
                             mass=float(0.5*rng.uniform(0.9, 1.1))))
     for j in out:
-        j["base"] = tuple(base)
+        j["base"], j["a_brake"] = tuple(base), a_brake
     return out
 
 def run(job):
@@ -77,7 +79,8 @@ def run(job):
     x_t = job.get("x_target", float("nan"))
     base = tuple(job.get("base", (0.0, 0.0, 0.0)))
     v = job["v_peak"] if "v_peak" in job else plan_peak_speed(x_t, mu, J, base=base)     # planned with the nominal 1 mm gap
-    pusher = ArmPusher(gap=gap, lateral=lateral, base=base) if job["pusher"] == "arm" else Pusher(lateral=lateral)
+    arm_options = {} if job.get("a_brake") is None else {"a_brake_max": float(job["a_brake"])}      # default: the arm's 12 m/s^2
+    pusher = ArmPusher(gap=gap, lateral=lateral, base=base, **arm_options) if job["pusher"] == "arm" else Pusher(lateral=lateral)
     r = push_slide(mu, v, J, obj=obj, pusher=pusher, keep_traj=False)
     row = {k: job.get(k, "") for k in ("part", "case", "pusher", "shape", "mu", "J")}
     row.update(v_peak=v, x_target=x_t, gap_mm=gap*1e3, lateral_mm=lateral*1e3, mass=mass,
@@ -87,9 +90,10 @@ def run(job):
                track_rms_mm=r["track_q_rms"]*1e3, track_max_mm=r["track_q_max"]*1e3, separated=int(r["separated"]),
                point_contacts=r["n_point_contacts"], wall_s=time.time() - t0)
     if job["pusher"] == "arm":      # the plan's peak joint-speed and torque ratios to the iiwa's limits (arm.ArmPusher.summary)
-        row.update(v_lim_frac=r["arm_plan_qd_ratio"], tau_lim_frac=r["arm_plan_tau_ratio"], joint_v_worst=r["arm_plan_qd_joint"])
+        row.update(v_lim_frac=r["arm_plan_qd_ratio"], tau_lim_frac=r["arm_plan_tau_ratio"], joint_v_worst=r["arm_plan_qd_joint"],
+                   a_lim_frac=r["arm_plan_qdd_ratio"], base_x=base[0], base_y=base[1], a_brake=pusher.a_brake_max)
     else:
-        row.update(v_lim_frac=float("nan"), tau_lim_frac=float("nan"), joint_v_worst="")
+        row.update(v_lim_frac=float("nan"), tau_lim_frac=float("nan"), joint_v_worst="", a_lim_frac=float("nan"), base_x="", base_y="", a_brake="")
     return row
 
 # ----------------------------------------------------------------------------- summary
@@ -163,7 +167,15 @@ def summarize(rows):
         n_in = sum(1 for r in arm_rows if r["v_lim_frac"] <= 1.0)
         L.append(f"Joint limits: {n_in} of {len(arm_rows)} arm pushes are within the iiwa's joint velocity limits; the binding joint is "
                  f"{', '.join(sorted({f'joint {int(r['joint_v_worst'])}' for r in arm_rows if r['v_lim_frac'] > 1.0})) or 'none'}. "
-                 f"Fastest within limits: arm.limited_peak_speed() (0.49 m/s at J 100 with the base at the origin).")
+                 f"Fastest within limits: arm.limited_peak_speed() (0.49 m/s at J 100 with the base at the origin, 1.02 m/s beside the board).")
+        acc = [r for r in arm_rows if isinstance(r.get("a_lim_frac"), float) and not math.isnan(r["a_lim_frac"])]      # runs since 16 Nov
+        if acc:
+            a = np.array([r["a_lim_frac"] for r in acc])
+            n_all = sum(1 for r in acc if max(r["v_lim_frac"], r["tau_lim_frac"], r["a_lim_frac"]) <= 1.0)
+            L.append(f"Acceleration (planned joint acceleration / the SDF's drake:acceleration limit; not enforced by the simulator): "
+                     f"{a.min():.2f}..{a.max():.2f}, within the limit in {int((a <= 1.0).sum())} of {len(acc)} arm pushes; "
+                     f"{n_all} of {len(acc)} are within speed, torque and acceleration limits together.  "
+                     f"Setup: base ({acc[0]['base_x']:g}, {acc[0]['base_y']:g}) m, brake cap {acc[0]['a_brake']:g} m/s^2.")
     return "\n".join(L)
 
 def _miss_stats(rows, ind):
@@ -218,12 +230,15 @@ def main():
     ap.add_argument("--out", default=str(RESULTS/"e1"/"e1_arm"), help="path prefix of the three output files")
     ap.add_argument("--base-x", type=float, default=0.0, help="iiwa base position along the push, m (the scene's is 0)")
     ap.add_argument("--base-y", type=float, default=0.0, help="iiwa base offset from the push line along y, m")
+    ap.add_argument("--layout", choices=["origin", "side"], default=None, help="a named base position (arm.LAYOUTS); overrides --base-x/--base-y")
+    ap.add_argument("--a-brake", type=float, default=None, help="cap on the arm's braking deceleration, m/s^2 (default: the arm's 12)")
     ap.add_argument("--summarize", default=None, help="reprint the summary (and plot) from a saved results CSV")
     a = ap.parse_args()
     if a.summarize:
         rows = load(a.summarize)
     else:
-        js = jobs(a.quick, (a.base_x, a.base_y, 0.0))
+        from arm import layout_base
+        js = jobs(a.quick, layout_base(a.layout) if a.layout else (a.base_x, a.base_y, 0.0), a.a_brake)
         print(f"{len(js)} pushes on {a.workers} workers ...", flush=True)
         t0 = time.time()
         with Pool(a.workers) as pool:

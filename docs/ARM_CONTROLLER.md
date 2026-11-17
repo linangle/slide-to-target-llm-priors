@@ -102,6 +102,50 @@ Drake does **not** enforce joint velocity limits, so the simulation "works" even
 - **Reach:** the face can travel 0.42 m, from x = 0.50 to 0.92 m. `python3 src/arm.py --reach` prints it for any base.
 - **Moving the base fixes the speed.** With the base beside the board at (0.6, 0.65) m, joints 1 and 2 sweep the paddle instead of the elbow. The reach grows to 0.68 m and the joint limits allow **1.02 m/s**, which puts the object at x = 1.01 m with μ 0.3. Where the base stands is still a team decision (README, *Decisions*). Every function here takes `base=`.
 
+## The side-base trial: layout, speed cap, targets, acceleration (16 Nov)
+
+A trial, not a change of default. Everything still runs with the base at the origin unless you ask otherwise, and the trial's outputs are in `results/side_base/`, beside the originals.
+
+```bash
+python3 src/arm.py --reach                        # origin: reach, speed bounds, what they afford
+python3 src/arm.py --reach --layout side          # the same with the base at (0.6, 0.65) m, beside the board
+python3 src/arm.py --target 0.94 --mu 0.26 --layout side --a-max 4      # one push inside speed, torque and acceleration limits
+python3 experiments/e1_arm_validation.py --layout side --out results/side_base/e1_arm
+python3 experiments/arm_rerun.py --layout side --out results/side_base/arm_rerun_results.csv --summary results/side_base/arm_rerun_summary.txt --fig results/side_base/arm_rerun_summary.png
+```
+
+**Layout.** `arm.LAYOUTS` names two base positions: `origin` (0, 0) and `side` (0.6, 0.65) m. With the base beside the board the paddle sweeps across the arm's front, so joint 1 does the work instead of the elbow.
+
+| | origin | side |
+|---|---|---|
+| stroke along the push line | 0.42 m (to x = 0.92 m) | 0.68 m (to x = 1.18 m) |
+| fastest push within joint speed and torque limits | 0.49 m/s | 1.02 m/s |
+| longest slide at μ 0.1 / 0.3 / 0.5 | 12 / 3 / 1 cm | 53 / 16 / 8 cm |
+| E1: arm pushes within joint speed limits | 22 of 73 | 73 of 73 |
+| E1: targeting RMS miss, worst (part B) | 0.74, 2.4 mm | 0.77, 2.3 mm |
+| arm re-run: pushes within speed and torque limits | 0 of 12 | 12 of 12 |
+| arm re-run: release speed vs the plate's | −0.13..−0.01% | −0.13..+0.01% |
+| E0-5 through the camera: worst bias of A/B/C, missed frames | 0.90%, 0 (plate only) | 0.92%, 0 (arm in view) |
+
+The arm fills up to 14% of the camera image at the side base, but all of it is behind the paddle face, which the perception window already excludes.
+
+**Speed cap.** `limited_peak_speed(J, x0, base=..., which=("v", "tau"))` is the fastest push inside the checked limits. `plan_peak_speed(..., u_max=cap)` clips a belief's plan at it; `clip=True` does the same for a single friction value, so a target the arm cannot reach is pushed at the cap and scored as a miss.
+
+**Targets.** `affordable(u_max, mu)` gives the longest slide and farthest rest point a cap allows. `target_grid(u_max, mu_hi, n)` spaces n targets from x0 + 5 cm to what the highest-friction pair reaches at 90% of the cap. For Y01–Y03 at the side base that is x = 0.60, 0.77 and 0.94 m; at the origin's 0.45 m/s cap the farthest is 0.64 m.
+
+**Acceleration.** `joint_limit_report` now has an `"a"` entry: planned joint acceleration over the SDF's `drake:acceleration` limits (8.6–15.7 rad/s²). KUKA publishes no acceleration limits, so these are Drake's values, and the simulator does not enforce them. What sets the acceleration is the brake cap (`ArmPusher.a_brake_max`, 12 m/s² by default), not the speed:
+
+| brake cap | releases friction below | fastest push within speed, torque and acceleration: origin | side |
+|---|---|---|---|
+| 4 m/s² | 0.41 | 0.49 m/s | 1.02 m/s |
+| 6 m/s² | 0.61 | 0.11 m/s | 0.84 m/s |
+| 8 m/s² | 0.82 | 0.10 m/s | 0.59 m/s |
+| 12 m/s² (default) | 1.22 | 0.10 m/s | 0.36 m/s |
+
+- The cap has to stay above μg, or the object never leaves the paddle. So a soft brake only works when the friction is known to be low enough.
+- With the default 12 m/s² every push so far has been over the acceleration limits, at either base (E1 at the side base: 5 of 73 within; with a 6 m/s² cap: 65 of 73).
+- A softer brake does not change the release, so accuracy is the same (E1 with a 6 m/s² cap: same misses to 0.01 mm).
+
 ## Validation runs: repeatability and targeting (`e1_arm_validation.py`)
 
 This is the evidence for the Nov 6 milestone ("repeatable robot pushes, achievable release speeds, targeting accuracy with known friction"). The numbers below are from the 16 Nov rerun on the merged controller, with the base at the origin.

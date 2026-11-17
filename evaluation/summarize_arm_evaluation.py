@@ -77,6 +77,13 @@ def main():
             w=csv.DictWriter(f,fieldnames=list(data[0]),lineterminator='\n');w.writeheader();w.writerows(data)
     lines=[f'VALIDATED: {len(rows)} scored rows; complete selected matrix; all validity flags pass.',
            'Conditions reported separately; friction metrics count each shared belief once across targets.']
+    arm=config.get('arm')   # absent in runs saved before 16 Nov: the v3 protocol (origin, 0.45 m/s, 12 m/s^2 brake cap)
+    if arm:
+        accel=[r['accel_limit_fraction'] for r in rows if r.get('accel_limit_fraction') not in (None,'')]
+        lines.append(f"Arm: layout {arm['layout']}, base {arm['base'][:2]}, brake cap {arm['brake_cap']:g} m/s^2; peak cap {config['peak_cap']} m/s "
+                     f"({arm['peak_cap_rule']}); practice {config['practice_peak']} m/s; targets {config['targets']} ({arm['targets_rule']}); "
+                     f"limits required: {', '.join(arm['checked_limits'])}"
+                     +(f"; peak planned acceleration / limit over the scored pushes: {max(map(float,accel)):.2f}" if accel else ''))
     for c in config['conditions']:
         lines+=['',f'CONDITION: {c}', 'method    slides   RMSE mm    mu MAE   coverage   width   at cap']
         for r in aggregate:
@@ -89,7 +96,7 @@ def main():
             'Coverage is of fitted grid posteriors, not original LLM intervals.',
             'Repeated zero-practice/oracle rows and reused rollouts are not independent evidence.',
             'Simulator-state sensing and ideal contact-event timing; no rendered camera or calibration.',
-            'Joint checks cover planned position/velocity and feed-forward torque only.']
+            'Joint checks cover planned position/velocity and feed-forward torque'+(', and planned acceleration.' if arm and 'a' in arm['checked_limits'] else ' only.')]
     report='\n'.join(lines)+'\n';(out/'summary.txt').write_text(report);print(report)
     print(f'Saved summaries to {out}')
 

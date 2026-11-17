@@ -42,22 +42,25 @@ CASES = (("E0-4 grid",          0.1, 0.8, 100.0, "box", 0.0,    0.0, 0.0, 0.3),
 KEEP = ("v_sep", "v_r_cmd", "v_r_cmd_err_pct", "v_r_act_err_pct", "sep_lag_ms", "d_slide", "d_err_pct", "psi_r_deg", "omega_r",
         "lateral_miss", "yaw_rest_deg", "tilt_max_deg", "x_sep", "x_fk", "x_rest", "track_q_rms", "track_q_max", "track_v_rms",
         "f_max", "n_point_contacts", "separated", "steps", "wall_s", "a_max", "t_sep", "t_rest")
-ARM = ("arm_tau_ratio", "arm_tau_joint", "arm_qd_ratio", "arm_qd_joint", "arm_plan_qd_ratio", "arm_plan_tau_ratio", "arm_m_eff",
+ARM = ("arm_tau_ratio", "arm_tau_joint", "arm_qd_ratio", "arm_qd_joint", "arm_plan_qd_ratio", "arm_plan_tau_ratio", "arm_plan_qdd_ratio", "arm_base_x", "arm_base_y", "arm_m_eff",
        "arm_sigma_min", "arm_postures", "arm_z_drift_mm", "arm_y_drift_mm", "arm_tilt_max_deg")
 
-def tasks():
-    return [(i, who) for i in range(len(CASES)) for who in ("plate", "arm")]
+def tasks(base=(0.0, 0.0, 0.0), a_brake=None):
+    """(case, pusher, iiwa base, brake cap or None for the arm's 12 m/s^2) for every push."""
+    return [(i, who, tuple(base), a_brake) for i in range(len(CASES)) for who in ("plate", "arm")]
 
 def run(task):
-    i, who = task
+    i, who, base, a_brake = task
     label, mu, v, J, shape, com, lat, yaw, mu_p = CASES[i]
     row = {"case": i + 1, "label": label, "pusher": who, "mu": mu, "v_peak": v, "J": J, "shape": shape, "com_y_mm": com*1e3,
            "lateral_mm": lat*1e3, "yaw_cmd_deg": yaw, "mu_p": mu_p}
-    pusher = Pusher(mu_p=mu_p, lateral=lat, yaw_deg=yaw) if who == "plate" else ArmPusher(mu_p=mu_p, lateral=lat, yaw_deg=yaw)
+    arm_options = {} if a_brake is None else {"a_brake_max": float(a_brake)}
+    pusher = Pusher(mu_p=mu_p, lateral=lat, yaw_deg=yaw) if who == "plate" else ArmPusher(mu_p=mu_p, lateral=lat, yaw_deg=yaw, base=base, **arm_options)
     try:
         r = scalars(push_slide(mu, v, J, contact_from_config(), Obj(shape=shape, com_offset=(0.0, com, 0.0)), pusher, keep_traj=False))
         row.update({k: r[k] for k in KEEP})
         row.update({k: r.get(k, "") for k in ARM})
+        row["arm_base_x"] = base[0] if who == "arm" else ""
         row["x_fk_bias_mm"] = (r["x_fk"] - r["x_sep"])*1e3
         row["ok"] = int(abs(r["v_r_cmd_err_pct"]) < 1.0 and r["track_q_rms"] < 1e-4 and r["n_point_contacts"] == 0)
         row["error"] = ""
@@ -107,7 +110,10 @@ def summarize(rows, out=None):
                      f"FK release-point bias {min(f(a, 'x_fk_bias_mm') for a in arms):+.2f}..{max(f(a, 'x_fk_bias_mm') for a in arms):+.2f} mm; "
                      f"paddle z drift <= {max(f(a, 'arm_z_drift_mm') for a in arms):.2f} mm, tilt <= {max(f(a, 'arm_tilt_max_deg') for a in arms):.3f} deg while in contact")
         lines.append("")
-        lines.append("what the pushes asked of the iiwa (base at the origin; speed limits are NOT enforced by the simulator, torque limits are):")
+        by, acc = f(arms[0], "arm_base_y"), [f(a, "arm_plan_qdd_ratio") for a in arms]
+        by = 0.0 if math.isnan(by) else by      # results saved before 16 Nov: the origin
+        where = "base at the origin" if not by else f"base at ({f(arms[0], 'arm_base_x'):g}, {by:g}) m, beside the board"
+        lines.append(f"what the pushes asked of the iiwa ({where}, brake cap {f(arms[0], 'a_max'):g} m/s^2; speed limits are NOT enforced by the simulator, torque limits are):")
         lines.append(f"{'#':>2} {'mu':>4}{'v':>4}{'J':>5} | {'joint speed / limit':>19} {'(joint)':>7} | {'torque / limit':>14} {'(joint)':>7} | {'m_eff kg':>8} | {'sigma_min':>9} | {'postures':>8}")
         for i, (_, a) in enumerate(pairs):
             if a is None:
@@ -116,7 +122,19 @@ def summarize(rows, out=None):
             lines.append(f"{i + 1:>2} {mu:>4}{v:>4}{J:>5g} | {f(a, 'arm_qd_ratio'):>19.2f} {int(f(a, 'arm_qd_joint')):>7} | {f(a, 'arm_tau_ratio'):>14.2f} {int(f(a, 'arm_tau_joint')):>7} | "
                          f"{f(a, 'arm_m_eff'):>8.1f} | {f(a, 'arm_sigma_min'):>9.3f} | {int(f(a, 'arm_postures')):>8}")
         qd = [f(a, "arm_qd_ratio") for a in arms]
-        lines.append(f"reading: every push runs joint 4 (75 deg/s) at {min(qd):.1f}..{max(qd):.1f} x its speed limit, so with the base on the push line the real iiwa delivers "
+        if not any(math.isnan(x) for x in acc):      # runs since 16 Nov carry the planned acceleration
+            lines.append(f"planned joint acceleration / the SDF's drake:acceleration limit (not enforced by the simulator): {min(acc):.2f}..{max(acc):.2f}; "
+                         f"within it in {sum(x <= 1.0 for x in acc)} of {len(acc)} pushes")
+        if max(qd) <= 1.0:
+            lines.append(f"reading: every push is within the joint speed limits (peak {min(qd):.2f}..{max(qd):.2f} of the limit) and the torque limits "
+                         f"(peak {max(f(a, 'arm_tau_ratio') for a in arms):.2f}).")
+        elif by:
+            over = [a for a in arms if f(a, "arm_qd_ratio") > 1.0]
+            lines.append(f"reading: {len(arms) - len(over)} of {len(arms)} pushes are within the joint speed limits; over them: "
+                         + ", ".join(f"case {a['case']} ({f(a, 'v_peak'):g} m/s, {f(a, 'arm_qd_ratio'):.2f} x joint {int(f(a, 'arm_qd_joint'))})" for a in over)
+                         + f"; torque peak {max(f(a, 'arm_tau_ratio') for a in arms):.2f} of the limit.")
+        else:
+            lines.append(f"reading: every push runs joint 4 (75 deg/s) at {min(qd):.1f}..{max(qd):.1f} x its speed limit, so with the base on the push line the real iiwa delivers "
                      f"about {min(f(a, 'v_peak')/f(a, 'arm_qd_ratio') for a in arms):.2f}..{max(f(a, 'v_peak')/f(a, 'arm_qd_ratio') for a in arms):.2f} m/s, not the grid's 0.6-1.0; "
                      f"torque stays within the limits up to 0.8 m/s with the 12 m/s^2 brake cap (ratio <= {max(f(a, 'arm_tau_ratio') for a in arms if f(a, 'v_peak') <= 0.8):.2f}) "
                      f"and exceeds them at 1.0 m/s (clamped in the simulator: ratio {max(f(a, 'arm_tau_ratio') for a in arms if f(a, 'v_peak') > 0.8):.2f}).  See arm.py --scan for other base positions.")
@@ -165,12 +183,15 @@ def main():
     ap.add_argument("--summary", default=str(RESULTS/"arm_rerun"/"arm_rerun_summary.txt"))
     ap.add_argument("--fig", default=str(RESULTS/"arm_rerun"/"arm_rerun_summary.png"))
     ap.add_argument("--summarize", metavar="CSV")
+    ap.add_argument("--layout", choices=["origin", "side"], default="origin", help="where the iiwa's base stands (arm.LAYOUTS)")
+    ap.add_argument("--a-brake", type=float, default=None, help="cap on the arm's braking deceleration, m/s^2 (default: the arm's 12)")
     a = ap.parse_args()
     if a.summarize:
         with open(a.summarize, newline="") as fh:
             rows = list(csv.DictReader(fh))
         summarize(rows, a.summary); plot(rows, a.fig); return
-    todo = tasks()
+    from arm import layout_base
+    todo = tasks(layout_base(a.layout), a.a_brake)
     print(f"{len(todo)} pushes on {a.workers} workers")
     t0, rows = time.time(), []
     with Pool(a.workers) as pool:

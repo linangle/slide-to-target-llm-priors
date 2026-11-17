@@ -32,7 +32,7 @@ from scene import G, Camera, Obj, Table, build_scene
 from drake_config import contact_from_config
 from observe import Obs, crlb, fit_o1, fit_slide, o1_bias
 from perception import Noise, add_noise, perceive, render_depth
-from push import Pusher, push_slide
+from push import Pusher, profile, push_slide
 from paths import RESULTS
 
 CASES = ((0.1, 0.8), (0.3, 0.8), (0.5, 0.8))
@@ -45,11 +45,18 @@ MODELS = ("A", "B", "C", "C1", "O1")      # C1: model C without the frames in th
 
 _scene, _cases = None, None   # per-worker render scene and the recorded pushes
 
-def push_cases(cases):
+def make_pusher(arm=None):
+    """The prescribed plate (arm=None, the 5 Nov study), or the iiwa: arm = dict(base=(x, y, z), a_brake=m/s^2 or None)."""
+    if arm is None:
+        return Pusher()
+    from arm import ArmPusher
+    return ArmPusher(base=tuple(arm["base"]), **({} if arm.get("a_brake") is None else {"a_brake_max": float(arm["a_brake"])}))
+
+def push_cases(cases, arm=None):
     """One push per (mu, v_peak); returns its record with the trajectory and the simulator's effective mu."""
     out = []
     for mu, v in cases:
-        r = push_slide(mu, v, J, contact_from_config(), Obj(), Pusher())
+        r = push_slide(mu, v, J, contact_from_config(), Obj(), make_pusher(arm))
         tr = r["traj"]
         sel = tr["t"] >= r["t_sep"]
         exact = Obs(tr["t"][sel] - r["t_sep"], tr["x"][sel], float(tr["x"][-1]), float(tr["x"][sel][0]), 1e-5, 1e-5, 1e-5)
@@ -61,12 +68,14 @@ def push_cases(cases):
               f"({(fit['mu']/mu - 1)*100:+.2f}%), FK release point bias {(r['x_fk'] - r['x_sep'])*1e3:+.2f} mm", flush=True)
     return out
 
-def _init(cases):
+def _init(cases, arm=None):
     global _scene, _cases
     _cases = cases
-    builder, pusher = DiagramBuilder(), Pusher()
+    builder, pusher = DiagramBuilder(), make_pusher(arm)
     sc = build_scene(builder, {"mu_k_nominal": 0.3, "s_tab_log": 0.0}, Obj(), Table(patchiness=0.0), contact_from_config(), arm=False,
                      camera=Camera(), pusher=pusher)
+    if arm is not None:      # the replay poses the arm along its planned path: plan it for the longest stroke among the cases
+        pusher.make_plan(profile(max(c["v_peak"] for c in cases), J, a_max=pusher.a_brake_max))
     ctx = builder.Build().CreateDefaultContext()
     _scene = (sc, ctx, sc.plant.GetMyMutableContextFromRoot(ctx), pusher, sc.X_WO.translation()[2])
 
@@ -274,11 +283,18 @@ def main():
     ap.add_argument("--summary", default=str(RESULTS/"e0"/"e0_5_summary.txt"))
     ap.add_argument("--fig", default=str(RESULTS/"e0"/"e0_5_summary.png"))
     ap.add_argument("--summarize", action="store_true", help="redo the fits and figure from the saved frames and results")
+    ap.add_argument("--layout", choices=["origin", "side"], default=None,
+                    help="push and replay with the iiwa at this base (arm.LAYOUTS) in the camera's view; default: the prescribed plate")
+    ap.add_argument("--a-brake", type=float, default=None, help="with --layout: cap on the arm's braking deceleration, m/s^2 (default 12)")
     a = ap.parse_args()
+    arm = None
+    if a.layout:
+        from arm import layout_base
+        arm = {"base": layout_base(a.layout), "a_brake": a.a_brake}
     n = 4 if a.quick else a.n
     t0 = time.time()
     print("pushing the cases")
-    cases = push_cases(CASES)
+    cases = push_cases(CASES, arm)
     if a.summarize:
         with open(a.frames, newline="") as f:
             fr = list(csv.DictReader(f))
@@ -295,13 +311,13 @@ def main():
     print(f"{len(todo)} replayed slides on {a.workers} workers")
     reps = []
     if a.workers == 1:
-        _init(cases)
+        _init(cases, arm)
         for i, task in enumerate(todo, 1):
             reps.append(replicate(task))
             if i % 10 == 0 or i == len(todo):
                 print(f"  {i}/{len(todo)} done, {time.time() - t0:.0f} s", flush=True)
     else:
-        with Pool(a.workers, initializer=_init, initargs=(cases,)) as pool:
+        with Pool(a.workers, initializer=_init, initargs=(cases, arm)) as pool:
             for i, r in enumerate(pool.imap_unordered(replicate, todo), 1):
                 reps.append(r)
                 if i % 10 == 0 or i == len(todo):
