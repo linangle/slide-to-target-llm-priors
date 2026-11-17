@@ -28,7 +28,7 @@ from collections import defaultdict
 from multiprocessing import Pool
 import numpy as np
 from pydrake.all import DiagramBuilder, RigidTransform, RollPitchYaw
-from scene import G, Camera, Obj, Table, build_scene
+from scene import CAMERAS, G, Camera, Obj, Table, build_scene
 from drake_config import contact_from_config
 from observe import Obs, crlb, fit_o1, fit_slide, o1_bias
 from perception import Noise, add_noise, perceive, render_depth
@@ -43,7 +43,14 @@ BUDGET = {"sigma_f": 0.002, "sigma_rest": 0.0005, "sigma_fk": 0.0005}   # the er
 T_AFTER_REST = 0.1                                                  # frames keep coming this long after the stop, s
 MODELS = ("A", "B", "C", "C1", "O1")      # C1: model C without the frames in the first 30 ms after release
 
-_scene, _cases = None, None   # per-worker render scene and the recorded pushes
+_scene, _cases, _camera = None, None, "full"   # per-worker render scene, the recorded pushes, the camera (scene.CAMERAS name or position)
+FACE_MARGIN = 0.0005     # m: the perception window starts this far ahead of the paddle face (known from FK)
+FACE_GATE = (0.004, 0.006)   # (depth, tol) in m: within 4 mm of the paddle face keep only pixels within 6 mm of the object's top height
+                             # (perception.segment's face_gate; experiments/camera_study.py).  None: the 5 Nov study's plain window
+_face_margin, _face_gate = FACE_MARGIN, FACE_GATE
+
+def _cam(camera):
+    return Camera(position=CAMERAS[camera] if isinstance(camera, str) else tuple(camera))
 
 def make_pusher(arm=None):
     """The prescribed plate (arm=None, the 5 Nov study), or the iiwa: arm = dict(base=(x, y, z), a_brake=m/s^2 or None)."""
@@ -68,12 +75,12 @@ def push_cases(cases, arm=None):
               f"({(fit['mu']/mu - 1)*100:+.2f}%), FK release point bias {(r['x_fk'] - r['x_sep'])*1e3:+.2f} mm", flush=True)
     return out
 
-def _init(cases, arm=None):
-    global _scene, _cases
-    _cases = cases
+def _init(cases, arm=None, camera="full", face_margin=FACE_MARGIN, face_gate=FACE_GATE):
+    global _scene, _cases, _camera, _face_margin, _face_gate
+    _cases, _camera, _face_margin, _face_gate = cases, camera, face_margin, face_gate
     builder, pusher = DiagramBuilder(), make_pusher(arm)
     sc = build_scene(builder, {"mu_k_nominal": 0.3, "s_tab_log": 0.0}, Obj(), Table(patchiness=0.0), contact_from_config(), arm=False,
-                     camera=Camera(), pusher=pusher)
+                     camera=_cam(camera), pusher=pusher)
     if arm is not None:      # the replay poses the arm along its planned path: plan it for the longest stroke among the cases
         pusher.make_plan(profile(max(c["v_peak"] for c in cases), J, a_max=pusher.a_brake_max))
     ctx = builder.Build().CreateDefaultContext()
@@ -87,14 +94,16 @@ def _frame(t, case, dy, dyaw, rng, noise, cam):
     sc.plant.SetFreeBodyPose(pctx, sc.body, RigidTransform(RollPitchYaw(0, 0, yaw + dyaw), [x, y + dy, z0]))
     pusher.set_displacement(pctx, q)
     # the window starts 0.5 mm ahead of the plate face (known from FK), so the plate's own face pixels never join the object's blob
-    est = perceive(add_noise(render_depth(sc, ctx), cam, noise, rng), cam, Obj(), rng, x_window=(pusher.face_x(q) + 0.0005, pusher.face_x(q) + 0.6))
+    gate = None if _face_gate is None else (pusher.face_x(q), _face_gate[0], Obj().size[2], _face_gate[1])
+    est = perceive(add_noise(render_depth(sc, ctx), cam, noise, rng), cam, Obj(), rng, x_window=(pusher.face_x(q) + _face_margin, pusher.face_x(q) + 0.6),
+                   face_gate=gate)
     return x, y + dy, est
 
 def replicate(task):
     ci, fps, rep = task
     case = _cases[ci]
     rng = np.random.default_rng([ci, fps, rep])
-    noise, cam = Noise(), Camera()
+    noise, cam = Noise(), _cam(_camera)
     phase, dy, dyaw = rng.uniform(0, 1/fps), rng.uniform(-0.005, 0.005), math.radians(rng.uniform(-2, 2))
     k = math.floor((case["t_sep"] - phase)*fps) + 1           # first frame strictly after separation
     frames = []
@@ -277,20 +286,29 @@ def main():
     ap.add_argument("--quick", action="store_true")
     ap.add_argument("-n", type=int, default=20, help="replicates per case and rate")
     ap.add_argument("--workers", type=int, default=min(8, os.cpu_count()))
-    ap.add_argument("--out", default=str(RESULTS/"e0"/"e0_5_results.csv"))
-    ap.add_argument("--frames", default=str(RESULTS/"e0"/"e0_5_frames.csv"))
-    ap.add_argument("--noise", default=str(RESULTS/"e0"/"e0_5_noise.csv"))
-    ap.add_argument("--summary", default=str(RESULTS/"e0"/"e0_5_summary.txt"))
-    ap.add_argument("--fig", default=str(RESULTS/"e0"/"e0_5_summary.png"))
+    ap.add_argument("--out", default=None, help="results CSV; this and the next four default to results/side_base/e0_5_* (arm, side base), "
+                                                "results/e0/e0_5_* (--plate) or results/e0/e0_5_arm_origin_* (arm at the origin)")
+    ap.add_argument("--frames", default=None)
+    ap.add_argument("--noise", default=None)
+    ap.add_argument("--summary", default=None)
+    ap.add_argument("--fig", default=None)
     ap.add_argument("--summarize", action="store_true", help="redo the fits and figure from the saved frames and results")
-    ap.add_argument("--layout", choices=["origin", "side"], default=None,
-                    help="push and replay with the iiwa at this base (arm.LAYOUTS) in the camera's view; default: the prescribed plate")
+    ap.add_argument("--plate", action="store_true", help="the 5 Nov study as saved in results/e0/: the prescribed plate and the original camera")
+    ap.add_argument("--layout", choices=["origin", "side"], default="side",
+                    help="push and replay with the iiwa at this base (arm.LAYOUTS) in the camera's view (ignored with --plate)")
+    ap.add_argument("--camera", choices=list(CAMERAS), default=None, help="camera position (scene.CAMERAS); default: full, or original with --plate")
     ap.add_argument("--a-brake", type=float, default=None, help="with --layout: cap on the arm's braking deceleration, m/s^2 (default 12)")
     a = ap.parse_args()
     arm = None
-    if a.layout:
+    if not a.plate:
         from arm import layout_base
         arm = {"base": layout_base(a.layout), "a_brake": a.a_brake}
+    camera = a.camera or ("original" if a.plate else "full")
+    gate = None if a.plate else FACE_GATE        # the 5 Nov study ran without the height gate
+    stem = str(RESULTS/"e0"/"e0_5") if a.plate else str(RESULTS/"side_base"/"e0_5") if a.layout == "side" else str(RESULTS/"e0"/"e0_5_arm_origin")
+    for name, tail in (("out", "_results.csv"), ("frames", "_frames.csv"), ("noise", "_noise.csv"), ("summary", "_summary.txt"), ("fig", "_summary.png")):
+        if getattr(a, name) is None:
+            setattr(a, name, stem + tail)
     n = 4 if a.quick else a.n
     t0 = time.time()
     print("pushing the cases")
@@ -311,13 +329,13 @@ def main():
     print(f"{len(todo)} replayed slides on {a.workers} workers")
     reps = []
     if a.workers == 1:
-        _init(cases, arm)
+        _init(cases, arm, camera, FACE_MARGIN, gate)
         for i, task in enumerate(todo, 1):
             reps.append(replicate(task))
             if i % 10 == 0 or i == len(todo):
                 print(f"  {i}/{len(todo)} done, {time.time() - t0:.0f} s", flush=True)
     else:
-        with Pool(a.workers, initializer=_init, initargs=(cases, arm)) as pool:
+        with Pool(a.workers, initializer=_init, initargs=(cases, arm, camera, FACE_MARGIN, gate)) as pool:
             for i, r in enumerate(pool.imap_unordered(replicate, todo), 1):
                 reps.append(r)
                 if i % 10 == 0 or i == len(todo):

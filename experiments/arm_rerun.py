@@ -45,8 +45,10 @@ KEEP = ("v_sep", "v_r_cmd", "v_r_cmd_err_pct", "v_r_act_err_pct", "sep_lag_ms", 
 ARM = ("arm_tau_ratio", "arm_tau_joint", "arm_qd_ratio", "arm_qd_joint", "arm_plan_qd_ratio", "arm_plan_tau_ratio", "arm_plan_qdd_ratio", "arm_base_x", "arm_base_y", "arm_m_eff",
        "arm_sigma_min", "arm_postures", "arm_z_drift_mm", "arm_y_drift_mm", "arm_tilt_max_deg")
 
-def tasks(base=(0.0, 0.0, 0.0), a_brake=None):
-    """(case, pusher, iiwa base, brake cap or None for the arm's 12 m/s^2) for every push."""
+def tasks(base=None, a_brake=None):
+    """(case, pusher, iiwa base, brake cap or None for the arm's 12 m/s^2) for every push; base defaults to arm.BASE."""
+    if base is None:
+        from arm import BASE as base
     return [(i, who, tuple(base), a_brake) for i in range(len(CASES)) for who in ("plate", "arm")]
 
 def run(task):
@@ -179,17 +181,23 @@ def plot(rows, path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--workers", type=int, default=min(8, os.cpu_count()))
-    ap.add_argument("--out", default=str(RESULTS/"arm_rerun"/"arm_rerun_results.csv"))
-    ap.add_argument("--summary", default=str(RESULTS/"arm_rerun"/"arm_rerun_summary.txt"))
-    ap.add_argument("--fig", default=str(RESULTS/"arm_rerun"/"arm_rerun_summary.png"))
+    ap.add_argument("--out", default=None, help="results CSV (default, with --summary and --fig: results/side_base/arm_rerun_* for the side base, "
+                                                "results/arm_rerun/arm_rerun_* for the origin)")
+    ap.add_argument("--summary", default=None)
+    ap.add_argument("--fig", default=None)
     ap.add_argument("--summarize", metavar="CSV")
-    ap.add_argument("--layout", choices=["origin", "side"], default="origin", help="where the iiwa's base stands (arm.LAYOUTS)")
+    ap.add_argument("--layout", choices=["origin", "side"], default="side", help="where the iiwa's base stands (arm.LAYOUTS)")
     ap.add_argument("--a-brake", type=float, default=None, help="cap on the arm's braking deceleration, m/s^2 (default: the arm's 12)")
     a = ap.parse_args()
-    if a.summarize:
+    if a.summarize:        # reprint; the summary and figure are rewritten only where --summary / --fig say
         with open(a.summarize, newline="") as fh:
             rows = list(csv.DictReader(fh))
-        summarize(rows, a.summary); plot(rows, a.fig); return
+        summarize(rows, a.summary)
+        if a.fig:
+            plot(rows, a.fig)
+        return
+    stem = str((RESULTS/"side_base"/"arm_rerun") if a.layout == "side" else (RESULTS/"arm_rerun"/"arm_rerun")) + ("" if a.a_brake is None else f"_brake{a.a_brake:g}")
+    a.out, a.summary, a.fig = a.out or stem + "_results.csv", a.summary or stem + "_summary.txt", a.fig or stem + "_summary.png"
     from arm import layout_base
     todo = tasks(layout_base(a.layout), a.a_brake)
     print(f"{len(todo)} pushes on {a.workers} workers")

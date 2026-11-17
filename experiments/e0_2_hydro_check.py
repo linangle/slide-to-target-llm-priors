@@ -31,20 +31,26 @@ from paths import RESULTS
 
 SHAPES = ("box", "disc", "ring", "footed")
 
-def arm_pose_behind(x0, obj, face_gap=0.0, bottom_clearance=0.003):
+def arm_pose_behind(x0, obj, face_gap=0.0, bottom_clearance=0.003, base=None):
     """iiwa joint angles with the paddle upright, face along +x, the face `face_gap` behind the object's back
-    face (negative = overlap) and the plate's lower edge `bottom_clearance` above the table."""
+    face (negative = overlap) and the plate's lower edge `bottom_clearance` above the table.  base: where the arm
+    stands (default scene.BASE)."""
+    base = scene.BASE if base is None else tuple(base)
     builder = DiagramBuilder()
     plant, _ = AddMultibodyPlantSceneGraph(builder, 0.0)
-    _, paddle = scene.add_arm(plant, scene.Contact())
+    _, paddle = scene.add_arm(plant, scene.Contact(), scene.RigidTransform(np.asarray(base, float)))
     plant.Finalize()
     p = np.array([x0 - obj.size[0]/2 - face_gap - PADDLE[2]/2, 0, bottom_clearance + PADDLE[1]/2])
     R = RotationMatrix(np.array([[0., 0, 1], [1, 0, 0], [0, 1, 0]]))   # paddle x, y, z along world y, z, x
     ik = InverseKinematics(plant, plant.CreateDefaultContext())
     ik.AddPositionConstraint(paddle.body_frame(), np.zeros(3), plant.world_frame(), p - 1e-4, p + 1e-4)
     ik.AddOrientationConstraint(plant.world_frame(), R, paddle.body_frame(), RotationMatrix(), 1e-3)
-    q_nom = np.array([0, 0.8, 0, -1.8, 0, 0.8, math.pi/2])
-    ik.prog().AddQuadraticErrorCost(np.diag([10, 0.1, 10, 0.1, 10, 0.1, 1]), q_nom, ik.q())
+    if scene.layout_of(base) == "origin":      # the 31 Oct pose: planar, elbow up
+        q_nom, weights = np.array([0, 0.8, 0, -1.8, 0, 0.8, math.pi/2]), np.diag([10, 0.1, 10, 0.1, 10, 0.1, 1])
+    else:                                      # elsewhere: the posture the arm controller starts a push from
+        from arm import start_posture
+        q_nom, weights = start_posture(float(p[0]) + PADDLE[2]/2, base, bottom_clearance), np.eye(7)
+    ik.prog().AddQuadraticErrorCost(weights, q_nom, ik.q())
     ik.prog().SetInitialGuess(ik.q(), q_nom)
     res = Solve(ik.prog())
     if not res.is_success():
@@ -56,7 +62,7 @@ def classify(kind, a, b):
     tag = lambda n: "paddle" if n.endswith("paddle") else "object" if n.startswith("object") else "table" if n.startswith("strip") or n == "world" else n
     return "-".join(sorted((tag(a), tag(b)), key=("paddle", "object", "table").index if all(t in ("paddle", "object", "table") for t in (tag(a), tag(b))) else str))
 
-def run_scene(cfg, shape, arm, contact_model, steps=300, x0=0.55, v_approach=-0.1, bottom_clearance=0.003):
+def run_scene(cfg, shape, arm, contact_model, steps=300, x0=0.55, v_approach=-0.1, bottom_clearance=0.003, base=None):
     contact = contact_from_config(cfg, contact_model=contact_model)
     obj = Obj(shape=shape)
     row = {"scene": "push" if arm else "passive", "shape": shape, "contact_model": contact_model, "bottom_clearance_mm": bottom_clearance*1e3,
@@ -65,13 +71,13 @@ def run_scene(cfg, shape, arm, contact_model, steps=300, x0=0.55, v_approach=-0.
     t0 = time.time()
     try:
         builder = DiagramBuilder()
-        sc = build_scene(builder, {"mu_k_nominal": 0.3, "s_tab_log": 0.0}, obj, Table(patchiness=0.0), contact, arm=arm, x0=x0)
+        sc = build_scene(builder, {"mu_k_nominal": 0.3, "s_tab_log": 0.0}, obj, Table(patchiness=0.0), contact, arm=arm, x0=x0, base=base)
         sim = Simulator(builder.Build())
         plant = sc.plant
         ctx = plant.GetMyMutableContextFromRoot(sim.get_mutable_context())
         inspector = sc.scene_graph.model_inspector()
         if arm:
-            plant.SetPositions(ctx, sc.iiwa, arm_pose_behind(x0, obj, 0.0, bottom_clearance))
+            plant.SetPositions(ctx, sc.iiwa, arm_pose_behind(x0, obj, 0.0, bottom_clearance, base))
             for i in range(1, 8):
                 plant.GetJointByName(f"iiwa_joint_{i}", sc.iiwa).Lock(ctx)
             plant.SetFreeBodySpatialVelocity(ctx, sc.body, SpatialVelocity(np.zeros(3), [v_approach, 0, 0]))
@@ -158,23 +164,27 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--shapes", default=",".join(SHAPES))
     ap.add_argument("--steps", type=int, default=300)
-    ap.add_argument("--out", default=str(RESULTS/"e0"/"e0_2_results.csv"))
-    ap.add_argument("--fig", default=str(RESULTS/"e0"/"e0_2_contacts.png"))
+    ap.add_argument("--layout", choices=["origin", "side"], default="side", help="where the arm of the pushed scene stands (scene.LAYOUTS)")
+    ap.add_argument("--out", default=None, help="default: results/side_base/e0_2_results.csv (side) or results/e0/e0_2_results.csv (origin)")
+    ap.add_argument("--fig", default=None)
     ap.add_argument("--no-negative-control", action="store_true")
     a = ap.parse_args()
+    base = scene.LAYOUTS[a.layout]
+    stem = RESULTS/"side_base" if a.layout == "side" else RESULTS/"e0"
+    a.out, a.fig = a.out or str(stem/"e0_2_results.csv"), a.fig or str(stem/"e0_2_contacts.png")
     cfg = load_config()
     print(describe(contact_from_config(cfg)))
     rows = []
     for model in ("hydroelastic", "hydroelastic_with_fallback"):
         for shape in a.shapes.split(","):
             for arm in (False, True):
-                r = run_scene(cfg, shape, arm, model, a.steps)
+                r = run_scene(cfg, shape, arm, model, a.steps, base=base)
                 rows.append(r)
                 print(f"{r['scene']:<8}{shape:<7}{model:<27} hydro object-table {r['steps_hydro_object_table']:>4} steps, "
                       f"paddle-object {r['steps_hydro_paddle_object']:>4} steps, point pairs {r['point_pair_contacts']:>3} "
                       f"{r['point_pairs']} {'PASS' if r['pass'] else 'FAIL ' + r['error']}")
     if not a.no_negative_control:
-        r = run_scene(cfg, "box", True, "hydroelastic", min(a.steps, 50), bottom_clearance=-0.001)
+        r = run_scene(cfg, "box", True, "hydroelastic", min(a.steps, 50), bottom_clearance=-0.001, base=base)
         r["scene"], r["pass"] = "negative control: paddle into table", int(bool(r["error"]))   # strict must throw
         rows.append(r)
         print(f"negative control, paddle 1 mm into the table, strict: " + (f"threw: {r['error'][:110]}" if r["error"] else "no exception")

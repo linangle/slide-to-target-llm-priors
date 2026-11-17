@@ -37,10 +37,11 @@ def test_link7_pose_puts_the_plate_where_the_prescribed_plate_is():
 
 def test_plan_follows_the_push_line_and_reports_the_iiwa_limits():
     """The planned joint path keeps the paddle on the straight line to 1e-7 inside the joint limits, and the plan reports what
-    the push asks of the iiwa: with the base on the push line the elbow (joint 4, 75 deg/s) is over its speed limit at 0.8 m/s."""
+    the push asks of the iiwa: with the base on the push line (the origin layout) the elbow (joint 4, 75 deg/s) is over its
+    speed limit at 0.8 m/s."""
     from pydrake.all import RigidTransform
-    from arm import ArmModel, ArmPusher, pose_error
-    pu = ArmPusher()
+    from arm import LAYOUTS, ArmModel, ArmPusher, pose_error
+    pu = ArmPusher(base=LAYOUTS["origin"])
     pu.x_touch0, pu.model = 0.499, ArmModel(pu.base)
     from arm import link7_pose
     pu.X0 = link7_pose(pu.x_touch0, 0.0, 0.0, pu.clearance)
@@ -129,13 +130,16 @@ def test_belief_plan_is_decides_rule_with_the_target_slide_moving_with_the_speed
 
 def test_reach_speed_bounds_and_the_joint_limit_report():
     """With the base at the origin the paddle follows the push line to x = 0.92 m, and joint 4's speed limit caps the push
-    near 0.48 m/s (both as in Diego's 6 Nov controller).  joint_limit_report(pusher.traj) is the hook the evaluation scripts read."""
-    from arm import ArmModel, ArmPusher, joint_limit_report, limited_peak_speed, link7_pose, max_peak_speed, reach
-    assert 0.40 < reach() < 0.45
-    assert 1.0 < max_peak_speed(100.0) < 1.2
-    u_lim = limited_peak_speed(100.0)
+    near 0.48 m/s (both as in Diego's 6 Nov controller).  joint_limit_report(pusher.traj) is the hook the evaluation scripts read.
+    The default layout is the side base: a longer stroke and about twice the speed."""
+    from arm import BASE, LAYOUTS, ArmModel, ArmPusher, joint_limit_report, limited_peak_speed, link7_pose, max_peak_speed, reach
+    origin = LAYOUTS["origin"]
+    assert BASE == LAYOUTS["side"] == ArmPusher().base and 0.65 < reach() < 0.72 and 0.95 < limited_peak_speed(100.0) < 1.08
+    assert 0.40 < reach(origin) < 0.45
+    assert 1.0 < max_peak_speed(100.0, base=origin) < 1.2
+    u_lim = limited_peak_speed(100.0, base=origin)
     assert 0.42 < u_lim < 0.52
-    pu = ArmPusher()
+    pu = ArmPusher(base=origin)
     assert pu.traj is None
     pu.x_touch0, pu.model = 0.499, ArmModel(pu.base)
     pu.X0 = link7_pose(pu.x_touch0, 0.0, 0.0, pu.clearance)
@@ -147,7 +151,12 @@ def test_reach_speed_bounds_and_the_joint_limit_report():
 
 @pytest.mark.slow
 def test_slide_to_target_with_true_mu():
-    from arm import slide_to_target
-    r = slide_to_target(0.75, 0.3)
+    from arm import LAYOUTS, ArmPusher, slide_to_target
+    r = slide_to_target(0.75, 0.3)                                       # the default layout: the base beside the board
     assert abs(r["miss"]) < 0.005 and abs(r["miss_y"]) < 0.002
-    assert r["over_limits"] and r["joint_limits"]["v"].max() > 1.0      # 0.66 m/s from the origin is over joint 4's speed limit
+    jl = r["joint_limits"]
+    assert jl["v"].max() < 1.0 and jl["tau"].max() < 1.0 and jl["q"].max() < 1.0
+    assert jl["a"].max() > 1.0 and all(" a " in s for s in r["over_limits"])   # only the acceleration is over, from the 12 m/s^2 brake cap
+    r = slide_to_target(0.75, 0.3, pusher=ArmPusher(base=LAYOUTS["origin"]))
+    assert abs(r["miss"]) < 0.005 and abs(r["miss_y"]) < 0.002
+    assert r["joint_limits"]["v"].max() > 1.0                            # 0.66 m/s from the origin is over joint 4's speed limit

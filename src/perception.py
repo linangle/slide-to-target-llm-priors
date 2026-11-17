@@ -29,7 +29,7 @@ import numpy as np
 from scipy import ndimage
 from scipy.spatial import cKDTree
 from pydrake.all import CameraInfo, DiagramBuilder, RigidTransform, RollPitchYaw, Simulator
-from scene import DEFAULT_PAIRS, Camera, Obj, Table, build_scene, camera_pose, load_pairs, run_slide
+from scene import CAMERAS, DEFAULT_PAIRS, Camera, Obj, Table, build_scene, camera_pose, load_pairs, run_slide
 from paths import RESULTS
 
 @dataclass
@@ -86,15 +86,21 @@ def fit_plane(P, rng, tol=0.005, iters=100):
     n = n if n[2] >= 0 else -n
     return n, -n @ centroid
 
-def segment(P_img, plane, band=(0.005, 0.15), x_window=None):
+def segment(P_img, plane, band=(0.005, 0.15), x_window=None, face_gate=None):
     """(points, boundary points) of the largest connected image blob between band[0] and band[1]
-    above the plane; the boundary includes the edges of holes (the ring's inside)."""
+    above the plane; the boundary includes the edges of holes (the ring's inside).
+    face_gate = (x_face, depth, height, tol): within `depth` m ahead of the paddle face at x_face, keep only pixels within
+    tol of `height` above the plane (the object's top).  A camera ahead of the paddle sees the paddle's front face, and
+    depth noise puts some of its pixels just inside the x window; they lie at every height, the object's top at one."""
     n, c = plane
     with np.errstate(invalid="ignore"):
         h = P_img @ n + c
         mask = (h > band[0]) & (h < band[1])
         if x_window:
             mask &= (P_img[..., 0] > x_window[0]) & (P_img[..., 0] < x_window[1])
+        if face_gate:
+            x_face, depth, height, tol = face_gate
+            mask &= (P_img[..., 0] > x_face + depth) | (np.abs(h - height) < tol)
     labels, k = ndimage.label(mask)
     if k == 0:
         return None
@@ -142,11 +148,11 @@ def icp_outline(groups, init, max_iter=100, max_dist=0.01, tol=1e-7):
     return {"x": x, "y": y, "yaw": th, "rmse": float(np.sqrt(np.mean(dist**2))), "iters": it,
             "matched": len(dist)/sum(len(b) for b, _, _ in groups)}
 
-def perceive(depth, cam, obj, rng, x_window=None):
-    """Object pose (x, y, yaw) from a depth image, or None if no object blob is found."""
+def perceive(depth, cam, obj, rng, x_window=None, face_gate=None):
+    """Object pose (x, y, yaw) from a depth image, or None if no object blob is found.  x_window and face_gate: see segment."""
     P = to_points(depth, cam)
     n, c = plane = fit_plane(P[np.isfinite(P[..., 2])], rng)
-    found = segment(P, plane, x_window=x_window)
+    found = segment(P, plane, x_window=x_window, face_gate=face_gate)
     if found is None or len(found[0]) < 50:
         return None
     blob, edge = found
@@ -211,13 +217,16 @@ def main():
     ap.add_argument("--shapes", default="box,disc,ring,footed")
     ap.add_argument("--no-noise", action="store_true")
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--out", default=str(RESULTS/"perception_results.csv"))
+    ap.add_argument("--out", default=None, help="study CSV (default: results/side_base/perception_results.csv with the full-coverage "
+                                                "camera, results/perception_results.csv with the original one)")
+    ap.add_argument("--camera", choices=list(CAMERAS), default="full", help="camera position (scene.CAMERAS)")
     ap.add_argument("--pairs", nargs="+", default=DEFAULT_PAIRS)
     ap.add_argument("--pair", default="M01")
     ap.add_argument("--shape", default="box", choices=["box", "disc", "ring", "footed"])
     ap.add_argument("--slide", type=float, metavar="V0", help="passive slide at this speed, then perceive")
     a = ap.parse_args()
-    cam, noise = Camera(), Noise(on=not a.no_noise)
+    cam, noise = Camera(position=CAMERAS[a.camera]), Noise(on=not a.no_noise)
+    a.out = a.out or str(RESULTS/"side_base"/"perception_results.csv" if a.camera == "full" else RESULTS/"perception_results.csv")
     if a.study:
         rows = study(a.study, a.shapes.split(","), cam, noise, a.seed)
         keys = list(dict.fromkeys(k for r in rows for k in r))

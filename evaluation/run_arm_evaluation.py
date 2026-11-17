@@ -5,11 +5,16 @@ not camera perception; release timing uses the ideal contact event. Dataset rema
 three exploratory pairs. Old runners/results are untouched. Deterministic scored
 rollouts with the exact same (pair, speed) are reused within a run.
 
-Arm setup (16 Nov). With no options the run is the v3 protocol as saved: base at the
-origin, 0.45 m/s cap and practice speed, targets 0.60/0.62/0.64 m. The options below
-try another setup without changing that default; settings.json records which one ran,
-and such runs belong in their own results folder, never pooled with the v3 checks.
-  --layout side          the iiwa beside the board (arm.LAYOUTS), or --base-x/--base-y
+Arm setup (16 Nov). The command line now defaults to the side-base setup: the iiwa
+beside the board, a speed cap computed from its joint limits, a practice speed that
+keeps the slide on the board, and targets derived from the cap (the four "auto"
+options below). settings.json records the setup and labels such runs
+multi_target_noise_v4_layout; they go in results/side_base/evaluation/ and are never
+pooled with the v3 checks.
+  --v3                   the protocol of the saved v3 checks, unchanged: base at the origin,
+                         0.45 m/s cap and practice speed, targets 0.60/0.62/0.64 m. (run()
+                         called with a bare namespace, as the offline tests do, is also v3.)
+  --layout side|origin   where the iiwa stands (arm.LAYOUTS), or --base-x/--base-y
   --a-brake 4            cap on the paddle's braking deceleration, m/s^2 (default 12)
   --check-accel          also require the planned joint accelerations within the SDF limits
   --peak-cap auto        the layout's fastest push within the checked joint limits
@@ -42,6 +47,8 @@ ROOT = None   # None: inputs and sources come from the repository's folders (pat
 def _file(name):
     return ROOT/name if ROOT is not None else locate(name)
 VERSION = 'multi_target_noise_v3'
+VERSION_LAYOUT = 'multi_target_noise_v4_layout'   # any arm setup other than the v3 protocol's
+VERSIONS = (VERSION, VERSION_LAYOUT)
 METHODS = ('generic', 'lookup', 'llm_raw', 'oracle')
 NOISE = {'low': .5, 'nominal': 1., 'high': 2., 'no_added': 0.}
 FIELDS = ['pair','condition','seed','target_x','method','slides','mu_true','mu_median',
@@ -140,7 +147,10 @@ def arm_setup(args, truth, generic_post):
                   brake_cap=float(a_brake or A_BRAKE),checked_limits=list(check),peak_cap_rule=cap_rule,
                   practice_rule=practice_rule,targets_rule=targets_rule,
                   clip_unreachable=bool(getattr(args,'clip_unreachable',False)))
-    return dict(cap=cap,practice=practice,targets=targets,options=options,record=record)
+    is_v3 = (not options and cap == V3_CAP and practice == V3_CAP and record['peak_cap_rule'] == 'fixed'
+             and targets_rule == 'given' and not record['clip_unreachable'])
+    return dict(cap=cap,practice=practice,targets=targets,options=options,record=record,
+                version=VERSION if is_v3 else VERSION_LAYOUT)
 
 
 def checked_execute(mu,u,**options):
@@ -172,7 +182,7 @@ def run(args, executor=checked_execute, planner=None):
     if executor is checked_execute and setup['options']:
         executor = functools.partial(checked_execute,**setup['options'])
     plan_options = dict(clip=True) if setup['record']['clip_unreachable'] else {}
-    config = dict(version=VERSION,status='infrastructure_for_exploratory_pairs',
+    config = dict(version=setup['version'],status='infrastructure_for_exploratory_pairs',
                   pairs=pairs,conditions=args.noise,seeds=args.seeds,targets=args.targets,
                   x0=X0,peak_cap=cap,practice_peak=practice_peak,jerk=JERK,fps=60,arm=setup['record'],
                   noise_scales={c:NOISE[c] for c in args.noise},nominal_sd=[.002,.0005,.0005],
@@ -288,21 +298,29 @@ def run(args, executor=checked_execute, planner=None):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--pair',choices=[*SURFACES,'all'],default='Y01')
-    p.add_argument('--targets',nargs='+',default=['0.60','0.62','0.64'],help="world-x positions, or 'auto' (see the module docstring)")
+    p.add_argument('--v3',action='store_true',help='the saved v3 protocol: origin base, 0.45 m/s cap and practice, targets 0.60 0.62 0.64')
+    p.add_argument('--targets',nargs='+',default=None,help="world-x positions, or 'auto' (the default; see the module docstring)")
     p.add_argument('--n-targets',type=int,default=3,help='how many targets --targets auto makes')
-    p.add_argument('--layout',choices=['origin','side'],default=None)
+    p.add_argument('--layout',choices=['origin','side'],default=None,help='default: side')
     p.add_argument('--base-x',type=float,default=None);p.add_argument('--base-y',type=float,default=None)
     p.add_argument('--a-brake',type=float,default=None,help='brake cap in m/s^2 (default: the arm\'s 12)')
     p.add_argument('--check-accel',action='store_true')
-    p.add_argument('--peak-cap',default=str(V3_CAP),help="m/s, or 'auto'")
-    p.add_argument('--practice-peak',default=None,help="m/s, or 'auto'; default: the peak cap")
+    p.add_argument('--peak-cap',default=None,help="m/s, or 'auto' (the default)")
+    p.add_argument('--practice-peak',default=None,help="m/s, or 'auto' (the default)")
     p.add_argument('--clip-unreachable',action='store_true')
     p.add_argument('--noise',nargs='+',choices=list(NOISE),default=list(NOISE))
     p.add_argument('--seeds',nargs='+',type=int,default=[0])
     p.add_argument('--grid-points',type=int,default=2000)
     p.add_argument('--check-only',action='store_true')
-    p.add_argument('--out',type=Path,default=Path('arm_eval_v3'))
+    p.add_argument('--out',type=Path,default=Path('arm_eval'))
     a=p.parse_args()
+    # unspecified options: the saved v3 protocol with --v3, the side-base setup otherwise ('side' is arm.DEFAULT_LAYOUT)
+    fill = dict(layout='origin',peak_cap=str(V3_CAP),practice_peak=None,targets=['0.60','0.62','0.64']) if a.v3 else \
+           dict(layout='side',peak_cap='auto',practice_peak='auto',targets=['auto'])
+    if a.base_x is not None or a.base_y is not None: fill['layout']=None
+    for name,value in fill.items():
+        if getattr(a,name) is None: setattr(a,name,value)
+    if a.layout=='origin': a.layout=None      # the origin is the runner's built-in base (execute pins it)
     if a.grid_points<500 or any(s<0 for s in a.seeds): p.error('Use >=500 grid points and nonnegative seeds')
     for name,values in [('targets',a.targets),('noise',a.noise),('seeds',a.seeds)]:
         if len(values)!=len(set(values)): p.error(f'Duplicate {name}')

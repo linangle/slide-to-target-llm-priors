@@ -43,6 +43,32 @@ G = 9.81
 DEFAULT_PAIRS = (str(DATA/"ground_truth_placeholder.csv"),  # switch to data/measured_friction.csv once it exists
                  str(DATA/"ground_truth_published.csv"))   # Yu et al. 2016 pairs
 IIWA_URL = "package://drake_models/iiwa_description/sdf/iiwa14_no_collision.sdf"
+# Layouts: where the iiwa's base (link 0) stands, and where the board lies across the travel.
+#   origin  the layout up to 16 Nov: base at the origin, behind the board, pushing radially away from itself.  The elbow
+#           (joint 4, 75 deg/s) makes nearly all of the paddle speed: 0.49 m/s within the joint limits.
+#   side    the default since 16 Nov: base beside the board, level with the middle of the push, so joints 1 and 2 sweep the
+#           paddle across the arm's front: 1.02 m/s within the joint limits.  The base's footprint reaches y = 0.53 m, so
+#           the board is shifted 10 cm away from it (its centre line at y = -0.10 m, edges at -0.70 and +0.50 m); the
+#           push line stays at y = 0 (experiments/arm_clearance.py).
+LAYOUTS = {"origin": (0.0, 0.0, 0.0), "side": (0.6, 0.65, 0.0)}
+BOARD_Y = {"origin": 0.0, "side": -0.10}       # y of the board's centre line, m
+DEFAULT_LAYOUT = "side"
+BASE = LAYOUTS[DEFAULT_LAYOUT]
+# Camera positions (looking straight down).  "original" (to 16 Nov) sees x = 0.30..1.21 m, which loses a fast slide on low
+# friction; "full" is 25 cm further along and 20 cm higher and sees x = 0.43..1.57 m: the start, and the board to its far end.
+CAMERAS = {"original": (0.75, 0.0, 0.8), "full": (1.0, 0.0, 1.0)}
+
+def layout_of(base):
+    """Name of the layout whose base is `base`, or None."""
+    if base is None:
+        return None
+    b = tuple(float(v) for v in base)
+    return next((name for name, p in LAYOUTS.items() if np.allclose(p[:len(b)], b, atol=1e-9)), None)
+
+def board_y(base=None):
+    """y of the board's centre line for an arm standing at `base`: the layout's (BOARD_Y) if base is a layout's base, else 0
+    (no arm, the prescribed plate, or a custom base: the board is centred on the push line, as it was before 16 Nov)."""
+    return BOARD_Y.get(layout_of(base), 0.0)
 OBJECT_MU = 1.0               # object geometry's own mu; partners are set relative to it
 FLANGE_Z = 0.045              # flange face along iiwa_link_7 z, m
 PADDLE = (0.12, 0.18, 0.01)   # paddle plate along link-7 x, y, z (thickness), m
@@ -65,6 +91,8 @@ class Table:
     x_min: float = BOARD_X_MIN  # the board along travel, m: strips cover x_min..x_max (48 in, 5 Nov decision 1)
     x_max: float = BOARD_X_MAX
     width: float = 1.2         # across travel (y), m
+    y_centre: float = None     # the board's centre line across travel, m (the push line is y = 0).  None: where the arm in the
+                               # scene needs it (board_y of its base: -0.10 m for the side base), 0 without an arm
     strip: float = 0.05        # nominal strip length along travel, m; the board is cut into equal strips near it
     patchiness: float = 1.0    # multiplier on the pair's s_tab_log; 0 = uniform table
     bimodal: bool = False      # strips at mu*exp(+-s) instead of mu*exp(s*z), z ~ N(0, 1)
@@ -95,7 +123,7 @@ class Obj:
 
 @dataclass
 class Camera:
-    position: tuple = (0.75, 0.0, 0.8)   # m; looks straight down, over the landing zone
+    position: tuple = CAMERAS["full"]    # m; looks straight down, over the board from the start to its far end
     width: int = 640                     # px
     height: int = 480                    # px
     fov_y: float = math.pi/4             # rad; Drake's CameraConfig default
@@ -226,9 +254,11 @@ def add_object(plant, obj, contact):
         plant.RegisterVisualGeometry(body, X, visual, f"object_{i}", [0.3, 0.5, 0.9, 1.0])
     return body, z0
 
-def add_arm(plant, contact, X_WB=RigidTransform(), mu_p=PADDLE_MU, collision=True):
-    """Adds the iiwa 14 with its base frame at X_WB (default: the origin, on the table top) and the paddle plate welded
-    to the flange; returns (model instance, paddle body).  collision=False gives a kinematics-only copy (arm.ArmModel)."""
+def add_arm(plant, contact, X_WB=None, mu_p=PADDLE_MU, collision=True):
+    """Adds the iiwa 14 with its base frame at X_WB (default: the default layout's base, BASE, on the table top) and the
+    paddle plate welded to the flange; returns (model instance, paddle body).  collision=False gives a kinematics-only
+    copy (arm.ArmModel)."""
+    X_WB = RigidTransform(np.asarray(BASE, float)) if X_WB is None else X_WB
     iiwa = Parser(plant).AddModelsFromUrl(IIWA_URL)[0]
     plant.WeldFrames(plant.world_frame(), plant.GetFrameByName("iiwa_link_0", iiwa), X_WB)
     paddle = plant.AddRigidBody("paddle", iiwa, SpatialInertia.SolidBoxWithMass(0.3, *PADDLE))
@@ -255,17 +285,20 @@ def add_camera(builder, scene_graph, cam):
     return sensor
 
 def build_scene(builder, pair, obj=Obj(), table=Table(), contact=Contact(), arm=True, seed=0, x0=0.55, camera=None,
-                pusher=None):
+                pusher=None, base=None):
     """Adds the plant (and the camera, if given) to builder and returns a Scene; the plant is finalized.
-    pusher: an object with add(plant, contact, obj, x0) -> paddle body (push.Pusher) that stands in for the arm."""
+    pusher: an object with add(plant, contact, obj, x0) -> paddle body (push.Pusher) that stands in for the arm.
+    base: where the arm added by arm=True stands (default: the default layout's base, BASE)."""
     plant, scene_graph = AddMultibodyPlant(MultibodyPlantConfig(time_step=contact.time_step,
                                                       contact_model=contact.contact_model,
                                                       discrete_contact_approximation=contact.approx), builder)
     mu_strips = strip_targets(float(pair["mu_k_nominal"]), float(pair["s_tab_log"]), table, seed)
     x_edges = table.edges()
+    arm_base = getattr(pusher, "base", None) if pusher is not None else ((BASE if base is None else base) if arm else None)
+    y_board = board_y(arm_base) if table.y_centre is None else table.y_centre     # the board keeps clear of the arm's base
     lo, hi = mu_strips.min(), mu_strips.max()
     for i, mu in enumerate(mu_strips):
-        X = RigidTransform([(x_edges[i] + x_edges[i+1])/2, 0, -0.025])   # 5 cm thick, top at z = 0
+        X = RigidTransform([(x_edges[i] + x_edges[i+1])/2, y_board, -0.025])   # 5 cm thick, top at z = 0
         strip = Box(x_edges[i+1] - x_edges[i], table.width, 0.05)
         plant.RegisterCollisionGeometry(plant.world_body(), X, strip, f"strip_{i:02d}",
                                         proximity(False, partner_mu(mu), contact))
@@ -275,7 +308,7 @@ def build_scene(builder, pair, obj=Obj(), table=Table(), contact=Contact(), arm=
     if pusher is not None:
         iiwa, paddle = None, pusher.add(plant, contact, obj, x0)
     else:
-        iiwa, paddle = add_arm(plant, contact) if arm else (None, None)
+        iiwa, paddle = add_arm(plant, contact, None if base is None else RigidTransform(np.asarray(base, float))) if arm else (None, None)
     X_WO = RigidTransform([x0, 0, z0])
     plant.SetDefaultFloatingBaseBodyPose(body, X_WO)
     plant.Finalize()

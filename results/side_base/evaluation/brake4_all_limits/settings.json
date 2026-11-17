@@ -1,5 +1,5 @@
 {
-  "version": "multi_target_noise_v3",
+  "version": "multi_target_noise_v4_layout",
   "status": "infrastructure_for_exploratory_pairs",
   "pairs": [
     "Y01",
@@ -69,16 +69,16 @@
   "limits": "planned q, velocity, feed-forward torque; not total actuator torque",
   "rollout_reuse": "deterministic state, exact pair and float speed; no approximate cache rounding",
   "sha256": {
-    "run_arm_evaluation.py": "0d9b27e53f9bd63f7556a523da2711d89ac5b64cd9bd1f7d7dbb030495c41960",
-    "run_arm_comparison_v2.py": "8225dc31a94c2f0e03d8599c102cdb76fcab405f277fb7c430cf10486c975d9c",
+    "run_arm_evaluation.py": "17870f7fabdb1d505ba9904e6abf67c645113a7384035dcbed0e608d7fd72c5d",
+    "run_arm_comparison_v2.py": "3ee713d49b2f874df0de2f46260067ed05dad6db8b9101e6cbf0c2e2b230166e",
     "demo_published_comparison.py": "abff829eb6a959e3a414e2032ef70aa8d344bcf9a3a4dbd462175d8f595415c0",
     "llm_prior.py": "858bd509e40d5b452af2f3d3a68af5fe7e49a7bf1df9b17aee69a5a47d6f9811",
     "belief.py": "b76d1bde130711f426c215f015d8a9622448b35bb57b346e1bfb469091fd1b07",
     "observe.py": "ce39255dfb94ca418da03099f7d26491f1b826a31cc456cf9d43bf83f84b3086",
-    "arm.py": "ffcd6f93689b55b1f2e62f6b729c8a3edd76d9cd9d2ba799771808283c7dd308",
+    "arm.py": "2e37c9656533c61d3289deee22882930fd7c857523218970842cb4acec2db579",
     "push.py": "b38feb819772916c96dd26debab83be81ed3d658fe7c5e19a52588f9bc0f73bd",
     "physics.py": "4e0ff5c8e385a7914a57301f636db2f5e5e2eb58b4d3f1c650e9edf253c7476a",
-    "scene.py": "f73a2a437706ad652ea4fa6a7bd0289ed9ef69ad6522ad4666cab503e88992db",
+    "scene.py": "0c772f137f8e9a42b96fdda1c6d8747b7ddb2552c2245a9dd7bdc430f044cd47",
     "drake_config.py": "eaa97bbf66e840d00a619df452c98afd1a10e4197cbe81f09c20a66648e34443",
     "sim_config.yaml": "b3717b7334bae1785a2fc6c94740a592511d14467d60f7a526a7b8d9a26fc76c",
     "ground_truth_published.csv": "f438d40b54b0423b442d7163dbfe3b33f1aa21896c527fc82eb0c3fc59ac6cbf",

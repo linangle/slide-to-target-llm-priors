@@ -102,19 +102,31 @@ Drake does **not** enforce joint velocity limits, so the simulation "works" even
 - **Reach:** the face can travel 0.42 m, from x = 0.50 to 0.92 m. `python3 src/arm.py --reach` prints it for any base.
 - **Moving the base fixes the speed.** With the base beside the board at (0.6, 0.65) m, joints 1 and 2 sweep the paddle instead of the elbow. The reach grows to 0.68 m and the joint limits allow **1.02 m/s**, which puts the object at x = 1.01 m with μ 0.3. Where the base stands is still a team decision (README, *Decisions*). Every function here takes `base=`.
 
-## The side-base trial: layout, speed cap, targets, acceleration (16 Nov)
+## The side base: layout, clearance, speed cap, targets, acceleration (default since 16 Nov)
 
-A trial, not a change of default. Everything still runs with the base at the origin unless you ask otherwise, and the trial's outputs are in `results/side_base/`, beside the originals.
+The default base now stands beside the board at (0.6, 0.65) m. The layout before that, with the base at the origin, is still there as `--layout origin` (`base=LAYOUTS["origin"]` in code), and its saved results are untouched in `results/e1/`, `results/arm_rerun/` and `results/evaluation_v3/`. Results at the default layout are in `results/side_base/`.
 
 ```bash
-python3 src/arm.py --reach                        # origin: reach, speed bounds, what they afford
-python3 src/arm.py --reach --layout side          # the same with the base at (0.6, 0.65) m, beside the board
-python3 src/arm.py --target 0.94 --mu 0.26 --layout side --a-max 4      # one push inside speed, torque and acceleration limits
-python3 experiments/e1_arm_validation.py --layout side --out results/side_base/e1_arm
-python3 experiments/arm_rerun.py --layout side --out results/side_base/arm_rerun_results.csv --summary results/side_base/arm_rerun_summary.txt --fig results/side_base/arm_rerun_summary.png
+python3 src/arm.py --reach                        # the default (side) base: reach, speed bounds, what they afford
+python3 src/arm.py --reach --layout origin        # the same for the layout before 16 Nov
+python3 src/arm.py --target 0.94 --mu 0.26 --a-max 4      # one push inside speed, torque and acceleration limits
+python3 experiments/arm_clearance.py              # do the links, the base and the camera stay clear? (--layout origin to compare)
+python3 experiments/e1_arm_validation.py          # -> results/side_base/e1_arm_*   (--layout origin -> results/e1/)
+python3 experiments/arm_rerun.py                  # -> results/side_base/arm_rerun_* (--layout origin -> results/arm_rerun/)
 ```
 
-**Layout.** `arm.LAYOUTS` names two base positions: `origin` (0, 0) and `side` (0.6, 0.65) m. With the base beside the board the paddle sweeps across the arm's front, so joint 1 does the work instead of the elbow.
+**Clearance** (`experiments/arm_clearance.py`, from the convex hulls of the links' visual meshes along the planned push at the speed cap; `results/side_base/arm_clearance.txt`). The scene loads the iiwa without collision geometry, so the simulation itself would not show a link passing through the board.
+
+| | side base | origin |
+|---|---|---|
+| lowest moving link above the board | link 5, 51 mm | link 5, 55 mm |
+| nearest link to the object (the paddle aside) | link 7, 53 mm | link 7, 53 mm |
+| nearest any link comes to the camera | 0.7 m | 0.7 m |
+| base footprint against the board | reaches y = 0.53 m | 179 mm before the near edge |
+
+The footprint is the catch: a 1.2 m wide board centred on the push line has its edge at y = 0.60 m, 71 mm under the base. Moving the base outward does not work (at y = 0.75 m the stroke drops from 0.68 to 0.48 m and the arm is near the edge of its workspace; at 0.80 m it cannot reach the line). So the board moves instead: with the arm at the side base the scene shifts the board 10 cm away from it (`scene.BOARD_Y`: centre line at y = −0.10 m, edges at −0.70 and +0.50 m), which clears the base by 29 mm. The push line stays at y = 0. Scenes without an arm, with the prescribed plate, or with the arm at the origin keep the board centred, so their saved results reproduce exactly.
+
+**Layout.** `scene.LAYOUTS` (also `arm.LAYOUTS`) names two base positions: `side` (0.6, 0.65) m, the default, and `origin` (0, 0). With the base beside the board the paddle sweeps across the arm's front, so joint 1 does the work instead of the elbow.
 
 | | origin | side |
 |---|---|---|
@@ -122,12 +134,13 @@ python3 experiments/arm_rerun.py --layout side --out results/side_base/arm_rerun
 | fastest push within joint speed and torque limits | 0.49 m/s | 1.02 m/s |
 | longest slide at μ 0.1 / 0.3 / 0.5 | 12 / 3 / 1 cm | 53 / 16 / 8 cm |
 | E1: arm pushes within joint speed limits | 22 of 73 | 73 of 73 |
-| E1: targeting RMS miss, worst (part B) | 0.74, 2.4 mm | 0.77, 2.3 mm |
+| E1: targeting RMS miss, worst (part B) | 0.74, 2.4 mm | 0.83, 2.7 mm |
 | arm re-run: pushes within speed and torque limits | 0 of 12 | 12 of 12 |
 | arm re-run: release speed vs the plate's | −0.13..−0.01% | −0.13..+0.01% |
-| E0-5 through the camera: worst bias of A/B/C, missed frames | 0.90%, 0 (plate only) | 0.92%, 0 (arm in view) |
+| E0-5 through the camera: worst bias of A/B/C, missed frames | 0.90%, 0 (plate, original camera) | 2.2%, 0 (arm in view, full-coverage camera, height gate; 0.45% without the first 30 ms) |
 
-The arm fills up to 14% of the camera image at the side base, but all of it is behind the paddle face, which the perception window already excludes.
+The arm is in the camera's view at the side base, always behind the paddle face. What matters is the paddle's own front face, which a camera ahead of the paddle sees; the README (*The side base*) and `experiments/camera_study.py` cover the camera position and the height gate that deals with it.
+
 
 **Speed cap.** `limited_peak_speed(J, x0, base=..., which=("v", "tau"))` is the fastest push inside the checked limits. `plan_peak_speed(..., u_max=cap)` clips a belief's plan at it; `clip=True` does the same for a single friction value, so a target the arm cannot reach is pushed at the cap and scored as a miss.
 

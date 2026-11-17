@@ -11,9 +11,10 @@ Commands below are written from the repository root. Do not pool v1, v2, and v3 
 | `e1/` | Arm validation with known friction (`experiments/e1_arm_validation.py`), rerun 16 Nov on the merged controller | `e1/e1_arm_summary.txt` |
 | `arm_rerun/` | 12 pushes with the arm beside the plate (`experiments/arm_rerun.py`) | `arm_rerun/arm_rerun_summary.txt` |
 | `perception_results.csv` | Landing-perception error study (`src/perception.py --study`) | |
-| `side_base/` | 16 Nov trial with the iiwa beside the board, base at (0.6, 0.65) m: E1, arm re-run, E0-5 with the arm in the camera's view, and the evaluation with a computed speed cap and derived targets. A separate setup: never pool with the folders above | [index](side_base/README.md) |
+| `side_base/` | Results at the default layout since 16 Nov, with the iiwa beside the board at (0.6, 0.65) m: link clearance, E1, arm re-run, E0-2 and E0-5 with the arm, the perception study, and the evaluation with a computed speed cap and derived targets. A different layout from the folders above (which are the origin layout): never pool them | [index](side_base/README.md) |
+| `camera_study/` | Camera position and perception window against coverage, frame noise and friction-estimate bias, with the arm in view (`experiments/camera_study.py`) | `camera_study/camera_study_summary.txt` |
 
-The three evaluation folders were produced before the 16 Nov arm merge (Diego's original controller, squared-miss loss) and have not been rerun since.
+The three evaluation folders above (`pilot_v1/`, `pilot_v2/`, `evaluation_v3/`) are the origin layout, produced before the 16 Nov arm merge (Diego's original controller, squared-miss loss), and have not been rerun since. `e1/` and `arm_rerun/` are also the origin layout; `e0/` used no arm. `python3 evaluation/run_arm_evaluation.py --v3` and `--layout origin` on the experiment scripts rerun that layout.
 
 V1 and v2 also retain single-pair checks. V2's `arm_v2_Y01_grid4000` is a grid-resolution diagnostic, not an additional independent experiment.
 

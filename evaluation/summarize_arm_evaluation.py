@@ -5,14 +5,14 @@ import json
 import math
 from collections import defaultdict
 from pathlib import Path
-from run_arm_evaluation import VERSION, METHODS, expected_keys
+from run_arm_evaluation import VERSION, VERSIONS, METHODS, expected_keys
 
 
 def load(folder):
     config=json.loads((folder/'settings.json').read_text())
     status=json.loads((folder/'status.json').read_text())
-    if config['version']!=VERSION or status['status']!='complete':
-        raise ValueError('Requires a complete v3 run; inspect status.json/preflight.json for failures')
+    if config['version'] not in VERSIONS or status['status']!='complete':
+        raise ValueError('Requires a complete v3 or v4-layout run; inspect status.json/preflight.json for failures')
     with (folder/'results.csv').open(newline='') as f: rows=list(csv.DictReader(f))
     seen=set()
     for r in rows:

@@ -52,7 +52,8 @@ def execute(mu, speed, base=None, a_brake=None, check=('q', 'v', 'tau')):
     acceleration fraction is always reported (maxima['a'])."""
     from arm import ArmPusher, joint_limit_report
     from push import push_slide
-    options = {} if base is None else {'base': tuple(base)}
+    from arm import LAYOUTS
+    options = {'base': LAYOUTS['origin'] if base is None else tuple(base)}   # v2/v3 are defined at the origin, whatever the default layout
     if a_brake is not None:
         options['a_brake_max'] = float(a_brake)
     pusher = ArmPusher(**options)

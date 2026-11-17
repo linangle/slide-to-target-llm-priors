@@ -56,19 +56,26 @@ Supported controls:
 --seeds followed by nonnegative integers
 --grid-points (default 2000)
 
-## Arm setup options (added 16 Nov)
+## Arm setup: the default and `--v3` (16 Nov)
 
-With none of these the run is exactly the protocol above (checked cell for cell on Y01, seed 7). They exist to try other arm setups; `settings.json` records the setup under `arm`, and such runs go in their own results folder (`results/side_base/evaluation/`), never pooled with the v3 checks.
+The settings listed above are the v3 protocol, and every saved folder under `results/evaluation_v3/` was run with them. They are still available, unchanged, as
 
---layout side (or --base-x/--base-y): where the iiwa's base stands
+    python evaluation/run_arm_evaluation.py --v3 --pair Y01 --seeds 7 --out <new folder>
+
+(checked cell for cell against the earlier output on Y01, seed 7). Calling `run()` with a bare namespace, as the offline tests do, is also v3.
+
+Without `--v3` the runner now uses the side-base setup, labelled `multi_target_noise_v4_layout` in `settings.json` (the setup is recorded under `arm`). Such runs go in `results/side_base/evaluation/` and are never pooled with the v3 checks.
+
+--layout side|origin (or --base-x/--base-y): where the iiwa's base stands; default side, (0.6, 0.65) m
+--peak-cap auto (default): the layout's fastest push within the checked joint limits (1.019 m/s), instead of 0.45
+--practice-peak auto (default): the fastest practice push that keeps the slide on the board (1.01 m/s)
+--targets auto (default, with --n-targets): targets derived from the cap (0.60, 0.77, 0.94 m for Y01-Y03)
 --a-brake: cap on the paddle's braking deceleration in m/s^2 (default 12)
---check-accel: also require the planned joint accelerations within the SDF limits
---peak-cap auto: the layout's fastest push within the checked limits, instead of 0.45
---practice-peak auto: the fastest practice push that keeps the slide on the board
---targets auto (with --n-targets): targets derived from the cap
+--check-accel: also require the planned joint accelerations within the SDF limits (needs a softer brake, e.g. --a-brake 4)
 --clip-unreachable: a target beyond the cap is pushed at the cap and scored as a miss
 
-results.csv has one more column, accel_limit_fraction (planned joint acceleration over the SDF limit).
+results.csv has one more column, accel_limit_fraction (planned joint acceleration over the SDF limit). The side-base
+default needs Drake even for --check-only, because the cap comes from the arm model; --v3 --check-only does not.
 
 ## Validation and outputs
 

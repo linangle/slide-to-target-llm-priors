@@ -35,6 +35,12 @@ tabulates it with the torque ratio over v_peak, J and the base position.  With t
 the wrist is radial from the shoulder, which only the elbow (joint 4, 75 deg/s) can produce: that caps the paddle speed
 near 0.5 m/s.  A base beside the line lets joints 1 and 2 sweep the paddle instead.
 
+Layouts (scene.LAYOUTS).  The default base stands beside the board at (0.6, 0.65) m ("side", since 16 Nov): 1.02 m/s within
+the joint speed and torque limits.  "origin" is the layout before that, with the base on the push line: 0.49 m/s.  Every
+function here takes base=, and --layout origin runs the old layout; experiments/arm_clearance.py checks that the links,
+the base's footprint and the camera stay clear at a base.  Joint accelerations are set by the brake cap (a_brake_max):
+over the SDF's limits at the default 12 m/s^2, inside them at 4 m/s^2, which only releases friction below about 0.4.
+
 The target planner.  The object rides on the paddle to the release point and then slides d = v_r^2 / (2 mu g), so its centre
 rests at
     x_rest(u, mu) = x0 - gap + release_push_distance(u, mu, J)  +  v_r(u, mu, J)^2 / (2 mu g),    v_r = u - (mu g)^2 / (2 J).
@@ -49,8 +55,8 @@ not enforce.
     python3 src/arm.py --target 0.75 --mu 0.3 --mu-est 0.25   # plan with a wrong friction estimate
     python3 src/arm.py --target 0.75 --mu 0.3 --plate      # the same plan pushed by push.py's prescribed plate
     python3 src/arm.py --reach                             # the arm's stroke along the push line and the fastest pushes it allows
-    python3 src/arm.py --reach --layout side               # the same with the base beside the board (16 Nov trial)
-    python3 src/arm.py --target 1.0 --mu 0.3 --layout side --a-max 4   # a push inside the speed, torque and acceleration limits
+    python3 src/arm.py --reach --layout origin             # the same for the layout before 16 Nov (base on the push line)
+    python3 src/arm.py --target 1.0 --mu 0.3 --a-max 4     # a push inside the speed, torque and acceleration limits
     python3 src/arm.py --plan --v 0.8 --J 100              # the plan alone: posture, joint-speed and torque ratios, no contact
     python3 src/arm.py --feasibility                       # ratios over v_peak x J at the default base
     python3 src/arm.py --scan                              # ratios over the base's lateral offset from the push line
@@ -65,7 +71,7 @@ from pydrake.all import (AddDefaultVisualization, InverseKinematics, JacobianWrt
                          TrajectorySource)
 from physics import A_PUSH, G, OBJECT_SIZE, release_push_distance, release_speed
 from decide import Release, choose_speed, loss_sq_rel, point_target
-from scene import FLANGE_Z, PADDLE, PADDLE_MU, PADDLE_Y, add_arm
+from scene import DEFAULT_LAYOUT, FLANGE_Z, LAYOUTS, PADDLE, PADDLE_MU, PADDLE_Y, add_arm
 from push import PLATE, Pusher, profile, push_slide, summary
 
 # link-7 axes in the world during the push: x_L7 = +y_W (plate width), y_L7 = +z_W (the plate hangs below the flange),
@@ -75,11 +81,26 @@ X_L7P = RigidTransform([0.0, PADDLE_Y, FLANGE_Z + PADDLE[2]/2])        # paddle 
 Q_DISPLAY = np.array([0.0, 0.6, 0.0, -1.4, 0.0, 1.1, 0.0])              # scene.py's display pose, one IK seed
 V_LIM_DEG = (85, 85, 100, 75, 130, 135, 135)                            # KUKA LBR iiwa 14 R820 joint speed limits, deg/s (the SDF's)
 A_BRAKE = 12.0                                                          # m/s^2, the arm's cap on the braking deceleration (ArmPusher.a_brake_max)
-BASE = (0.0, 0.0, 0.0)                                                  # iiwa base (link 0) in the world, m: the team's scene has it at the origin
-# Named base positions.  "origin" is the scene's: the push runs radially out from the base, so the elbow (joint 4, 75 deg/s)
-# makes nearly all of the paddle speed.  "side" stands beside the 1.2 m wide board, level with the middle of the push, so
-# joints 1 and 2 sweep the paddle across the arm's front (16 Nov trial; the default everywhere is still "origin").
-LAYOUTS = {"origin": BASE, "side": (0.6, 0.65, 0.0)}
+# Base positions by layout name (scene.LAYOUTS): "side" (beside the board, the default since 16 Nov) and "origin" (the layout
+# before: the push runs radially out from the base, so the elbow makes nearly all of the paddle speed).
+BASE = LAYOUTS[DEFAULT_LAYOUT]                                          # the default base (link 0) position in the world, m
+
+def layout_results(layout):
+    """Folder for a layout's saved outputs: results/side_base/ for "side"; the folders in use before 16 Nov (results/e1/,
+    results/arm_rerun/, ...) for "origin", returned as results/ itself.  None for any other base: pass paths explicitly."""
+    from paths import RESULTS
+    return {"side": RESULTS/"side_base", "origin": RESULTS}.get(layout)
+
+def start_posture(x_face, base=BASE, clearance=0.003, length=0.3):
+    """Joint angles that put the paddle face at world x_face on the push line, in the posture ArmPusher would start a push
+    of `length` m from (for scripts that pose the arm without simulating it)."""
+    m = ArmModel(tuple(base))
+    X0 = link7_pose(x_face, 0.0, 0.0, clearance)
+    paths = [m.path(q, X0, length) for q in m.candidates(X0)]
+    ok = [p for p in paths if p["ok"]] or paths
+    if not ok:
+        raise RuntimeError(f"no IK solution for the paddle face at x = {x_face:.3f} m (base {tuple(base)})")
+    return min(ok, key=lambda p: (p["qd_per_mps"], p["tau_g_ratio"]))["q"][0]
 
 def layout_base(layout):
     """Base position for a layout name ("origin", "side") or an (x, y[, z]) position."""
@@ -105,7 +126,7 @@ def pose_error(X_target, X):
 class ArmModel:
     """Kinematics-and-dynamics copy of the arm (no contact, continuous plant) for IK, Jacobians and inverse dynamics."""
 
-    def __init__(self, base=(0.0, 0.0, 0.0)):
+    def __init__(self, base=BASE):
         self.plant = MultibodyPlant(0.0)
         self.iiwa, self.paddle = add_arm(self.plant, None, RigidTransform(np.asarray(base, float)), collision=False)
         self.plant.Finalize()
@@ -223,7 +244,7 @@ class ArmPusher:
     gap: float = 0.001         # initial gap between the face's nearest point and the object's back face, m
     clearance: float = 0.003   # plate's lower edge above the table, m
     plate: tuple = PLATE
-    base: tuple = BASE         # iiwa base (link 0) position in the world, m; the team's scene has it at the origin
+    base: tuple = BASE         # iiwa base (link 0) position in the world, m; the default layout's (scene.LAYOUTS)
     a_brake_max: float = A_BRAKE   # cap on the braking deceleration, m/s^2 (> mu g for every pair, so the release is unchanged)
     kp: float = 4e4            # joint PD stiffness, N m/rad (about 1e5 N/m at the paddle, the plate's value)
     zeta: float = 1.0          # joint PD damping ratio against the diagonal mass (incl. rotor inertia) at the display pose
@@ -563,22 +584,22 @@ def main():
     ap.add_argument("--shape", default="box", choices=["box", "disc", "ring", "footed"])
     ap.add_argument("--com", type=float, default=0.0); ap.add_argument("--lateral", type=float, default=0.0)
     ap.add_argument("--yaw", type=float, default=0.0); ap.add_argument("--mu-p", type=float, default=PADDLE_MU)
-    ap.add_argument("--layout", choices=list(LAYOUTS), default=None, help="a named base position: origin (the scene's) or side (beside the board)")
-    ap.add_argument("--base-x", type=float, default=0.0, help="iiwa base position along the push, m (the scene's is 0)")
-    ap.add_argument("--base-y", type=float, default=0.0, help="iiwa base offset from the push line along y, m")
+    ap.add_argument("--layout", choices=list(LAYOUTS), default=DEFAULT_LAYOUT, help="where the base stands: side (beside the board, the default) or origin")
+    ap.add_argument("--base-x", type=float, default=None, help="iiwa base position along the push, m (overrides --layout, with --base-y)")
+    ap.add_argument("--base-y", type=float, default=None, help="iiwa base offset from the push line along y, m")
     ap.add_argument("--kp", type=float, default=4e4)
     ap.add_argument("--plan", action="store_true", help="plan only (no contact): posture and ratios")
     ap.add_argument("--feasibility", action="store_true"); ap.add_argument("--scan", action="store_true")
     ap.add_argument("--meshcat", action="store_true")
     a = ap.parse_args()
-    base = layout_base(a.layout) if a.layout else (a.base_x, a.base_y, 0.0)
+    base = layout_base(a.layout) if a.base_x is None and a.base_y is None else (a.base_x or 0.0, a.base_y or 0.0, 0.0)
     if a.reach:
         return print_reach(a.J, a.x0, base, a.a_max)
     if a.feasibility or a.scan:
         vs, js = (0.6, 0.8, 1.0), (30.0, 100.0, 500.0, 2000.0) if a.feasibility else (100.0, 2000.0)
         # --scan: the team's base at the origin, then bases beside the push line (y = 0.65 m is just off the 1.2 m wide board),
         # level with the start of the push and further along it, so the paddle sweeps across the arm's front instead of radially
-        bases = ((0.0, 0.0), (0.0, 0.4), (0.3, 0.65), (0.45, 0.65), (0.6, 0.65), (0.75, 0.65)) if a.scan else ((a.base_x, a.base_y),)
+        bases = ((0.0, 0.0), (0.0, 0.4), (0.3, 0.65), (0.45, 0.65), (0.6, 0.65), (0.75, 0.65)) if a.scan else (base[:2],)
         for bx, by in bases:
             t0 = time.time()
             rows = [feasibility(v, J, (bx, by, 0.0), a_max=a.a_max) for v in vs for J in js]

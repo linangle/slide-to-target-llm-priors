@@ -39,7 +39,8 @@ def make_observation(result, pusher, rng):
 def execute(mu, speed):
     from arm import ArmPusher, joint_limit_report
     from push import push_slide
-    pusher = ArmPusher()
+    from arm import LAYOUTS
+    pusher = ArmPusher(base=LAYOUTS['origin'])      # the v1 protocol: base at the origin (the default layout moved on 16 Nov)
     result = push_slide(mu, speed, 100.0, x0=.55, pusher=pusher, keep_traj=True)
     limits = joint_limit_report(pusher.traj)
     maxima = {k: float(np.max(limits[k])) for k in ('q', 'v', 'tau')}

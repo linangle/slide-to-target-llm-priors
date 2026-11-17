@@ -27,6 +27,7 @@ CLAUDE.local.md
 
 # Rendered outputs
 demo.mp4
+demo_*.mp4
 
 # Private log of design and research decisions (kept locally, not shared through the repository)
 .docs/

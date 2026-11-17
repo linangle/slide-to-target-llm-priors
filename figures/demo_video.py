@@ -65,8 +65,12 @@ def arm_pose(x0, obj, gap=0.004):
     ik = InverseKinematics(plant, plant.CreateDefaultContext())
     ik.AddPositionConstraint(paddle.body_frame(), np.zeros(3), plant.world_frame(), p - 1e-4, p + 1e-4)
     ik.AddOrientationConstraint(plant.world_frame(), R, paddle.body_frame(), RotationMatrix(), 1e-3)
-    q_nom = np.array([0, 0.8, 0, -1.8, 0, 0.8, math.pi/2])            # planar, elbow up
-    ik.prog().AddQuadraticErrorCost(np.diag([10, 0.1, 10, 0.1, 10, 0.1, 1]), q_nom, ik.q())
+    if scene.layout_of(scene.BASE) == "origin":
+        q_nom, weights = np.array([0, 0.8, 0, -1.8, 0, 0.8, math.pi/2]), np.diag([10, 0.1, 10, 0.1, 10, 0.1, 1])   # planar, elbow up
+    else:      # the default base stands beside the board: seed from the posture the arm controller starts a push from
+        from arm import start_posture
+        q_nom, weights = start_posture(float(p[0]) + PADDLE[2]/2, scene.BASE, gap), np.eye(7)
+    ik.prog().AddQuadraticErrorCost(weights, q_nom, ik.q())
     ik.prog().SetInitialGuess(ik.q(), q_nom)
     res = Solve(ik.prog())
     if not res.is_success():
@@ -257,7 +261,7 @@ def main():
     ap.add_argument("--size", type=int, nargs=2, default=(1920, 1080), metavar=("W", "H"))
     ap.add_argument("--fps", type=int, default=30)
     ap.add_argument("--no-text", action="store_true", help="leave out the captions")
-    ap.add_argument("--out", default=str(FIGURES/"demo.mp4"))
+    ap.add_argument("--out", default=str(FIGURES/"demo_side_base.mp4"), help="(figures/demo.mp4 is the video made with the base at the origin)")
     a = ap.parse_args()
     if not shutil.which("ffmpeg"):
         sys.exit("ffmpeg not found (macOS: brew install ffmpeg; Ubuntu: apt install ffmpeg)")

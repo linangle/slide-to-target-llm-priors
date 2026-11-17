@@ -1,0 +1,13 @@
+base at (0.6, 0.65) m; push at 1.018 m/s, brake cap 4 m/s^2, stroke 420 mm (joint speed 1.00 x limit, joint 1)
+          above z=0, mm  to object, mm  to camera, mm
+link 0               -0            478            862
+link 1              148            521            891
+link 2              274            417            774
+link 3              232            378            772
+link 4              189            238            730
+link 5               51             91            769
+link 6               63             60            816
+link 7               91             53            816
+paddle                3              1            817
+lowest moving link: link 5, 51 mm above the board's plane; nearest to the object: link 7, 53 mm; nearest any link comes to the camera at (1.0, 0.0, 1.0): 730 mm
+base footprint: x 0.464..0.721 m, y 0.529..0.771 m: it clears the board's side edge (y = +0.50 m, board centred on y = -0.10 m) by 29 mm

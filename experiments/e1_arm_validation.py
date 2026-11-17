@@ -49,7 +49,10 @@ FIELDS = ["part", "case", "pusher", "shape", "mu", "v_peak", "J", "x_target", "g
 
 # ----------------------------------------------------------------------------- the jobs
 
-def jobs(quick=False, base=(0.0, 0.0, 0.0), a_brake=None):
+def jobs(quick=False, base=None, a_brake=None):
+    """The job list; base defaults to the default layout's (arm.BASE)."""
+    if base is None:
+        from arm import BASE as base
     out = []
     for i, (shape, mu, v, J) in enumerate(CASES_A[:1] if quick else CASES_A):
         for pusher in ("arm", "plate"):
@@ -77,7 +80,8 @@ def run(job):
     gap, lateral, mass = job.get("gap", 0.001), job.get("lateral", 0.0), job.get("mass", 0.5)
     obj = Obj(shape=job["shape"], mass=mass)
     x_t = job.get("x_target", float("nan"))
-    base = tuple(job.get("base", (0.0, 0.0, 0.0)))
+    from arm import BASE
+    base = tuple(job.get("base", BASE))
     v = job["v_peak"] if "v_peak" in job else plan_peak_speed(x_t, mu, J, base=base)     # planned with the nominal 1 mm gap
     arm_options = {} if job.get("a_brake") is None else {"a_brake_max": float(job["a_brake"])}      # default: the arm's 12 m/s^2
     pusher = ArmPusher(gap=gap, lateral=lateral, base=base, **arm_options) if job["pusher"] == "arm" else Pusher(lateral=lateral)
@@ -227,18 +231,24 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--quick", action="store_true")
     ap.add_argument("--workers", type=int, default=min(4, os.cpu_count() or 1))
-    ap.add_argument("--out", default=str(RESULTS/"e1"/"e1_arm"), help="path prefix of the three output files")
-    ap.add_argument("--base-x", type=float, default=0.0, help="iiwa base position along the push, m (the scene's is 0)")
-    ap.add_argument("--base-y", type=float, default=0.0, help="iiwa base offset from the push line along y, m")
-    ap.add_argument("--layout", choices=["origin", "side"], default=None, help="a named base position (arm.LAYOUTS); overrides --base-x/--base-y")
+    ap.add_argument("--out", default=None, help="path prefix of the three output files (default: results/side_base/e1_arm for the side "
+                                                "base, results/e1/e1_arm for the origin; _brake<N> is appended with --a-brake)")
+    ap.add_argument("--layout", choices=["origin", "side"], default="side", help="where the iiwa's base stands (arm.LAYOUTS)")
+    ap.add_argument("--base-x", type=float, default=None, help="iiwa base position along the push, m (with --base-y: overrides --layout; needs --out)")
+    ap.add_argument("--base-y", type=float, default=None, help="iiwa base offset from the push line along y, m")
     ap.add_argument("--a-brake", type=float, default=None, help="cap on the arm's braking deceleration, m/s^2 (default: the arm's 12)")
     ap.add_argument("--summarize", default=None, help="reprint the summary (and plot) from a saved results CSV")
     a = ap.parse_args()
+    custom = a.base_x is not None or a.base_y is not None
+    if a.out is None and not a.summarize:
+        if custom:
+            ap.error("--base-x/--base-y need an explicit --out")
+        a.out = str((RESULTS/"side_base"/"e1_arm") if a.layout == "side" else (RESULTS/"e1"/"e1_arm")) + ("" if a.a_brake is None else f"_brake{a.a_brake:g}")
     if a.summarize:
         rows = load(a.summarize)
     else:
         from arm import layout_base
-        js = jobs(a.quick, layout_base(a.layout) if a.layout else (a.base_x, a.base_y, 0.0), a.a_brake)
+        js = jobs(a.quick, (a.base_x or 0.0, a.base_y or 0.0, 0.0) if custom else layout_base(a.layout), a.a_brake)
         print(f"{len(js)} pushes on {a.workers} workers ...", flush=True)
         t0 = time.time()
         with Pool(a.workers) as pool:
@@ -255,6 +265,8 @@ def main():
         rows = load(f"{a.out}_results.csv")
     text = summarize(rows)
     print(text)
+    if a.summarize and a.out is None:
+        return       # reprint only: the saved summary and figure are left as they are
     if not a.summarize:
         with open(f"{a.out}_summary.txt", "w") as f:
             f.write(text + "\n")
