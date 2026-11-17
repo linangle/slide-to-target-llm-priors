@@ -1,0 +1,23 @@
+arm execution error against the release model, base (0.6, 0.65) m, J 100 m/s^3, brake cap 12 m/s^2
+eps_v: release speed, % of the model's.  Rows mu, columns commanded peak speed (m/s).  * = over a joint speed or torque limit
+   mu |      0.3     0.45      0.6      0.8        1
+  0.1 |   -0.02    -0.01    -0.02    -0.01    -0.02 
+ 0.14 |   +0.06    +0.04    +0.02    +0.01    +0.01 
+  0.2 |   +0.19    +0.12    +0.09    +0.05    +0.04 
+ 0.26 |   +0.33    +0.21    +0.15    +0.10    +0.08 
+  0.3 |   +0.43    +0.27    +0.19    +0.14    +0.10 
+  0.4 |   +0.75    +0.44    +0.31    +0.22    +0.17 
+  0.5 |   +1.23    +0.67    +0.45    +0.31    +0.23 
+
+landing error: where the object stopped minus the model's rest point, mm
+   mu |      0.3     0.45      0.6      0.8        1
+  0.1 |   -0.31    -0.26    -0.71    -0.74    -4.61 
+ 0.14 |   -0.13    -0.18    -0.26    -0.57    -7.98 
+  0.2 |   -0.09    -0.14    -0.16    -0.53    -0.29 
+ 0.26 |   -0.08    -0.10    -0.13    -0.17    -0.24 
+  0.3 |   -0.08    -0.09    -0.11    -0.15    -0.53 
+  0.4 |   -0.08    -0.09    -0.10    -0.12    -0.15 
+  0.5 |   -0.08    -0.09    -0.10    -0.11    -0.13 
+all released pushes (35): eps_v mean +0.21%, SD 0.26%, range -0.02..+1.23%; release point -0.04 mm (range -0.07..-0.01); landing -0.56 mm, RMS 1.58, worst 7.98 mm
+within joint speed and torque limits (35): eps_v mean +0.21%, SD 0.26%, range -0.02..+1.23%; release point -0.04 mm (range -0.07..-0.01); landing -0.56 mm, RMS 1.58, worst 7.98 mm
+for a harness: v_r_actual = v_r_model * (1 + eps_v/100); these are deterministic biases, not noise.

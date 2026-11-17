@@ -145,6 +145,18 @@ Worst friction bias of observation model C over four pushes (a short high-fricti
 - **The alternatives.** (0.85, 0.90) has the lowest bias among the small moves and sees to x = 1.35 m, enough for every slide Y01–Y03 make (the longest rests at 1.20 m) but not the board's last 17 cm. (0.75, 1.40) is the most even but 60 cm higher, with three times the frame noise. Both are one line in `scene.CAMERAS`.
 - **E0-5 at the default** (arm in view, full-coverage camera, gate): worst bias 2.2% (0.45% for C1), frame noise 0.16 mm against 0.09 mm before, no frames lost. The perception study's rest-pose error SD is 0.11 mm against 0.05 mm.
 
+**How far the arm is from the release model** (`experiments/e1_release_error.py`, `results/side_base/e1_release_error.csv`; 35 pushes over μ 0.1–0.5 and 0.3–1.0 m/s, all within joint speed and torque limits). This is the execution model a harness without the arm needs (Tier B): actual release speed = the model's × (1 + ε).
+
+| | mean | range |
+|---|---|---|
+| Release speed against the model, ε | +0.21% | −0.02% to +1.23% |
+| Release point | −0.04 mm | −0.07 to −0.01 mm |
+| Landing against the model's rest point | −0.56 mm (RMS 1.6 mm) | worst −8.0 mm |
+
+- ε grows with friction and falls with speed: +1.2% at μ 0.5 and 0.3 m/s, under 0.25% everywhere at 1.0 m/s, near zero at μ 0.1.
+- The landing error is the free slide, not the arm: it is largest on the longest slides (−4.6 and −8.0 mm for μ 0.1 and 0.14 at 1.0 m/s, slides of 37–50 cm) and under 0.6 mm elsewhere.
+- These are deterministic biases, not noise: the simulator has no actuator noise. A harness should add its stated spread on top.
+
 **The evaluation at the side base** (`results/side_base/evaluation/`; Y01–Y03, seed 7, 432 scored rows per run). Landing RMSE at nominal noise:
 
 | practice slides | generic | lookup | LLM | oracle |
@@ -154,11 +166,24 @@ Worst friction bias of observation model C over four pushes (a short high-fricti
 | 2 | 0.5 mm | 0.6 mm | 0.6 mm | 0.4 mm |
 
 - **Every push is valid**, with either brake cap. With a 4 m/s² brake the scored pushes peak at 0.80 of the joint speed limit, 0.25 of the torque limit and 0.75 of the acceleration limit; with 12 m/s² the acceleration reaches 2.1×. The two runs agree within 0.1 mm.
-- **No push reached the cap**, so the clip-and-score rule had nothing to do: the derived targets are in reach by construction.
-- **Farther targets make the starting belief matter much more.** Before any practice the methods miss by 51–65 mm, against 9–17 mm in the saved origin runs whose targets stop at 0.64 m. One practice slide brings all three to 1.5 mm. Not like for like: different targets, and the saved runs used the squared-miss loss (*The evaluation pipeline*).
+- **No push reached the cap** with the derived targets, which are in reach by construction. A separate run with a target placed beyond reach (`clip_beyond_reach/`: targets 0.60 / 0.94 / 1.10 m, `--clip-unreachable`) exercises the rule: Y03 cannot pass x = 1.03 m, so at 1.10 m the oracle and most methods push at the cap, land 66 mm short and are scored; 13 of 108 nominal rows are at the cap and the run completes.
+- **The loss matters much more at this range.** With the squared miss instead of the default relative loss (`loss_sq_abs/`, via `evaluation/run_with_loss.py`), the zero-practice generic baseline is 34.6 mm, not 54.8; lookup 54.3 against 50.8, LLM 67.1 against 65.2. After one practice slide the two losses agree to 0.01 mm. At the origin the same gap was 8.9 against 14.1 mm.
+- **Farther targets make the starting belief matter much more.** Before any practice the methods miss by 51–65 mm, against 9–17 mm in the saved origin runs whose targets stop at 0.64 m. Not like for like: different targets, and the saved runs used the squared-miss loss (*The evaluation pipeline*).
+- **Ten seeds** (`ten_seeds_Y01/`, `_Y02/`, `_Y03/`; 3,348 scored rows, all valid, none at the cap). Landing RMSE over the three pairs and three targets, with the range of the per-seed RMSE:
+
+  | noise | practice slides | generic | lookup | LLM | oracle |
+  |---|---|---|---|---|---|
+  | any | 0 | 54.8 mm | 50.8 mm | 65.2 mm | 0.4 mm |
+  | low | 1 | 1.05 (0.26–1.51) | 1.05 (0.27–1.51) | 1.11 (0.27–1.58) | 0.4 |
+  | nominal | 1 | 1.34 (0.29–2.45) | 1.34 (0.32–2.43) | 1.37 (0.34–2.40) | 0.4 |
+  | high | 1 | 2.74 (0.81–5.12) | 2.77 (0.65–5.15) | 2.69 (0.25–5.01) | 0.4 |
+  | nominal | 2 | 0.90 (0.29–2.12) | 0.93 (0.33–2.08) | 0.95 (0.32–2.17) | 0.4 |
+
+  - **One practice slide erases the prior.** After a single practice push at 1.01 m/s the three methods are within 0.1 mm of each other at every noise level; what is left is observation noise. The friction estimate is then within 0.002 of the truth (0.0008 after two slides), and the 90% interval covers it in 80% of beliefs (93% after two).
+  - **Before practice the ranking depends on the pair.** Nominal zero-practice RMSE, generic / lookup / LLM: Y01 28 / 37 / 87 mm, Y02 28 / 67 / 70 mm, Y03 86 / 43 / 16 mm. The LLM prior is the best of the three on Y03 and the worst on Y01 and Y02. Three pairs do not rank the methods.
 - The evaluation reads simulator state, so the camera does not affect it.
 
-**Checked that the old work is intact.** `run_arm_evaluation.py --v3` gives the same 144 rows as before, cell for cell (Y01, seed 7). A plate push is bit-identical to before. No file under `results/` outside `side_base/` and `camera_study/` changed.
+**Checked that the old work is intact.** `run_arm_evaluation.py --v3` gives the same 144 rows as before, cell for cell (Y01, seed 7). The v3 protocol rerun on the merged code for all three pairs (`results/evaluation_v3/merged_code_seed7_sq_abs/`, squared-miss loss as the saved runs used) matches the saved checks: zero-practice RMSE 8.88 / 13.47 / 16.66 mm against 8.88 / 13.46 / 16.63. A plate push is bit-identical to before. No file under `results/` outside `side_base/` and `camera_study/` changed.
 
 **Still open for the team** (the layout, the computed cap, the derived targets, the board shift and the camera are signed off).
 - Which brake cap: a soft one meets the acceleration limits but needs a stated upper bound on friction.
@@ -218,6 +243,7 @@ Validation runs. Each writes its CSV, summary and figure to `results/` by defaul
 | `e0_1_free_slide.py` | E0-1: free slide vs `d = v²/(2μg)` over approximation × damping × step × margin, plus spin and heading launches. Freezes A6. |
 | `e1_arm_validation.py` | Diego's E1 arm milestone: 12 arm-vs-plate pushes, 21 targets with the true μ, 40 repeatability trials; writes `e1_arm_results.csv`, `e1_arm_summary.txt`, `e1_arm_summary.png`. |
 | `arm_rerun.py` | The 5 Nov arm re-run: 12 pushes from the E0-3/E0-4 grids with the arm beside the plate; writes `arm_rerun_results.csv`, `arm_rerun_summary.txt`, `arm_rerun_summary.png`. |
+| `e1_release_error.py` | The arm's execution error against the release model over friction × commanded speed (35 pushes): release speed, release point and landing. Writes `results/side_base/e1_release_error.csv`, the Tier B execution model's input. |
 | `arm_clearance.py` | Do the iiwa's links, its base and the camera stay clear during a push? Convex hulls of the links' visual meshes along the planned push: clearance above the board, to the object and to the camera, and the base's footprint against the board's edge. |
 | `camera_study.py` | Camera position and perception window against coverage, frame noise and friction-estimate bias, with the arm in view; writes `results/camera_study/`. |
 | `e0_3_contact_geometry.py` | E0-3: box (line contact) vs disc (point), COM offset, plate yaw and paddle friction: release heading, spin, lateral miss, slide error. |
@@ -231,6 +257,7 @@ The method comparison (generic, lookup, LLM, oracle). Pass `--out results/<versi
 | File | Purpose |
 |---|---|
 | `run_arm_evaluation.py`, `summarize_arm_evaluation.py` | Evaluation v3: methods × practice counts × targets × noise levels × seeds, with preflight feasibility checks; the summariser rejects partial or invalid runs. |
+| `run_with_loss.py` | Runs `run_arm_evaluation.py` with another planner loss from `decide.LOSSES` (e.g. `sq_abs`) without changing the runner; writes `loss_override.json` in the run folder. |
 | `run_arm_comparison_v2.py`, `summarize_arm_v2.py` | Pilot v2 (one target, ten seeds). v3 imports its execution and priors, so it is a live dependency. |
 | `run_arm_comparison.py`, `summarize_arm_pilot.py` | Pilot v1 (narrow generic prior), kept as history. |
 | `demo_published_comparison.py`, `demo_bayesian_integration.py`, `demo_compare_priors.py` | Small demonstrations of priors → update → plan. `demo_published_comparison.py` holds the Y01–Y03 descriptions and the raw-LLM prior, which v2 and v3 import. |

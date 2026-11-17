@@ -1,0 +1,4 @@
+{
+  "loss": "sq_abs",
+  "note": "planner loss set by evaluation/run_with_loss.py; the runner's default is sq_rel"
+}

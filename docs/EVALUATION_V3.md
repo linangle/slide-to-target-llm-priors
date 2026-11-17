@@ -74,6 +74,10 @@ Without `--v3` the runner now uses the side-base setup, labelled `multi_target_n
 --check-accel: also require the planned joint accelerations within the SDF limits (needs a softer brake, e.g. --a-brake 4)
 --clip-unreachable: a target beyond the cap is pushed at the cap and scored as a miss
 
+The planner's loss is not a runner option. `python evaluation/run_with_loss.py sq_abs <the same options>` runs the same evaluation
+with another loss from decide.LOSSES and notes it in loss_override.json; the saved v3 checks used the squared miss (sq_abs),
+and the runner's default today is the relative loss (sq_rel).
+
 results.csv has one more column, accel_limit_fraction (planned joint acceleration over the SDF limit). The side-base
 default needs Drake even for --check-only, because the cap comes from the arm model; --v3 --check-only does not.
 

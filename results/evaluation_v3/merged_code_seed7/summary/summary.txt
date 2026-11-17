@@ -1,0 +1,70 @@
+VALIDATED: 432 scored rows; complete selected matrix; all validity flags pass.
+Conditions reported separately; friction metrics count each shared belief once across targets.
+Arm: layout origin, base [0.0, 0.0], brake cap 12 m/s^2; peak cap 0.45 m/s (fixed); practice 0.45 m/s; targets [0.6, 0.62, 0.64] (given); limits required: q, v, tau; peak planned acceleration / limit over the scored pushes: 2.23
+
+CONDITION: low
+method    slides   RMSE mm    mu MAE   coverage   width   at cap
+generic        0    14.108    0.1166    100.0%  1.0184     0.0%
+lookup         0    13.268    0.0834     66.7%  0.4182     0.0%
+llm_raw        0    16.757    0.0867     33.3%  0.2393     0.0%
+oracle         0     0.164    0.0000       N/A     N/A     0.0%
+generic        1     0.511    0.0023    100.0%  0.0237     0.0%
+lookup         1     0.476    0.0021    100.0%  0.0236     0.0%
+llm_raw        1     0.405    0.0017    100.0%  0.0233     0.0%
+oracle         1     0.164    0.0000       N/A     N/A     0.0%
+generic        2     0.411    0.0019    100.0%  0.0165     0.0%
+lookup         2     0.407    0.0020    100.0%  0.0165     0.0%
+llm_raw        2     0.391    0.0019    100.0%  0.0164     0.0%
+oracle         2     0.164    0.0000       N/A     N/A     0.0%
+
+CONDITION: nominal
+method    slides   RMSE mm    mu MAE   coverage   width   at cap
+generic        0    14.108    0.1166    100.0%  1.0184     0.0%
+lookup         0    13.268    0.0834     66.7%  0.4182     0.0%
+llm_raw        0    16.757    0.0867     33.3%  0.2393     0.0%
+oracle         0     0.164    0.0000       N/A     N/A     0.0%
+generic        1     0.914    0.0049    100.0%  0.0480     0.0%
+lookup         1     0.771    0.0039    100.0%  0.0472     0.0%
+llm_raw        1     0.435    0.0027    100.0%  0.0454     0.0%
+oracle         1     0.164    0.0000       N/A     N/A     0.0%
+generic        2     0.729    0.0035    100.0%  0.0330     0.0%
+lookup         2     0.754    0.0038    100.0%  0.0327     0.0%
+llm_raw        2     0.699    0.0038    100.0%  0.0321     0.0%
+oracle         2     0.164    0.0000       N/A     N/A     0.0%
+
+CONDITION: high
+method    slides   RMSE mm    mu MAE   coverage   width   at cap
+generic        0    14.108    0.1166    100.0%  1.0184     0.0%
+lookup         0    13.268    0.0834     66.7%  0.4182     0.0%
+llm_raw        0    16.757    0.0867     33.3%  0.2393     0.0%
+oracle         0     0.164    0.0000       N/A     N/A     0.0%
+generic        1     1.623    0.0103    100.0%  0.1007     0.0%
+lookup         1     1.295    0.0071    100.0%  0.0933     0.0%
+llm_raw        1     0.502    0.0044    100.0%  0.0814     0.0%
+oracle         1     0.164    0.0000       N/A     N/A     0.0%
+generic        2     1.399    0.0059    100.0%  0.0667     0.0%
+lookup         2     1.464    0.0071    100.0%  0.0646     0.0%
+llm_raw        2     1.375    0.0078    100.0%  0.0605     0.0%
+oracle         2     0.164    0.0000       N/A     N/A     0.0%
+
+CONDITION: no_added
+method    slides   RMSE mm    mu MAE   coverage   width   at cap
+generic        0    14.108    0.1166    100.0%  1.0184     0.0%
+lookup         0    13.268    0.0834     66.7%  0.4182     0.0%
+llm_raw        0    16.757    0.0867     33.3%  0.2393     0.0%
+oracle         0     0.164    0.0000       N/A     N/A     0.0%
+generic        1     0.210    0.0009    100.0%  0.0471     0.0%
+lookup         1     0.255    0.0009    100.0%  0.0464     0.0%
+llm_raw        1     0.449    0.0021    100.0%  0.0448     0.0%
+oracle         1     0.164    0.0000       N/A     N/A     0.0%
+generic        2     0.181    0.0005    100.0%  0.0332     0.0%
+lookup         2     0.215    0.0005    100.0%  0.0330     0.0%
+llm_raw        2     0.204    0.0012    100.0%  0.0324     0.0%
+oracle         2     0.164    0.0000       N/A     N/A     0.0%
+
+Limits: three previously inspected published pairs; seeds are not new materials.
+No-added-noise is one deterministic diagnostic with nominal likelihood SDs.
+Coverage is of fitted grid posteriors, not original LLM intervals.
+Repeated zero-practice/oracle rows and reused rollouts are not independent evidence.
+Simulator-state sensing and ideal contact-event timing; no rendered camera or calibration.
+Joint checks cover planned position/velocity and feed-forward torque only.

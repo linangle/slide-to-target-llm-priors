@@ -16,6 +16,8 @@ Commands below are written from the repository root. Do not pool v1, v2, and v3 
 
 The three evaluation folders above (`pilot_v1/`, `pilot_v2/`, `evaluation_v3/`) are the origin layout, produced before the 16 Nov arm merge (Diego's original controller, squared-miss loss), and have not been rerun since. `e1/` and `arm_rerun/` are also the origin layout; `e0/` used no arm. `python3 evaluation/run_arm_evaluation.py --v3` and `--layout origin` on the experiment scripts rerun that layout.
 
+`evaluation_v3/merged_code_seed7/` and `evaluation_v3/merged_code_seed7_sq_abs/` are the v3 protocol rerun on 16 Nov on the merged arm code (all three pairs, seed 7), under the runner's default relative loss and under the squared-miss loss the saved checks used. The second reproduces the saved checks (zero-practice RMSE 8.88 / 13.47 / 16.66 mm against 8.88 / 13.46 / 16.63); the first shows what the loss change does at the origin (generic 14.1 mm).
+
 V1 and v2 also retain single-pair checks. V2's `arm_v2_Y01_grid4000` is a grid-resolution diagnostic, not an additional independent experiment.
 
 ## Inside a v3 run
