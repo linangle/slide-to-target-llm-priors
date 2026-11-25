@@ -12,6 +12,7 @@ the patchy-table study take the file as --llm NAME=FILE with no change.
     python3 evaluation/query_claude.py --out data/llm_cache_handbook_claude.json --query    # paid: one request per pair not in the file
     python3 evaluation/query_claude.py --out data/llm_cache_handbook_claude_s2.json --sample 2 --query   # a second sample, its own file
     python3 evaluation/query_claude.py --out data/llm_cache_handbook_haiku.json --model claude-haiku-5-5 --query
+    python3 evaluation/query_claude.py --probe hidden --out data/llm_probe_hidden_claude.json --query     # a probe set (probes.py)
 
 Rules, the same as the OpenAI path where the two APIs allow it:
   - Nothing is requested without --query.  Credentials come from the environment (ANTHROPIC_API_KEY); none is read from a file.
@@ -44,12 +45,13 @@ class Unanswered(Exception):
         super().__init__(reason)
         self.reason, self.record = reason, record
 
-def request_settings(model=MODEL, effort="medium"):
-    """Every request field that can change the answer, apart from the prompt.  Recorded in the file and compared on reuse."""
+def request_settings(model=MODEL, effort="medium", schema=SCHEMA):
+    """Every request field that can change the answer, apart from the prompt.  Recorded in the file and compared on reuse.
+    schema: the answer's JSON shape (the friction estimate's by default; a probe kind has its own, probes.KINDS)."""
     if effort not in EFFORTS:
         raise ValueError(f"effort must be one of {EFFORTS}")
     return {"model": model, "max_tokens": MAX_TOKENS,
-            "output_config": {"effort": effort, "format": {"type": "json_schema", "schema": SCHEMA}}}
+            "output_config": {"effort": effort, "format": {"type": "json_schema", "schema": schema}}}
 
 def new_file(settings, sample):
     return {"model": settings["model"],
@@ -85,7 +87,7 @@ def save(path, data):
         if temp is not None and os.path.exists(temp):
             os.unlink(temp)
 
-def ask(client, prompt, settings):
+def ask(client, prompt, settings, parse=parse_response):
     """One request.  Returns the entry to store (the validated JSON text and what the response says about itself), or raises
     Unanswered with the record to keep.  A response cut off by max_tokens is a setup error and raises RuntimeError."""
     response = client.messages.create(messages=[{"role": "user", "content": prompt}], **settings)
@@ -100,7 +102,7 @@ def ask(client, prompt, settings):
         raise RuntimeError(f"the response stopped with {response.stop_reason!r}, not a complete answer; nothing was recorded")
     raw = next((b.text for b in response.content if b.type == "text"), "")
     try:
-        parse_response(raw)
+        parse(raw)
     except ValueError as exc:                     # json.JSONDecodeError is a ValueError too
         raise Unanswered("malformed", dict(record, reason=f"malformed: {exc}", response=raw))
     return dict(record, response=raw)
@@ -112,10 +114,12 @@ def make_client():
         raise SystemExit("the anthropic package is not installed: pip install -r requirements.txt")
     return anthropic.Anthropic()                  # credentials from the environment; the SDK's default retries and timeout
 
-def fill(path, pairs, model=MODEL, effort="medium", sample=1, query=False, retry_unanswered=False, client=None, out=print):
+def fill(path, pairs, model=MODEL, effort="medium", sample=1, query=False, retry_unanswered=False, client=None, out=print,
+         schema=SCHEMA, parse=parse_response):
     """Ask for every pair that has no answer in the file.  Without query, only report what would be asked.
-    Returns dict(cached, asked, answered, unanswered, pending)."""
-    settings = request_settings(model, effort)
+    pairs: {id: dict(prompt=...)}; the ids are pair ids for the friction question and prompt ids for a probe set
+    (probes.build), whose schema and parse go with it.  Returns dict(cached, asked, answered, unanswered, pending)."""
+    settings = request_settings(model, effort, schema)
     data = load(path, settings, sample)
     keys = {p: standin_key(d["prompt"]) for p, d in pairs.items()}
     skipped = [] if retry_unanswered else [p for p in pairs if keys[p] in data["unanswered"] and keys[p] not in data["entries"]]
@@ -135,7 +139,7 @@ def fill(path, pairs, model=MODEL, effort="medium", sample=1, query=False, retry
     for p in missing:
         count["asked"] += 1
         try:
-            entry = ask(client, pairs[p]["prompt"], settings)
+            entry = ask(client, pairs[p]["prompt"], settings, parse)
         except Unanswered as exc:
             data["unanswered"][keys[p]] = dict(exc.record, pair_when_asked=p)
             count["unanswered"] += 1
@@ -144,8 +148,9 @@ def fill(path, pairs, model=MODEL, effort="medium", sample=1, query=False, retry
             data["entries"][keys[p]] = dict(entry, pair_when_asked=p)
             data["unanswered"].pop(keys[p], None)
             count["answered"] += 1
-            est = parse_response(entry["response"])
-            out(f"  {p}: median {est['median']}, 90% interval {est['low']}-{est['high']}")
+            est = parse(entry["response"])
+            out(f"  {p}: median {est['median']}, 90% interval {est['low']}-{est['high']}" if "median" in est else
+                f"  {p}: " + ", ".join(f"{k} {v}" for k, v in est.items() if k != "reasoning"))
         count["pending"] -= 1
         save(path, data)
     return count
@@ -158,12 +163,20 @@ def main(argv=None):
     ap.add_argument("--sample", type=int, default=1, help="which repeat this file is; only a label, each sample is its own file")
     ap.add_argument("--truth", nargs="+", type=Path, default=list(TRUTH), help="truth files (measured-friction format)")
     ap.add_argument("--pairs", nargs="+", default=None, help="only these pair ids")
+    ap.add_argument("--probe", default=None, metavar="KIND", help="send a probe set (probes.py: wording_b, hidden, counterfactual, recite, "
+                    "speed) in place of the friction question; its own file, since the answer's shape is part of the settings")
     ap.add_argument("--query", action="store_true", help="paid: make the requests")
     ap.add_argument("--retry-unanswered", action="store_true", help="ask again for pairs recorded as declined or malformed")
     a = ap.parse_args(argv)
-    pairs = load_pairs(a.truth, a.pairs)
+    extra = {}
+    if a.probe:
+        import probes
+        pairs = probes.build(a.probe, a.truth, a.pairs)
+        extra = dict(schema=probes.KINDS[a.probe][0], parse=probes.KINDS[a.probe][1])
+    else:
+        pairs = load_pairs(a.truth, a.pairs)
     try:
-        count = fill(a.out, pairs, a.model, a.effort, a.sample, a.query, a.retry_unanswered)
+        count = fill(a.out, pairs, a.model, a.effort, a.sample, a.query, a.retry_unanswered, **extra)
     except ValueError as exc:
         raise SystemExit(str(exc))
     except TypeError as exc:                      # how the SDK reports that it found no credentials, before sending anything

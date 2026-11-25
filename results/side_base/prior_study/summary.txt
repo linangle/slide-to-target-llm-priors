@@ -1,0 +1,79 @@
+prior study: 23 pairs, friction 0.14-0.49; targets [0.6, 0.78, 0.96] m; cap 1.158 m/s;
+scored with the release model (no Drake push).  LLMs: claude = Claude Haiku (Claude Code subagent, model alias 'haiku', asked 17 Nov 2026)
+On L01-L20 the lookup holds the answer and an LLM may recall the same tables.
+
+1. THE PRIORS' 90% INTERVALS AGAINST THE TRUE FRICTION (ln mu; interval and log scores: lower is better)
+   source                pairs  inside 90%   RMS median error   mean width   interval score   log score
+   generic                 23    23 (100%)        0.412           2.62          2.62          +0.82
+   population              23    20 ( 87%)        0.421           1.35          1.47          +0.58
+   lookup                  23    22 ( 96%)        0.185           0.90          0.96          -0.30
+   robust@lookup           23    23 (100%)        0.194           1.40          1.40          -0.16
+   llm_claude              23    20 ( 87%)        0.382           0.96          1.86          +0.61
+   generic@claude          23    16 ( 70%)        0.412           0.96          1.97          +0.71
+   robust@claude           23    21 ( 91%)        0.377           1.41          1.68          +0.43
+   recal_claude            23    19 ( 83%)        0.338           1.08          1.67          +0.41
+
+2. FIRST SHOT, NO PRACTICE: mean |miss| (RMSE), mm.  aware minimises expected squared error under its own belief
+   source                plug-in           aware, relative loss   aware, squared miss     aware - plug-in in mean |miss| over pairs
+   generic                 31.6 (  51.7)     72.3 (  91.7)          49.8 (  66.9)        +40.7 [ +18.6,  +60.6]  p = 0.002
+   population              31.6 (  49.7)     34.4 (  47.5)          32.8 (  46.8)         +2.9 [  -4.8,  +10.1]  p = 0.927
+   lookup                   9.1 (  27.8)     10.0 (  20.5)           9.6 (  21.4)         +1.0 [  -4.7,   +6.0]  p = 0.075
+   robust@lookup           10.6 (  28.8)     27.9 (  37.0)          21.5 (  29.3)        +17.4 [  +6.3,  +26.6]  p = 0.005
+   llm_claude              26.6 (  48.0)     22.0 (  41.8)          22.7 (  42.6)         -4.6 [  -8.8,   -0.7]  p = 0.052
+   generic@claude          31.7 (  51.7)     28.8 (  45.4)          29.4 (  46.6)         -2.8 [  -7.4,   +1.5]  p = 0.142
+   robust@claude           26.7 (  47.9)     27.2 (  39.0)          23.5 (  36.0)         +0.5 [ -12.2,  +12.8]  p = 0.917
+   recal_claude            23.6 (  39.9)     24.5 (  39.2)          24.1 (  38.7)         +0.9 [  -4.1,   +5.6]  p = 0.893
+
+3. TABLE EDGE 30% BEYOND THE TARGET, NO PRACTICE: share of shots that leave the table; mean |miss| mm
+   source                plug-in            aware              edge-aware
+   generic                17%    31.6         0%    72.3         0%   127.5
+   population             16%    31.6         0%    34.4         0%    51.3
+   lookup                  6%     9.1         0%    10.0         0%    18.6
+   robust@lookup           7%    10.6         0%    27.9         0%    57.1
+   llm_claude              9%    26.6         9%    22.0         9%    25.0
+   generic@claude         17%    31.7        16%    28.8         0%    29.6
+   robust@claude           9%    26.7         0%    27.2         0%    54.5
+   recal_claude            9%    23.6         9%    24.5         3%    38.8
+
+4. AFTER ONE WEAK PRACTICE SLIDE (0.6 m/s, 4x nominal noise, 5 seeds): mean |miss| (RMSE), mm
+   source                aware              plug-in           SD of ln mu: prior -> after the slide
+   generic                 17.6 (  30.4)      13.6 (  22.0)     0.80 -> 0.28
+   population              16.8 (  26.4)      14.0 (  21.4)     0.41 -> 0.22
+   lookup                   7.4 (  12.1)       7.2 (  11.9)     0.27 -> 0.17
+   robust@lookup           10.0 (  19.5)       8.1 (  13.7)     0.45 -> 0.20
+   llm_claude              11.0 (  16.7)      10.9 (  16.6)     0.29 -> 0.18
+   generic@claude          14.4 (  21.6)      13.3 (  19.5)     0.29 -> 0.18
+   robust@claude           12.4 (  21.0)      10.6 (  16.8)     0.46 -> 0.21
+   recal_claude            13.8 (  21.0)      12.0 (  18.3)     0.33 -> 0.20
+
+5. DIFFERENCES OVER PAIRS (a - b in mean |miss|, mm; bootstrap 95% interval over pairs; Wilcoxon signed-rank p)
+   first shot, uncertainty-aware:
+           population - generic              -37.91 mm  [ -50.50,  -23.56]   p = 0.0001   pairs won 19 /  4
+               lookup - generic              -62.28 mm  [ -75.09,  -48.13]   p = 0.0000   pairs won 21 /  2
+        robust@lookup - generic              -44.38 mm  [ -51.49,  -36.31]   p = 0.0000   pairs won 22 /  1
+           llm_claude - generic              -50.29 mm  [ -67.48,  -30.51]   p = 0.0004   pairs won 20 /  3
+       generic@claude - generic              -43.48 mm  [ -60.39,  -24.26]   p = 0.0002   pairs won 19 /  4
+        robust@claude - generic              -45.11 mm  [ -55.24,  -33.16]   p = 0.0000   pairs won 21 /  2
+         recal_claude - generic              -47.83 mm  [ -60.91,  -32.14]   p = 0.0001   pairs won 21 /  2
+           llm_claude - generic@claude        -6.81 mm  [ -16.56,   +2.60]   p = 0.2595   pairs won 15 /  8
+           llm_claude - lookup               +11.99 mm  [  +2.40,  +23.76]   p = 0.0277   pairs won  8 / 15
+        robust@claude - llm_claude            +5.19 mm  [  -5.47,  +15.13]   p = 0.3294   pairs won  8 / 15
+         recal_claude - llm_claude            +2.47 mm  [  -5.05,   +9.70]   p = 0.6869   pairs won 10 / 13
+           llm_claude - population           -12.38 mm  [ -23.52,   -0.01]   p = 0.0484   pairs won 16 /  7
+        robust@lookup - lookup               +17.91 mm  [ +11.63,  +23.76]   p = 0.0001   pairs won  2 / 21
+
+   after one weak practice slide, uncertainty-aware:
+           population - generic               -0.87 mm  [  -2.22,   +0.46]   p = 0.1186   pairs won 16 /  7
+               lookup - generic              -10.23 mm  [ -15.69,   -5.86]   p = 0.0000   pairs won 21 /  2
+        robust@lookup - generic               -7.62 mm  [ -11.00,   -4.71]   p = 0.0000   pairs won 21 /  2
+           llm_claude - generic               -6.60 mm  [ -11.12,   -2.77]   p = 0.0031   pairs won 17 /  6
+       generic@claude - generic               -3.21 mm  [  -5.70,   -1.08]   p = 0.0149   pairs won 17 /  6
+        robust@claude - generic               -5.21 mm  [  -8.35,   -2.53]   p = 0.0015   pairs won 18 /  5
+         recal_claude - generic               -3.86 mm  [  -7.44,   -1.03]   p = 0.0035   pairs won 20 /  3
+           llm_claude - generic@claude        -3.39 mm  [  -6.36,   -0.69]   p = 0.0918   pairs won 14 /  9
+           llm_claude - lookup                +3.63 mm  [  +1.87,   +5.77]   p = 0.0003   pairs won  5 / 18
+        robust@claude - llm_claude            +1.39 mm  [  -0.14,   +3.09]   p = 0.0214   pairs won  4 / 19
+         recal_claude - llm_claude            +2.74 mm  [  +0.52,   +5.14]   p = 0.1262   pairs won 10 / 13
+           llm_claude - population            -5.72 mm  [  -9.82,   -1.99]   p = 0.0254   pairs won 16 /  7
+        robust@lookup - lookup                +2.61 mm  [  +0.91,   +4.98]   p = 0.0000   pairs won  1 / 22
+

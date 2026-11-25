@@ -150,7 +150,9 @@ Written 25 Nov 2026. One place for the reasoning behind every design choice in t
 2. The release point moves with the speed (5.5 cm of paddle travel at 0.40 m/s, 28.9 cm at 1.0 m/s), so a point target fed as a fixed slide length lands about 2 cm short (D2).
 3. The loss is not settled, on purpose. The relative loss is the specification's; the squared miss is what is scored in millimetres. They agree to 0.01 mm after one practice slide and differ only for the wide generic prior before practice (91.8 against 67.0 mm on 23 pairs). Both are run and reported (D3).
 
-**Limits.** The proposal's H2 (uncertainty-aware against plug-in release, and a table-edge variant) is not run: `decide.loss_table_edge` exists, the plug-in policy and the experiment do not.
+**H2, run 25 Nov** (`evaluation/prior_study.py`, release model, 23 pairs, stand-in LLM). Planning under the whole belief beats plugging in the median only when the belief's width is about right: RMSE 20.5 against 27.8 mm for the lookup and 41.8 against 48.0 for the LLM, but 91.7 against 51.7 for the wide generic prior, whose width is far more than the pairs' actual spread and which pays for it by landing short. With a table edge 30% beyond the target, plug-in shots leave the table 6 to 17% of the time; planning under the belief brings that to 0 for the generic, population and lookup priors and leaves the LLM at 9%, because a loss cannot repair a confident wrong belief; the robust prior does (0%). After a practice slide the two rules agree to within a few millimetres.
+
+**Limits.** H2 is scored with the release model, not in Drake, and with the stand-in LLM. Uncertainty-aware release is only as good as the uncertainty: a prior that is honest about not knowing but much wider than the population is worse served by the Bayes action than by its own median.
 
 ## 9. How the comparison is run
 
@@ -163,7 +165,9 @@ Written 25 Nov 2026. One place for the reasoning behind every design choice in t
 4. A prior can win by being sharp rather than by being right. Sharpness is only worth rewarding subject to calibration [21, 22], so the generic prior is also run at the language model's own interval width, pair by pair (D17). That control is the reason the headline changed (section 10).
 5. Each run records the hashes of its sources and inputs, because a change to `arm.py` or the truth file silently changes every number. New versions go in as options whose default reproduces the old behaviour.
 
-**Limits.** No bootstrap intervals or signed-rank tests yet, which the proposal named; paired differences with standard errors are reported in the patchy-board study only. The language-model answers for the 23 pairs are a stand-in (one fresh subagent per pair), not API calls with fixed settings.
+**Statistics (25 Nov).** `evaluation/paired_stats.py` gives every paired difference a bootstrap 95% interval over pairs and a Wilcoxon signed-rank p-value; the pair is the unit, with seeds and targets averaged inside it. On the saved 23-pair Drake run: before practice the LLM is better than the generic prior by 50.5 mm [30.8, 67.6] (p = 0.0004) and the lookup by 62.3 mm [48.2, 75.1]; after one slide the differences are 0.01 to 0.02 mm, some of them significant, which is a reminder that a small p is not a large effect. Three pairs cannot reach p < 0.25, so nothing on Y01 to Y03 alone can be called significant.
+
+**Limits.** The language-model answers for the 23 pairs are a stand-in (one fresh subagent per pair), not API calls with fixed settings. The intervals are over pairs that were not sampled at random from any population of materials.
 
 ## 10. What the results say so far
 
@@ -177,7 +181,9 @@ A map of regimes (D14), no single headline:
 | Patchy board | The floor is the board, not the sensor. Fast practice on a different stretch is worse than planning with nominal friction. | `results/side_base/patchy_table/` |
 | Practice aimed at the target | The first setting where the prior matters after practice: shots 5 to 19 mm apart. After one aimed slide at spread 0.12 the lookup beats the generic prior by 4.3 ± 0.8 mm, the language model by 3.6 ± 0.8, the width-matched control by 3.2 ± 0.7. | `results/side_base/patchy_table/pair_set/` |
 
-The proposal expected a prior worth about 0.03 of a clean slide. It is worth about 1/2000, because the trajectory fit is far more informative than the endpoint observation the proposal's model assumed. Ways to check and sharpen the "confidence, not knowledge" result: proper scoring of the priors [21], a prior–data conflict check [23], and a robust mixture prior that discounts a confident wrong prior once data disagree [24]. None is implemented.
+**The priors scored directly (25 Nov, `results/side_base/prior_study/`).** On the 23 pairs with the stand-in LLM, scored with the release model: (H2) planning under the whole belief beats plugging in the median only when the belief's width is about right. In RMSE it is 20.5 against 27.8 mm for the lookup and 41.8 against 48.0 for the LLM, but 91.7 against 51.7 for the wide generic prior, which pays for its width by landing short. With a table edge 30% beyond the target, plug-in shots leave the table 6 to 17% of the time; planning under the belief brings that to 0 for the generic, population and lookup priors but leaves the LLM at 9%, because its misses are confident ones; the robust prior brings it to 0. (H4) The LLM's 90% intervals hold the truth on 20 of 23 pairs (87%). Recalibration and the robust prior improve the interval score (1.67 and 1.68 against 1.86) and do not improve the first shot (+2.5 mm [−5.1, +9.7] and +5.2 mm [−5.5, +15.1]). (D17) The population prior, which knows nothing about the pair, has a better interval score than the LLM (1.47) and a worse first shot (34.4 against 22.0 mm; LLM − population −12.4 mm [−23.5, −0.0], p = 0.048). The LLM against its width-matched control: −6.8 mm [−16.6, +2.6], p = 0.26.
+
+The proposal expected a prior worth about 0.03 of a clean slide. It is worth about 1/2000, because the trajectory fit is far more informative than the endpoint observation the proposal's model assumed. Proper scoring of the priors [21] and a robust mixture prior [24] are now in `prior_study.py`; a prior–data conflict check [23] is not implemented.
 
 ## 11. The proposal's plan against the repository
 
@@ -191,15 +197,15 @@ Against the long-form draft of 19 Oct (goals G1 to G4, conditions C0 to C7, expe
 | C0 default prior, C5 practice only | Done | `generic` at 0, 1, 2 slides |
 | C2 table, C4 language model with interval, C6 fusion | Done as beliefs | `lookup`, `llm_raw` at 0, 1, 2 slides. C2 was specified as a plug-in; it runs with its spread |
 | C7 oracle | Done | `oracle` |
-| C1 language model asked for the speed directly | Not built | |
-| C3 plug-in median, E3 uncertainty-aware release, table edge | Not built | The loss exists (`decide.loss_table_edge`) |
-| C6 variants: robust prior, recalibration | Not built | `belief.fit_llm_likelihood_loo` exists, unused |
+| C1 language model asked for the speed directly | Prompt drafted, not sent | `evaluation/probes.py` (kind `speed`); needs API answers and a runner arm that executes the speed |
+| C3 plug-in median, E3 uncertainty-aware release, table edge | Done with the release model | `evaluation/prior_study.py` (25 Nov); not yet in Drake |
+| C6 variants: robust prior, recalibration | Done with the release model | `evaluation/prior_study.py`: robust mixture and leave-one-pair-out recalibration, at the first shot and after one weak practice slide |
 | E2 first shot on all pairs | Done on 23 simulated pairs | Stand-in language-model answers; GPT cached for Y01 to Y03 only |
 | E4 practice curves, k = 0 to 5, three patchiness levels | Done differently | k = 0, 1, 2; practice study and patchy-board study in place of the overlay on the closed form |
-| E5 calibration study | Mostly not done | Width-matched control done. Not done: interval score, two wordings × five samples, hidden-material and counterfactual prompts, memorisation probe, open-weight model, photographs |
+| E5 calibration study | Half done | Done: width-matched control, coverage, interval and log scores (`prior_study.py`). Drafted, not sent: second wording, hidden-material, counterfactual and recite-the-table prompts (`probes.py`). Not planned: open-weight model, photographs |
 | Tier A (arm in the loop) and Tier B (object only) | Tier B not built | Everything runs with the arm in Drake, which is the stronger version; the camera is in E0-5 only |
 | ≥ 48 pairs, four targets, five seeds | 23 pairs, three targets, ten seeds | |
-| Statistics: bootstrap intervals, signed-rank tests | Not built | |
+| Statistics: bootstrap intervals, signed-rank tests | Done | `evaluation/paired_stats.py` (25 Nov) |
 
 ## 12. Logic checks of 25 Nov
 
@@ -215,9 +221,9 @@ Also found while checking references: the Y03 spread (section 5, fixed the same 
 
 Leaving the rig data aside:
 
-1. **The single-protocol rerun.** The settings are decided (6 m/s² brake with the limits posture and the acceleration check, J = 100, one-piece board, three baselines, both losses, both miss measures, ten seeds, 23 pairs) but the run has not been made. Two pieces are missing: the one-piece board as an option in `scene.py` / `push.py` (today it is patched from outside), and the population prior (D17).
+1. **The single-protocol rerun.** The settings are decided (6 m/s² brake with the limits posture and the acceleration check, J = 100, one-piece board, three baselines, both losses, both miss measures, ten seeds, 23 pairs) but the run has not been made. Two pieces are missing: the one-piece board as an option in `scene.py` / `push.py` (today it is patched from outside), and the population, robust and recalibrated priors as methods of the Drake runner (they exist in `prior_study.py`, scored with the release model).
 2. **Language-model answers by API**, with fixed settings and several samples per pair, for Claude and GPT, replacing the stand-in (D16). The 30 rig pairs still need their text descriptions, and the prompts must be frozen before anyone sees measured friction.
-3. **Proposal items to build or to drop with a sentence in the report:** C1, C3 and the table edge (H2), the robust and recalibrated variants (H4), the calibration probes of E5, Tier B, bootstrap intervals.
+3. **Proposal items still waiting on API answers:** C1 and the probes of E5 (prompts drafted in `probes.py`; they must be read, frozen and sent). **To drop with a sentence in the report:** Tier B, the open-weight model, the photograph arm.
 4. **Decisions not taken:** which loss and which miss measure lead (D3, D4); the transition model and where to practise (D18); Tier B (D13); whether the rerun requires `--check-release`; a single fixed posture as an option in `arm.py`.
 5. **Fixes waiting for a go** (hashed files): a release-bound check in the planner; the first-frame gap rule in `observe.py`. (The Y03 spread was fixed on 25 Nov.)
 6. **Deliverables:** result figures (only the intro figure and per-experiment summaries exist), the report, the video (`figures/demo_side_base.mp4` shows a passive slide with the arm posed beside the board; the arm's push is not in it), the in-class summary.

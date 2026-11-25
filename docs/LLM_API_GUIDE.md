@@ -119,6 +119,14 @@ python3 evaluation/query_claude.py --out data/llm_cache_handbook_claude_s2.json 
 python3 evaluation/query_claude.py --out data/llm_cache_handbook_haiku.json --model claude-haiku-5-5 --query
 ```
 
+4. **Probe sets and the direct-speed condition.** `evaluation/probes.py` builds five further prompt sets from the same descriptions: a second wording, hidden material, counterfactual changes, recite-the-table, and C1 (the model is asked for the paddle speed itself). They are drafts: run `python3 evaluation/probes.py` to read them, change what should change, and commit the file before sending any. Each kind goes in its own file, because the answer's shape is part of the settings.
+
+```bash
+python3 evaluation/query_claude.py --probe hidden --out data/llm_probe_hidden_claude.json --query
+```
+
+   The five sets are 230 prompts per model and sample (23 + 23 + 92 + 23 + 69). Only Claude can be asked this way today; `llm_prior.py` has no probe path for GPT.
+
 What the script fixes, and why it differs from GPT's settings:
 
 - **Model:** `claude-opus-5-5` unless `--model` says otherwise. The ID is recorded in the file, along with the model each response names.

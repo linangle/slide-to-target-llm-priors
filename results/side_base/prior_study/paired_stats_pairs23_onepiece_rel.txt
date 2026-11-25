@@ -1,0 +1,15 @@
+results/side_base/trials_nov21/pairs23_10seeds/onepiece_rel/results.csv
+mean |error_x_mm| per pair, then method - generic over pairs: mean difference, bootstrap 95% interval, signed-rank p
+
+0 practice slide(s), 23 pairs; generic 72.45 mm   (smallest possible p: 2.4e-07)
+          llm_claude - generic              -50.49 mm  [ -67.62,  -30.78]   p = 0.0004   pairs won 20 /  3
+              lookup - generic              -62.32 mm  [ -75.10,  -48.22]   p = 0.0000   pairs won 21 /  2
+
+1 practice slide(s), 23 pairs; generic 1.08 mm   (smallest possible p: 2.4e-07)
+          llm_claude - generic               -0.02 mm  [  -0.04,   -0.00]   p = 0.0980   pairs won 17 /  6
+              lookup - generic               -0.01 mm  [  -0.02,   -0.01]   p = 0.0001   pairs won 20 /  3
+
+2 practice slide(s), 23 pairs; generic 0.76 mm   (smallest possible p: 2.4e-07)
+          llm_claude - generic               -0.00 mm  [  -0.01,   +0.01]   p = 0.0516   pairs won 18 /  5
+              lookup - generic               -0.00 mm  [  -0.01,   -0.00]   p = 0.0001   pairs won 22 /  1
+
