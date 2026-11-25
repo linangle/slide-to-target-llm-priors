@@ -1,0 +1,158 @@
+{
+  "version": "pair_set_v1",
+  "pairs": [
+    "Y01",
+    "Y02",
+    "Y03"
+  ],
+  "truth_files": [
+    "ground_truth_handbook.csv",
+    "ground_truth_published.csv"
+  ],
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "slides": [
+    0,
+    1,
+    2
+  ],
+  "targets": [
+    0.6,
+    0.77,
+    0.94
+  ],
+  "targets_rule": "arm.target_grid: x0 + 5 cm to the reach of mu = 0.26 (the highest in the set) at 90% of the cap",
+  "x0": 0.55,
+  "peak_cap": 1.019,
+  "practice_peak": 1.01,
+  "jerk": 100.0,
+  "arm": {
+    "layout": "side",
+    "base": [
+      0.6,
+      0.65,
+      0.0
+    ],
+    "brake_cap": 12.0,
+    "checked_limits": [
+      "q",
+      "v",
+      "tau"
+    ],
+    "peak_cap_rule": "arm.limited_peak_speed within v/tau limits, floored to the mm/s",
+    "practice_rule": "decide.practice_speed: on the board for the generic prior's 5% quantile, at most the cap",
+    "targets_rule": "given",
+    "clip_unreachable": false
+  },
+  "grid_points": 2000,
+  "generic_median": 0.2966479394838265,
+  "generic_log_sd": 0.7967392299126166,
+  "noise": "nominal (2 mm frames, 0.5 mm rest and release points)",
+  "loss": "decide.loss_sq_rel (the planner's default)",
+  "llm": {
+    "gpt": {
+      "cache": "llm_cache_published_pilot.json",
+      "model": "gpt-5.4-mini-2026-03-17",
+      "read": "raw approximate lognormal, uncalibrated"
+    },
+    "claude": {
+      "cache": "llm_standin_claude_haiku.json",
+      "model": "Claude Haiku (Claude Code subagent, model alias 'haiku', asked 17 Nov 2026)",
+      "read": "raw approximate lognormal, uncalibrated"
+    }
+  },
+  "llm_answers": {
+    "Y01:gpt": {
+      "median": 0.28,
+      "low": 0.18,
+      "high": 0.42
+    },
+    "Y01:claude": {
+      "median": 0.35,
+      "low": 0.2,
+      "high": 0.5
+    },
+    "Y02:gpt": {
+      "median": 0.25,
+      "low": 0.15,
+      "high": 0.35
+    },
+    "Y02:claude": {
+      "median": 0.2,
+      "low": 0.12,
+      "high": 0.35
+    },
+    "Y03:gpt": {
+      "median": 0.25,
+      "low": 0.15,
+      "high": 0.4
+    },
+    "Y03:claude": {
+      "median": 0.4,
+      "low": 0.25,
+      "high": 0.6
+    }
+  },
+  "lookup": {
+    "Y01": {
+      "mu_tab": 0.24,
+      "s_tab_log": 0.668
+    },
+    "Y02": {
+      "mu_tab": 0.25,
+      "s_tab_log": 0.357
+    },
+    "Y03": {
+      "mu_tab": 0.22,
+      "s_tab_log": 0.668
+    }
+  },
+  "pair_info": {
+    "Y01": {
+      "mu": 0.14,
+      "object": "stainless steel block",
+      "surface": "ABS sheet",
+      "truth_file": "ground_truth_published.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A block with a stainless-steel contacting face\nTable surface: An ABS plastic sheet\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "Y02": {
+      "mu": 0.14,
+      "object": "stainless steel block",
+      "surface": "acetal (Delrin) sheet",
+      "truth_file": "ground_truth_published.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A block with a stainless-steel contacting face\nTable surface: An acetal (Delrin) sheet\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "Y03": {
+      "mu": 0.26,
+      "object": "stainless steel block",
+      "surface": "plywood sheet",
+      "truth_file": "ground_truth_published.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A block with a stainless-steel contacting face\nTable surface: A plywood sheet\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    }
+  },
+  "scored_shots": "Drake pushes; a push that does not release or breaks a planned joint limit is kept and flagged (valid = False)",
+  "sha256": {
+    "run_pair_set.py": "56e65e7516f8a4acecc4744abee61dedbb440f3e7d03110381b3b2be4f55eb22",
+    "run_arm_evaluation.py": "17870f7fabdb1d505ba9904e6abf67c645113a7384035dcbed0e608d7fd72c5d",
+    "run_arm_comparison_v2.py": "3ee713d49b2f874df0de2f46260067ed05dad6db8b9101e6cbf0c2e2b230166e",
+    "demo_published_comparison.py": "abff829eb6a959e3a414e2032ef70aa8d344bcf9a3a4dbd462175d8f595415c0",
+    "llm_prior.py": "858bd509e40d5b452af2f3d3a68af5fe7e49a7bf1df9b17aee69a5a47d6f9811",
+    "belief.py": "b76d1bde130711f426c215f015d8a9622448b35bb57b346e1bfb469091fd1b07",
+    "observe.py": "ce39255dfb94ca418da03099f7d26491f1b826a31cc456cf9d43bf83f84b3086",
+    "decide.py": "9318ea051641c8103214ccb26c9a45bf777e44442ee5719a89feafe215e6e932",
+    "arm.py": "2e37c9656533c61d3289deee22882930fd7c857523218970842cb4acec2db579",
+    "push.py": "b38feb819772916c96dd26debab83be81ed3d658fe7c5e19a52588f9bc0f73bd",
+    "physics.py": "4e0ff5c8e385a7914a57301f636db2f5e5e2eb58b4d3f1c650e9edf253c7476a",
+    "scene.py": "0c772f137f8e9a42b96fdda1c6d8747b7ddb2552c2245a9dd7bdc430f044cd47",
+    "drake_config.py": "eaa97bbf66e840d00a619df452c98afd1a10e4197cbe81f09c20a66648e34443",
+    "sim_config.yaml": "b3717b7334bae1785a2fc6c94740a592511d14467d60f7a526a7b8d9a26fc76c",
+    "friction_lookup.csv": "d00ee8c93524cd0aa688728e85fac6646091e989750bdbe18256da42a7c6723f",
+    "ground_truth_handbook.csv": "62a04b202572a55266912a2181910906908d5936308df562d74f133e921eea1b",
+    "ground_truth_published.csv": "f438d40b54b0423b442d7163dbfe3b33f1aa21896c527fc82eb0c3fc59ac6cbf",
+    "llm_cache_published_pilot.json": "d4e10fdb46241f0053f40821a652f9b4d11a344d4af33bf66c6a7297d2fd61a6",
+    "llm_standin_claude_haiku.json": "bca8234e739ba7283074174a07eef08ebe21c4caac1bdb2b22ce6e99988dbfab"
+  }
+}

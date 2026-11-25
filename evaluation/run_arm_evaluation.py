@@ -17,6 +17,13 @@ pooled with the v3 checks.
   --layout side|origin   where the iiwa stands (arm.LAYOUTS), or --base-x/--base-y
   --a-brake 4            cap on the paddle's braking deceleration, m/s^2 (default 12)
   --check-accel          also require the planned joint accelerations within the SDF limits
+  --check-release        also require that the object left the paddle while the paddle was still
+                         moving (released(), 21 Nov). A brake of a m/s^2 cannot release where friction
+                         is above a/g (6 m/s^2: 0.61): the object then rides the paddle to its stop,
+                         which the standing check passes whenever the two end up apart
+  --posture limits       the arm chooses its start posture for speed, torque and acceleration
+                         together (arm.POSTURES, 19 Nov; default: by joint speed, as before).
+                         With --a-brake 6 --check-accel the cap is about 1.14 m/s
   --peak-cap auto        the layout's fastest push within the checked joint limits
                          (arm.limited_peak_speed) instead of a hand-set number
   --practice-peak auto   the fastest practice push, at most the cap, that keeps the slide
@@ -114,12 +121,15 @@ def arm_setup(args, truth, generic_post):
         base = layout_base(layout)
     a_brake = getattr(args,'a_brake',None)
     check = ('q','v','tau','a') if getattr(args,'check_accel',False) else ('q','v','tau')
+    posture = getattr(args,'posture',None)      # None: the arm's default ('speed'); 'limits' since 19 Nov (arm.POSTURES)
+    release = bool(getattr(args,'check_release',False))      # off: validity as in every run before 21 Nov
     cap = getattr(args,'peak_cap',V3_CAP)
     cap_rule = 'fixed'
     if cap == 'auto':
         from arm import limited_peak_speed
         which = tuple(k for k in check if k != 'q')
-        cap = math.floor(1000*limited_peak_speed(JERK,X0,which=which,base=tuple(base or BASE),a_max=a_brake or A_BRAKE))/1000
+        cap = math.floor(1000*limited_peak_speed(JERK,X0,which=which,base=tuple(base or BASE),a_max=a_brake or A_BRAKE,
+                                                 **({} if posture is None else {'posture':posture})))/1000
         cap_rule = f"arm.limited_peak_speed within {'/'.join(which)} limits, floored to the mm/s"
         if cap <= 0:
             raise ValueError('No push is within the checked joint limits for this layout and brake cap')
@@ -143,20 +153,34 @@ def arm_setup(args, truth, generic_post):
     if base is not None: options['base'] = tuple(base)
     if a_brake is not None: options['a_brake'] = float(a_brake)
     if check != ('q','v','tau'): options['check'] = check
+    if posture is not None: options['posture'] = posture
+    if release: options['require_release'] = True
     record = dict(layout=layout or ('custom' if base is not None else 'origin'),base=list(base or BASE),
                   brake_cap=float(a_brake or A_BRAKE),checked_limits=list(check),peak_cap_rule=cap_rule,
                   practice_rule=practice_rule,targets_rule=targets_rule,
                   clip_unreachable=bool(getattr(args,'clip_unreachable',False)))
+    if posture is not None: record['posture'] = posture      # absent in runs before 19 Nov and in runs with the arm's default
+    if release: record['release_check'] = 'contact force zero before the commanded stop'      # absent when the test is off
     is_v3 = (not options and cap == V3_CAP and practice == V3_CAP and record['peak_cap_rule'] == 'fixed'
              and targets_rule == 'given' and not record['clip_unreachable'])
     return dict(cap=cap,practice=practice,targets=targets,options=options,record=record,
                 version=VERSION if is_v3 else VERSION_LAYOUT)
 
 
-def checked_execute(mu,u,**options):
+def released(result):
+    """True if the object left the paddle while the paddle was still moving: the paddle-object contact force reached zero
+    before the commanded stop.  result['separated'] only says the two are apart at the end of the simulation, which also
+    holds for an object that was carried to the paddle's stop.  That happens when the paddle brakes on friction above
+    a_brake / g: friction then slows the object faster than the paddle brakes, so the paddle keeps pushing it."""
+    return bool(result['separated']) and float(result['t_force_zero']) < float(result['t_stop'])
+
+
+def checked_execute(mu,u,require_release=False,**options):
     r,p,limits,valid = execute(mu,u,**options)
     valid = bool(valid and all(math.isfinite(float(r[k])) for k in ('x_rest','y_rest'))
                  and all(math.isfinite(v) for v in limits.values()))
+    if require_release:
+        valid = bool(valid and released(r))
     return r,p,limits,valid
 
 
@@ -305,6 +329,9 @@ def main():
     p.add_argument('--base-x',type=float,default=None);p.add_argument('--base-y',type=float,default=None)
     p.add_argument('--a-brake',type=float,default=None,help='brake cap in m/s^2 (default: the arm\'s 12)')
     p.add_argument('--check-accel',action='store_true')
+    p.add_argument('--check-release',action='store_true',help='a push is valid only if the object left the paddle before the paddle stopped')
+    p.add_argument('--posture',choices=['speed','limits'],default=None,
+                   help="how the arm chooses its start posture (default: the arm's, speed); limits = for speed, torque and acceleration together")
     p.add_argument('--peak-cap',default=None,help="m/s, or 'auto' (the default)")
     p.add_argument('--practice-peak',default=None,help="m/s, or 'auto' (the default)")
     p.add_argument('--clip-unreachable',action='store_true')

@@ -1,0 +1,43 @@
+patchy table: 3 pairs (Y01/Y02/Y03), 16 boards per pair and strip spread, strips of 2 in; cap 1.019 m/s, targets [0.6, 0.77, 0.94] m, nominal noise
+strip spread: SD of ln mu from strip to strip (Yu et al.'s spatial SD for these pairs: 0.11-0.25).  mean |miss|, mm, as generic / lookup / LLM
+
+strip spread |          no practice  oracle (nominal mu) |     1 slide at 1.01 m/s, unaware |      1 slide at 0.7 m/s, unaware
+           0 |   39.8 / 41.3 / 48.4                  0.3 |                  0.8 / 0.8 / 0.7 |                  0.6 / 0.7 / 0.6
+        0.06 |   40.6 / 40.9 / 47.9                  2.7 |                  4.0 / 4.0 / 4.0 |                  3.5 / 3.5 / 3.5
+        0.12 |   41.5 / 40.4 / 47.3                  5.5 |                  8.0 / 7.9 / 7.9 |                  5.9 / 5.8 / 5.8
+        0.25 |   44.2 / 39.0 / 45.9                 11.9 |               16.5 / 16.6 / 16.6 |               11.8 / 11.8 / 11.7
+
+the transition model: ln(friction the shot met / practice estimate), over boards, pairs and targets.  The identity transition says 0, to within about 0.006
+strip spread |     practice at 1.01 m/s: mean, SD |      practice at 0.7 m/s: mean, SD
+           0 |                      -0.004, 0.008 |                      -0.001, 0.007
+        0.06 |                      +0.005, 0.047 |                      -0.011, 0.049
+        0.12 |                      +0.010, 0.093 |                      -0.013, 0.088
+        0.25 |                      +0.020, 0.197 |                      -0.025, 0.177
+
+telling the belief that friction differs between the practice slide and the shot (mean |miss|, mm, generic / lookup / LLM; shots apart, mm)
+strip spread  practice |                        unaware |                  told: 1.4x measured |                told: measured spread |         told: strip spread per slide
+        0.06      1.01 |           4.0 / 4.0 / 4.0; 0.2 |                 3.8 / 4.0 / 4.1; 1.7 |                 4.0 / 3.9 / 4.0; 1.1 |                 4.0 / 4.1 / 4.2; 2.4
+        0.06       0.7 |           3.5 / 3.5 / 3.5; 0.5 |                 3.3 / 3.6 / 3.8; 2.0 |                 3.4 / 3.5 / 3.6; 1.2 |                 3.3 / 3.5 / 4.0; 2.7
+        0.12      1.01 |           8.0 / 7.9 / 7.9; 0.2 |                 8.0 / 8.0 / 8.2; 5.3 |                 7.8 / 7.9 / 7.9; 3.0 |                 8.2 / 8.1 / 9.2; 8.3
+        0.12       0.7 |           5.9 / 5.8 / 5.8; 0.6 |                 5.7 / 5.9 / 7.0; 5.0 |                 5.7 / 5.9 / 6.2; 2.9 |                 5.7 / 6.0 / 8.8; 8.5
+        0.25      1.01 |        16.5 / 16.6 / 16.6; 0.1 |             17.0 / 16.7 / 17.8; 16.5 |              16.4 / 16.5 / 16.2; 9.9 |             18.6 / 17.6 / 19.9; 22.1
+        0.25       0.7 |        11.8 / 11.8 / 11.7; 0.6 |             11.6 / 11.4 / 15.2; 15.3 |              11.4 / 11.4 / 12.8; 9.1 |             13.9 / 11.7 / 18.1; 23.0
+
+is the belief honest?  share of shots whose friction lies inside the belief's 90% interval after one practice slide (generic prior; lognormal read: median, SD of ln mu)
+strip spread  practice |                        unaware |            told: 1.4x measured |          told: measured spread |   told: strip spread per slide
+           0      1.01 |                           100% |                              - |                              - |                              -
+           0       0.7 |                           100% |                              - |                              - |                              -
+        0.06      1.01 |                            19% |                            98% |                            92% |                           100%
+        0.06       0.7 |                            58% |                            98% |                            91% |                           100%
+        0.12      1.01 |                            12% |                            98% |                            92% |                           100%
+        0.12       0.7 |                            38% |                            98% |                            88% |                           100%
+        0.25      1.01 |                             8% |                            97% |                            92% |                           100%
+        0.25       0.7 |                            21% |                            97% |                            88% |                           100%
+
+by pair, one practice slide at the default speed, unaware (mean |miss|, mm, the three methods together) against the oracle's on the same boards
+   strip spread 0: Y01 0.5 (oracle 0.3); Y02 0.5 (oracle 0.3); Y03 1.2 (oracle 0.1)
+   strip spread 0.06: Y01 5.2 (oracle 3.2); Y02 4.1 (oracle 2.8); Y03 2.7 (oracle 2.1)
+   strip spread 0.12: Y01 10.9 (oracle 6.6); Y02 8.1 (oracle 5.6); Y03 4.7 (oracle 4.3)
+   strip spread 0.25: Y01 23.0 (oracle 15.0); Y02 16.9 (oracle 11.9); Y03 9.8 (oracle 8.7)
+
+12186 scored shots, 0 flagged invalid

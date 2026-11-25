@@ -1,0 +1,345 @@
+{
+  "study": "patchy table: practice aimed at the shot's own target, on the pair set of run_pair_set.py",
+  "pairs": [
+    "L01",
+    "L02",
+    "L03",
+    "L04",
+    "L05",
+    "L06",
+    "L07",
+    "L08",
+    "L09",
+    "L10",
+    "L11",
+    "L12",
+    "L13",
+    "L14",
+    "L15",
+    "L16",
+    "L17",
+    "L18",
+    "L19",
+    "L20",
+    "Y01",
+    "Y02",
+    "Y03"
+  ],
+  "pair_info": {
+    "L01": {
+      "mu": 0.42,
+      "object": "hard steel block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L02": {
+      "mu": 0.47,
+      "object": "aluminium block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L03": {
+      "mu": 0.36,
+      "object": "copper block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L04": {
+      "mu": 0.44,
+      "object": "brass block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L05": {
+      "mu": 0.35,
+      "object": "phenolic laminate block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L06": {
+      "mu": 0.25,
+      "object": "acetal (POM) block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L07": {
+      "mu": 0.27,
+      "object": "nylon 6/6 block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L08": {
+      "mu": 0.14,
+      "object": "UHMW-PE block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L09": {
+      "mu": 0.21,
+      "object": "zinc block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L10": {
+      "mu": 0.29,
+      "object": "copper block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L11": {
+      "mu": 0.3,
+      "object": "brass block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L12": {
+      "mu": 0.25,
+      "object": "magnesium block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L13": {
+      "mu": 0.22,
+      "object": "bronze block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L14": {
+      "mu": 0.23,
+      "object": "mild steel block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L15": {
+      "mu": 0.15,
+      "object": "cast iron block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L16": {
+      "mu": 0.49,
+      "object": "oak block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L17": {
+      "mu": 0.48,
+      "object": "oak block, grain parallel",
+      "surface": "oak board",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L18": {
+      "mu": 0.32,
+      "object": "oak block, grain perpendicular",
+      "surface": "oak board",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L19": {
+      "mu": 0.4,
+      "object": "glass block",
+      "surface": "glass plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "L20": {
+      "mu": 0.18,
+      "object": "graphite block",
+      "surface": "glass plate",
+      "truth_file": "ground_truth_handbook.csv"
+    },
+    "Y01": {
+      "mu": 0.14,
+      "object": "stainless steel block",
+      "surface": "ABS sheet",
+      "truth_file": "ground_truth_published.csv"
+    },
+    "Y02": {
+      "mu": 0.14,
+      "object": "stainless steel block",
+      "surface": "acetal (Delrin) sheet",
+      "truth_file": "ground_truth_published.csv"
+    },
+    "Y03": {
+      "mu": 0.26,
+      "object": "stainless steel block",
+      "surface": "plywood sheet",
+      "truth_file": "ground_truth_published.csv"
+    }
+  },
+  "answers": {
+    "L01": {
+      "median": 0.45,
+      "low": 0.3,
+      "high": 0.65,
+      "lookup": 0.42
+    },
+    "L02": {
+      "median": 0.6,
+      "low": 0.4,
+      "high": 0.8,
+      "lookup": 0.47
+    },
+    "L03": {
+      "median": 0.36,
+      "low": 0.2,
+      "high": 0.6,
+      "lookup": 0.36
+    },
+    "L04": {
+      "median": 0.4,
+      "low": 0.25,
+      "high": 0.55,
+      "lookup": 0.44
+    },
+    "L05": {
+      "median": 0.3,
+      "low": 0.2,
+      "high": 0.42,
+      "lookup": 0.35
+    },
+    "L06": {
+      "median": 0.25,
+      "low": 0.15,
+      "high": 0.38,
+      "lookup": 0.25
+    },
+    "L07": {
+      "median": 0.35,
+      "low": 0.2,
+      "high": 0.5,
+      "lookup": 0.27
+    },
+    "L08": {
+      "median": 0.18,
+      "low": 0.1,
+      "high": 0.28,
+      "lookup": 0.14
+    },
+    "L09": {
+      "median": 0.33,
+      "low": 0.18,
+      "high": 0.5,
+      "lookup": 0.21
+    },
+    "L10": {
+      "median": 0.36,
+      "low": 0.2,
+      "high": 0.6,
+      "lookup": 0.29
+    },
+    "L11": {
+      "median": 0.3,
+      "low": 0.18,
+      "high": 0.45,
+      "lookup": 0.3
+    },
+    "L12": {
+      "median": 0.4,
+      "low": 0.25,
+      "high": 0.6,
+      "lookup": 0.25
+    },
+    "L13": {
+      "median": 0.25,
+      "low": 0.15,
+      "high": 0.38,
+      "lookup": 0.22
+    },
+    "L14": {
+      "median": 0.35,
+      "low": 0.2,
+      "high": 0.5,
+      "lookup": 0.23
+    },
+    "L15": {
+      "median": 0.4,
+      "low": 0.25,
+      "high": 0.6,
+      "lookup": 0.15
+    },
+    "L16": {
+      "median": 0.35,
+      "low": 0.2,
+      "high": 0.5,
+      "lookup": 0.49
+    },
+    "L17": {
+      "median": 0.35,
+      "low": 0.2,
+      "high": 0.5,
+      "lookup": 0.48
+    },
+    "L18": {
+      "median": 0.35,
+      "low": 0.22,
+      "high": 0.5,
+      "lookup": 0.32
+    },
+    "L19": {
+      "median": 0.45,
+      "low": 0.25,
+      "high": 0.9,
+      "lookup": 0.4
+    },
+    "L20": {
+      "median": 0.25,
+      "low": 0.1,
+      "high": 0.5,
+      "lookup": 0.18
+    },
+    "Y01": {
+      "median": 0.35,
+      "low": 0.2,
+      "high": 0.5,
+      "lookup": 0.24
+    },
+    "Y02": {
+      "median": 0.2,
+      "low": 0.12,
+      "high": 0.35,
+      "lookup": 0.25
+    },
+    "Y03": {
+      "median": 0.4,
+      "low": 0.25,
+      "high": 0.6,
+      "lookup": 0.22
+    }
+  },
+  "llm": {
+    "name": "claude",
+    "cache": "llm_standin_claude_haiku.json",
+    "model": "Claude Haiku (Claude Code subagent, model alias 'haiku', asked 17 Nov 2026)"
+  },
+  "methods": [
+    "generic",
+    "lookup",
+    "llm_claude",
+    "generic@claude"
+  ],
+  "strip_sd": [
+    0.0,
+    0.12,
+    0.25
+  ],
+  "boards_per_pair": 8,
+  "peak_cap": 1.019,
+  "targets": [
+    0.6,
+    0.735,
+    0.87
+  ],
+  "fixed_practice": [
+    1.01,
+    0.7
+  ],
+  "noise": "nominal",
+  "grid_points": 2000,
+  "attempts": [
+    "none",
+    "1 aimed slide",
+    "2 aimed slides",
+    "2 aimed slides, last only"
+  ],
+  "board_seeds": "set_seed: the Y pairs' boards are the saved run's first boards",
+  "reference": "generic prior after one fixed-speed practice slide, and the plan with the pair's nominal friction (oracle), same boards"
+}

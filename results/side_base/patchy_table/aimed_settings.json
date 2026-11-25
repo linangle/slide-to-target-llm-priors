@@ -1,0 +1,13 @@
+{
+  "study": "patchy table: practice aimed at the shot's own target",
+  "boards": "those of settings.json",
+  "noise": "nominal",
+  "rule": "attempt 1 = the method's first shot at the target, observed as a practice slide; attempt 2 planned from it; attempt 3 from both slides (identity transition) or from the second alone",
+  "inference": "belief.update_with_slides",
+  "attempts": [
+    "none",
+    "1 aimed slide",
+    "2 aimed slides",
+    "2 aimed slides, last only"
+  ]
+}

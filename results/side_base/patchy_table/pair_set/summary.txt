@@ -1,0 +1,185 @@
+practice aimed at the shot's own target, pair set: 23 pairs (friction 0.14-0.49), 8 boards per pair and strip spread (one at spread 0); targets [0.6, 0.735, 0.87] m, cap 1.019 m/s, nominal noise; LLM claude = Claude Haiku (Claude Code subagent, model alias 'haiku', asked 17 Nov 2026)
+generic@claude: the generic prior's median with the LLM's interval width, pair by pair.  On the handbook pairs the lookup table holds the simulator's friction.
+mean |miss|, mm.  apart: how far apart the methods' shots land.  reference rows: generic prior after one fixed-speed slide; plan with the pair's nominal friction
+
+all 23 pairs
+strip spread                        rule |         generic          lookup      llm_claude  generic@claude |  apart
+           0                 no practice |            57.7             7.9            17.3            22.6 |   76.1
+           0               1 aimed slide |             6.3             2.6             2.2             2.9 |    9.5
+           0              2 aimed slides |             4.6             1.8             1.6             2.4 |    7.1
+           0   2 aimed slides, last only |             4.6             2.1             2.3             3.0 |    8.0
+                               reference | fixed 1.01 m/s 0.9; fixed 0.7 m/s 2.9; nominal plan 0.2
+        0.12                 no practice |            57.7             8.6            17.5            22.6 |   76.2
+        0.12               1 aimed slide |             7.3             3.0             3.8             4.1 |   12.1
+        0.12              2 aimed slides |             4.4             2.4             3.0             3.1 |    7.7
+        0.12   2 aimed slides, last only |             5.0             2.9             3.1             3.7 |    8.5
+                               reference | fixed 1.01 m/s 5.2; fixed 0.7 m/s 4.5; nominal plan 3.6
+        0.25                 no practice |            58.0            11.0            18.4            23.2 |   75.9
+        0.25               1 aimed slide |            10.1             4.4             5.5             6.1 |   16.8
+        0.25              2 aimed slides |             6.0             3.8             4.6             4.8 |    9.7
+        0.25   2 aimed slides, last only |             6.8             4.4             4.5             5.0 |   10.2
+                               reference | fixed 1.01 m/s 10.1; fixed 0.7 m/s 7.8; nominal plan 7.3
+
+the 20 handbook pairs
+strip spread                        rule |         generic          lookup      llm_claude  generic@claude |  apart
+           0                 no practice |            61.3             3.9            13.7            19.5 |   74.3
+           0               1 aimed slide |             6.6             2.4             2.2             3.0 |    9.6
+           0              2 aimed slides |             4.9             1.6             1.6             2.4 |    7.3
+           0   2 aimed slides, last only |             5.0             2.1             2.3             2.9 |    8.2
+                               reference | fixed 1.01 m/s 1.0; fixed 0.7 m/s 3.3; nominal plan 0.2
+        0.12                 no practice |            61.2             4.8            14.1            19.7 |   74.4
+        0.12               1 aimed slide |             7.8             2.6             3.5             4.0 |   12.1
+        0.12              2 aimed slides |             4.7             2.2             2.8             2.9 |    7.8
+        0.12   2 aimed slides, last only |             5.2             2.8             3.0             3.6 |    8.8
+                               reference | fixed 1.01 m/s 5.0; fixed 0.7 m/s 4.5; nominal plan 3.5
+        0.25                 no practice |            61.4             7.7            15.4            20.5 |   74.2
+        0.25               1 aimed slide |            10.7             3.6             5.0             5.6 |   16.4
+        0.25              2 aimed slides |             6.3             3.4             4.2             4.3 |    9.6
+        0.25   2 aimed slides, last only |             7.0             4.2             4.3             4.8 |   10.3
+                               reference | fixed 1.01 m/s 9.7; fixed 0.7 m/s 7.6; nominal plan 7.0
+
+the other 3 pairs (Y01, Y02, Y03)
+strip spread                        rule |         generic          lookup      llm_claude  generic@claude |  apart
+           0                 no practice |            33.5            34.2            41.3            43.3 |   88.4
+           0               1 aimed slide |             4.4             4.3             2.3             2.6 |    8.7
+           0              2 aimed slides |             2.1             2.9             1.9             2.5 |    5.5
+           0   2 aimed slides, last only |             2.0             1.8             2.1             3.6 |    6.9
+                               reference | fixed 1.01 m/s 0.6; fixed 0.7 m/s 0.5; nominal plan 0.2
+        0.12                 no practice |            34.2            34.0            40.3            42.3 |   87.8
+        0.12               1 aimed slide |             4.3             5.7             5.7             4.9 |   12.0
+        0.12              2 aimed slides |             2.6             3.8             4.2             4.2 |    7.1
+        0.12   2 aimed slides, last only |             3.8             3.6             3.7             3.8 |    7.0
+                               reference | fixed 1.01 m/s 6.0; fixed 0.7 m/s 4.4; nominal plan 4.3
+        0.25                 no practice |            35.8            32.4            38.2            41.5 |   86.7
+        0.25               1 aimed slide |             6.6             9.8             9.4             9.0 |   19.2
+        0.25              2 aimed slides |             4.2             6.4             7.7             7.8 |   10.2
+        0.25   2 aimed slides, last only |             6.1             5.7             5.7             5.9 |    9.8
+                               reference | fixed 1.01 m/s 12.6; fixed 0.7 m/s 9.1; nominal plan 8.8
+
+paired by pair: difference in mean |miss|, mm, +/- its standard error over pairs (pairs on which the first is better / pairs).  negative: the first is better
+strip spread                        rule |         lookup - generic         llm_claude - generic       generic@claude - generic          llm_claude - generic@claude          lookup - generic@claude        llm_claude - lookup
+           0                 no practice |    -49.8 +/- 5.6 (21/23)        -40.4 +/- 7.7 (20/23)          -35.0 +/- 7.6 (19/23)                 -5.4 +/- 4.0 (15/23)            -14.8 +/- 3.9 (20/23)        +9.4 +/- 4.5 (8/23)
+           0               1 aimed slide |     -3.7 +/- 0.9 (17/23)         -4.1 +/- 0.7 (20/23)           -3.4 +/- 0.7 (19/23)                 -0.7 +/- 0.4 (16/23)             -0.3 +/- 0.5 (12/23)       -0.4 +/- 0.4 (15/23)
+           0              2 aimed slides |     -2.8 +/- 0.8 (19/23)         -3.0 +/- 0.6 (21/23)           -2.1 +/- 0.6 (15/23)                 -0.8 +/- 0.3 (18/23)             -0.7 +/- 0.3 (16/23)       -0.2 +/- 0.3 (14/23)
+           0   2 aimed slides, last only |     -2.5 +/- 0.6 (18/23)         -2.3 +/- 0.6 (20/23)           -1.6 +/- 0.7 (16/23)                 -0.7 +/- 0.4 (15/23)             -0.9 +/- 0.4 (14/23)       +0.2 +/- 0.3 (10/23)
+        0.12                 no practice |    -49.1 +/- 5.6 (21/23)        -40.2 +/- 7.7 (21/23)          -35.1 +/- 7.4 (19/23)                 -5.1 +/- 3.8 (15/23)            -14.0 +/- 3.8 (20/23)        +9.0 +/- 4.4 (9/23)
+        0.12               1 aimed slide |     -4.3 +/- 0.8 (20/23)         -3.6 +/- 0.8 (18/23)           -3.2 +/- 0.7 (18/23)                 -0.4 +/- 0.3 (12/23)             -1.1 +/- 0.3 (18/23)        +0.8 +/- 0.3 (8/23)
+        0.12              2 aimed slides |     -2.0 +/- 0.6 (18/23)         -1.5 +/- 0.6 (15/23)           -1.3 +/- 0.5 (14/23)                 -0.1 +/- 0.2 (10/23)             -0.7 +/- 0.2 (18/23)        +0.5 +/- 0.2 (7/23)
+        0.12   2 aimed slides, last only |     -2.1 +/- 0.5 (19/23)         -1.9 +/- 0.5 (19/23)           -1.3 +/- 0.4 (18/23)                 -0.6 +/- 0.2 (17/23)             -0.7 +/- 0.2 (19/23)        +0.2 +/- 0.1 (8/23)
+        0.25                 no practice |    -47.1 +/- 5.3 (21/23)        -39.7 +/- 7.4 (21/23)          -34.8 +/- 7.0 (19/23)                 -4.9 +/- 3.4 (15/23)            -12.3 +/- 3.5 (20/23)        +7.4 +/- 4.3 (8/23)
+        0.25               1 aimed slide |     -5.7 +/- 1.1 (21/23)         -4.6 +/- 1.2 (19/23)           -4.1 +/- 1.1 (19/23)                 -0.5 +/- 0.5 (13/23)             -1.6 +/- 0.5 (18/23)        +1.1 +/- 0.6 (8/23)
+        0.25              2 aimed slides |     -2.2 +/- 0.8 (18/23)         -1.4 +/- 0.9 (14/23)           -1.2 +/- 0.8 (12/23)                 -0.2 +/- 0.3 (11/23)             -1.0 +/- 0.3 (19/23)        +0.8 +/- 0.4 (8/23)
+        0.25   2 aimed slides, last only |     -2.5 +/- 0.6 (18/23)         -2.4 +/- 0.6 (20/23)           -1.9 +/- 0.5 (17/23)                 -0.5 +/- 0.2 (15/23)             -0.6 +/- 0.2 (15/23)        +0.1 +/- 0.2 (9/23)
+
+how near the medians are to the pair's friction, mean |ln(median / mu)|: claude 0.29, the generic median 0.34
+
+by target, all pairs: mean |miss|, mm, per method; last columns: the belief's SD of ln mu after one aimed slide, per method
+strip spread  target                        rule |         generic          lookup      llm_claude  generic@claude
+           0   0.6 m               1 aimed slide |             9.8             1.9             2.2             2.4 | 0.51 0.19 0.20 0.21
+           0   0.6 m              2 aimed slides |             7.8             1.4             1.5             2.3
+           0   0.6 m   2 aimed slides, last only |             7.9             1.2             1.9             2.7
+           0 0.735 m               1 aimed slide |             4.5             3.1             2.7             3.5 | 0.13 0.06 0.06 0.07
+           0 0.735 m              2 aimed slides |             3.1             1.7             1.9             2.7
+           0 0.735 m   2 aimed slides, last only |             3.3             2.0             3.0             3.7
+           0  0.87 m               1 aimed slide |             4.7             2.9             1.8             2.9 | 0.06 0.03 0.03 0.03
+           0  0.87 m              2 aimed slides |             2.8             2.2             1.4             2.4
+           0  0.87 m   2 aimed slides, last only |             2.6             3.0             2.1             2.5
+        0.12   0.6 m               1 aimed slide |             8.8             1.6             2.3             2.5 | 0.50 0.20 0.20 0.20
+        0.12   0.6 m              2 aimed slides |             7.2             1.5             2.1             2.4
+        0.12   0.6 m   2 aimed slides, last only |             7.8             1.6             2.4             2.9
+        0.12 0.735 m               1 aimed slide |             6.3             3.4             3.9             4.5 | 0.13 0.07 0.06 0.07
+        0.12 0.735 m              2 aimed slides |             3.0             2.4             2.8             3.1
+        0.12 0.735 m   2 aimed slides, last only |             3.4             2.8             3.0             3.8
+        0.12  0.87 m               1 aimed slide |             6.8             4.0             5.1             5.3 | 0.06 0.03 0.03 0.03
+        0.12  0.87 m              2 aimed slides |             3.1             3.4             4.0             3.8
+        0.12  0.87 m   2 aimed slides, last only |             3.8             4.3             4.0             4.3
+        0.25   0.6 m               1 aimed slide |             9.0             1.9             2.3             2.6 | 0.50 0.20 0.20 0.20
+        0.25   0.6 m              2 aimed slides |             7.7             1.7             1.9             2.5
+        0.25   0.6 m   2 aimed slides, last only |             8.1             1.9             2.5             3.1
+        0.25 0.735 m               1 aimed slide |             9.5             4.8             5.6             6.6 | 0.15 0.07 0.07 0.07
+        0.25 0.735 m              2 aimed slides |             4.7             3.7             4.3             4.7
+        0.25 0.735 m   2 aimed slides, last only |             5.4             3.9             3.8             4.7
+        0.25  0.87 m               1 aimed slide |            12.0             6.6             8.8             8.9 | 0.07 0.03 0.03 0.04
+        0.25  0.87 m              2 aimed slides |             5.7             6.1             7.6             7.2
+        0.25  0.87 m   2 aimed slides, last only |             7.0             7.4             7.1             7.2
+
+by pair, strip spread 0: mean |miss|, mm, after one aimed slide, then after two (generic / lookup / LLM / control)
+pair  object on surface                               mu  lookup    LLM median [90%] |            one aimed slide |           two aimed slides
+L01   hard steel block on mild steel plate          0.42    0.42   0.45 [0.30, 0.65] |     13.7 / 3.8 / 0.6 / 2.8 |      8.1 / 0.8 / 0.8 / 3.3
+L02   aluminium block on mild steel plate           0.47    0.47   0.60 [0.40, 0.80] |      9.1 / 1.6 / 2.2 / 7.6 |      7.8 / 0.9 / 1.2 / 4.0
+L03   copper block on mild steel plate              0.36    0.36   0.36 [0.20, 0.60] |      7.3 / 1.2 / 0.2 / 1.6 |      6.0 / 0.4 / 1.4 / 1.5
+L04   brass block on mild steel plate               0.44    0.44   0.40 [0.25, 0.55] |      7.5 / 1.7 / 1.9 / 4.0 |      8.3 / 0.6 / 1.4 / 1.9
+L05   phenolic laminate block on mild steel plate   0.35    0.35   0.30 [0.20, 0.42] |      1.7 / 1.0 / 0.7 / 2.3 |      2.5 / 2.0 / 1.0 / 1.8
+L06   acetal (POM) block on mild steel plate        0.25    0.25   0.25 [0.15, 0.38] |      1.8 / 4.4 / 1.9 / 1.5 |      3.9 / 3.8 / 1.2 / 0.9
+L07   nylon 6/6 block on mild steel plate           0.27    0.27   0.35 [0.20, 0.50] |      6.0 / 2.6 / 1.9 / 1.6 |      4.1 / 2.2 / 1.3 / 1.4
+L08   UHMW-PE block on mild steel plate             0.14    0.14   0.18 [0.10, 0.28] |      7.4 / 2.6 / 1.3 / 1.8 |      3.6 / 1.1 / 1.3 / 1.3
+L09   zinc block on cast iron plate                 0.21    0.21   0.33 [0.18, 0.50] |      5.2 / 2.5 / 2.1 / 2.6 |      1.5 / 2.1 / 1.1 / 4.1
+L10   copper block on cast iron plate               0.29    0.29   0.36 [0.20, 0.60] |     10.1 / 1.9 / 2.3 / 4.4 |      2.0 / 1.4 / 1.5 / 3.3
+L11   brass block on cast iron plate                0.30    0.30   0.30 [0.18, 0.45] |      2.6 / 3.1 / 3.0 / 3.1 |      4.5 / 2.1 / 2.1 / 1.6
+L12   magnesium block on cast iron plate            0.25    0.25   0.40 [0.25, 0.60] |      4.8 / 3.2 / 3.6 / 3.5 |      2.2 / 1.7 / 1.6 / 2.6
+L13   bronze block on cast iron plate               0.22    0.22   0.25 [0.15, 0.38] |      4.8 / 2.9 / 3.1 / 1.2 |      3.1 / 3.0 / 0.4 / 1.2
+L14   mild steel block on cast iron plate           0.23    0.23   0.35 [0.20, 0.50] |      2.0 / 1.2 / 1.9 / 2.1 |      4.1 / 1.5 / 1.0 / 2.3
+L15   cast iron block on cast iron plate            0.15    0.15   0.40 [0.25, 0.60] |      3.5 / 3.7 / 2.1 / 1.4 |      1.3 / 2.3 / 1.9 / 2.8
+L16   oak block on cast iron plate                  0.49    0.49   0.35 [0.20, 0.50] |      9.3 / 1.3 / 2.4 / 6.9 |      7.3 / 0.5 / 1.4 / 4.9
+L17   oak block, grain parallel on oak board        0.48    0.48   0.35 [0.20, 0.50] |     12.5 / 0.8 / 7.2 / 3.7 |     10.2 / 1.1 / 6.0 / 3.2
+L18   oak block, grain perpendicular on oak board   0.32    0.32   0.35 [0.22, 0.50] |     11.7 / 2.6 / 2.0 / 2.2 |     12.0 / 1.3 / 2.0 / 2.1
+L19   glass block on glass plate                    0.40    0.40   0.45 [0.25, 0.90] |      8.3 / 1.8 / 1.6 / 3.7 |      3.9 / 1.4 / 2.1 / 1.9
+L20   graphite block on glass plate                 0.18    0.18   0.25 [0.10, 0.50] |      3.3 / 3.8 / 2.0 / 1.7 |      2.4 / 1.9 / 0.6 / 2.8
+Y01   stainless steel block on ABS sheet            0.14    0.24   0.35 [0.20, 0.50] |      2.6 / 4.3 / 2.6 / 2.7 |      1.1 / 3.3 / 2.8 / 1.6
+Y02   stainless steel block on acetal (Delrin) she  0.14    0.25   0.20 [0.12, 0.35] |      5.8 / 3.1 / 2.0 / 2.0 |      2.2 / 1.7 / 1.7 / 2.5
+Y03   stainless steel block on plywood sheet        0.26    0.22   0.40 [0.25, 0.60] |      4.9 / 5.6 / 2.2 / 3.1 |      3.0 / 3.7 / 1.2 / 3.3
+
+by pair, strip spread 0.12: mean |miss|, mm, after one aimed slide, then after two (generic / lookup / LLM / control)
+pair  object on surface                               mu  lookup    LLM median [90%] |            one aimed slide |           two aimed slides
+L01   hard steel block on mild steel plate          0.42    0.42   0.45 [0.30, 0.65] |     10.2 / 2.1 / 2.2 / 3.5 |      6.7 / 1.7 / 2.1 / 3.0
+L02   aluminium block on mild steel plate           0.47    0.47   0.60 [0.40, 0.80] |     10.3 / 3.1 / 2.6 / 6.1 |      7.9 / 2.3 / 2.1 / 4.0
+L03   copper block on mild steel plate              0.36    0.36   0.36 [0.20, 0.60] |      7.8 / 2.4 / 2.6 / 3.2 |      4.1 / 1.9 / 2.8 / 1.5
+L04   brass block on mild steel plate               0.44    0.44   0.40 [0.25, 0.55] |     11.3 / 2.6 / 2.5 / 5.6 |      8.2 / 1.9 / 1.7 / 3.0
+L05   phenolic laminate block on mild steel plate   0.35    0.35   0.30 [0.20, 0.42] |      8.6 / 3.0 / 2.7 / 2.3 |      4.0 / 2.6 / 2.1 / 1.8
+L06   acetal (POM) block on mild steel plate        0.25    0.25   0.25 [0.15, 0.38] |      5.2 / 2.6 / 2.7 / 2.6 |      3.3 / 2.2 / 2.6 / 2.6
+L07   nylon 6/6 block on mild steel plate           0.27    0.27   0.35 [0.20, 0.50] |      6.8 / 3.3 / 3.2 / 2.8 |      3.1 / 1.8 / 2.6 / 1.6
+L08   UHMW-PE block on mild steel plate             0.14    0.14   0.18 [0.10, 0.28] |      4.4 / 3.6 / 3.2 / 6.7 |      3.4 / 3.9 / 2.8 / 4.4
+L09   zinc block on cast iron plate                 0.21    0.21   0.33 [0.18, 0.50] |      5.5 / 2.0 / 5.6 / 4.1 |      2.5 / 2.3 / 3.9 / 3.0
+L10   copper block on cast iron plate               0.29    0.29   0.36 [0.20, 0.60] |      6.8 / 3.3 / 3.6 / 3.2 |      3.0 / 2.3 / 2.8 / 2.5
+L11   brass block on cast iron plate                0.30    0.30   0.30 [0.18, 0.45] |      6.4 / 2.8 / 3.0 / 3.0 |      3.9 / 1.9 / 2.8 / 2.3
+L12   magnesium block on cast iron plate            0.25    0.25   0.40 [0.25, 0.60] |      5.2 / 3.2 / 6.1 / 3.4 |      3.0 / 2.5 / 4.5 / 2.9
+L13   bronze block on cast iron plate               0.22    0.22   0.25 [0.15, 0.38] |      4.8 / 2.0 / 4.1 / 4.9 |      3.3 / 2.7 / 2.9 / 3.8
+L14   mild steel block on cast iron plate           0.23    0.23   0.35 [0.20, 0.50] |      6.6 / 2.1 / 5.3 / 3.9 |      3.4 / 2.4 / 4.0 / 3.7
+L15   cast iron block on cast iron plate            0.15    0.15   0.40 [0.25, 0.60] |      4.1 / 2.8 / 5.9 / 5.1 |      2.0 / 1.9 / 4.8 / 3.6
+L16   oak block on cast iron plate                  0.49    0.49   0.35 [0.20, 0.50] |     14.6 / 1.9 / 3.3 / 5.2 |      8.5 / 1.6 / 2.1 / 3.6
+L17   oak block, grain parallel on oak board        0.48    0.48   0.35 [0.20, 0.50] |     12.2 / 2.0 / 3.5 / 4.3 |      9.6 / 1.9 / 2.5 / 3.1
+L18   oak block, grain perpendicular on oak board   0.32    0.32   0.35 [0.22, 0.50] |      9.3 / 2.7 / 2.0 / 3.2 |      4.9 / 2.2 / 1.9 / 2.6
+L19   glass block on glass plate                    0.40    0.40   0.45 [0.25, 0.90] |     10.4 / 2.1 / 2.4 / 3.7 |      6.7 / 1.5 / 1.9 / 3.0
+L20   graphite block on glass plate                 0.18    0.18   0.25 [0.10, 0.50] |      4.7 / 2.5 / 2.8 / 3.3 |      2.1 / 2.5 / 2.5 / 2.4
+Y01   stainless steel block on ABS sheet            0.14    0.24   0.35 [0.20, 0.50] |      3.5 / 5.0 / 7.1 / 6.3 |      2.1 / 3.7 / 5.2 / 4.8
+Y02   stainless steel block on acetal (Delrin) she  0.14    0.25   0.20 [0.12, 0.35] |      3.6 / 6.3 / 5.2 / 5.2 |      2.8 / 4.6 / 3.8 / 4.3
+Y03   stainless steel block on plywood sheet        0.26    0.22   0.40 [0.25, 0.60] |      5.7 / 5.9 / 4.8 / 3.1 |      3.1 / 3.2 / 3.7 / 3.4
+
+by pair, strip spread 0.25: mean |miss|, mm, after one aimed slide, then after two (generic / lookup / LLM / control)
+pair  object on surface                               mu  lookup    LLM median [90%] |            one aimed slide |           two aimed slides
+L01   hard steel block on mild steel plate          0.42    0.42   0.45 [0.30, 0.65] |     11.0 / 2.8 / 3.2 / 3.3 |      7.9 / 2.4 / 2.8 / 3.5
+L02   aluminium block on mild steel plate           0.47    0.47   0.60 [0.40, 0.80] |     10.4 / 3.8 / 3.1 / 6.0 |      8.7 / 3.0 / 2.4 / 3.7
+L03   copper block on mild steel plate              0.36    0.36   0.36 [0.20, 0.60] |      9.7 / 2.8 / 3.6 / 3.3 |      4.4 / 3.2 / 3.8 / 2.1
+L04   brass block on mild steel plate               0.44    0.44   0.40 [0.25, 0.55] |     18.6 / 4.2 / 3.3 / 7.8 |     13.4 / 3.2 / 2.5 / 4.2
+L05   phenolic laminate block on mild steel plate   0.35    0.35   0.30 [0.20, 0.42] |     11.7 / 4.4 / 3.6 / 3.1 |      4.6 / 3.9 / 3.1 / 2.6
+L06   acetal (POM) block on mild steel plate        0.25    0.25   0.25 [0.15, 0.38] |      7.1 / 2.7 / 3.3 / 3.9 |      3.3 / 2.5 / 3.2 / 3.4
+L07   nylon 6/6 block on mild steel plate           0.27    0.27   0.35 [0.20, 0.50] |     10.4 / 4.0 / 4.2 / 3.3 |      5.0 / 2.9 / 3.6 / 2.4
+L08   UHMW-PE block on mild steel plate             0.14    0.14   0.18 [0.10, 0.28] |     6.3 / 6.1 / 5.9 / 11.8 |      6.1 / 6.4 / 5.6 / 8.4
+L09   zinc block on cast iron plate                 0.21    0.21   0.33 [0.18, 0.50] |      8.6 / 2.9 / 8.8 / 6.5 |      4.1 / 3.2 / 6.5 / 4.7
+L10   copper block on cast iron plate               0.29    0.29   0.36 [0.20, 0.60] |     10.9 / 4.6 / 4.2 / 4.6 |      4.8 / 3.0 / 3.8 / 3.5
+L11   brass block on cast iron plate                0.30    0.30   0.30 [0.18, 0.45] |     10.5 / 3.0 / 4.0 / 3.7 |      4.9 / 2.8 / 3.7 / 3.3
+L12   magnesium block on cast iron plate            0.25    0.25   0.40 [0.25, 0.60] |      8.5 / 3.0 / 8.0 / 5.4 |      4.3 / 3.7 / 6.1 / 5.1
+L13   bronze block on cast iron plate               0.22    0.22   0.25 [0.15, 0.38] |      8.0 / 3.9 / 6.5 / 7.8 |      5.7 / 5.1 / 6.4 / 6.4
+L14   mild steel block on cast iron plate           0.23    0.23   0.35 [0.20, 0.50] |     10.2 / 5.3 / 8.9 / 6.8 |      4.6 / 5.0 / 7.1 / 6.2
+L15   cast iron block on cast iron plate            0.15    0.15   0.40 [0.25, 0.60] |     5.3 / 3.2 / 10.4 / 8.6 |      3.3 / 3.3 / 8.0 / 6.8
+L16   oak block on cast iron plate                  0.49    0.49   0.35 [0.20, 0.50] |     20.0 / 2.9 / 4.5 / 7.7 |     12.9 / 2.8 / 2.6 / 5.3
+L17   oak block, grain parallel on oak board        0.48    0.48   0.35 [0.20, 0.50] |     13.2 / 3.0 / 3.9 / 5.3 |     10.1 / 2.9 / 3.2 / 4.1
+L18   oak block, grain perpendicular on oak board   0.32    0.32   0.35 [0.22, 0.50] |     12.2 / 3.4 / 3.2 / 3.7 |      5.8 / 3.1 / 2.8 / 3.5
+L19   glass block on glass plate                    0.40    0.40   0.45 [0.25, 0.90] |     14.4 / 2.6 / 2.7 / 4.8 |      8.9 / 2.4 / 2.3 / 3.7
+L20   graphite block on glass plate                 0.18    0.18   0.25 [0.10, 0.50] |      6.4 / 3.7 / 3.8 / 5.0 |      3.0 / 3.6 / 3.6 / 4.2
+Y01   stainless steel block on ABS sheet            0.14    0.24   0.35 [0.20, 0.50] |    4.4 / 7.6 / 12.8 / 12.4 |     3.3 / 5.8 / 10.0 / 9.8
+Y02   stainless steel block on acetal (Delrin) she  0.14    0.25   0.20 [0.12, 0.35] |    4.9 / 11.7 / 7.8 / 10.3 |      4.7 / 8.8 / 6.4 / 8.6
+Y03   stainless steel block on plywood sheet        0.26    0.22   0.40 [0.25, 0.60] |     10.5 / 9.9 / 7.5 / 4.4 |      4.6 / 4.4 / 6.6 / 4.9
+
+22287 shots, 35 flagged invalid by the push check (generic 18, lookup 4, llm_claude 4, generic@claude 8)
+270 of 14076 shots after aimed practice were planned with a practice slide too short to observe, so from an unchanged belief (generic 177, lookup 27, llm_claude 30, generic@claude 36)

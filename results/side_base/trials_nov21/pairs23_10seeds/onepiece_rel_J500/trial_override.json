@@ -1,0 +1,10 @@
+{
+  "loss": "sq_rel (the runner's default)",
+  "jerk": 500.0,
+  "board": "one piece",
+  "start_gap": "1 mm",
+  "a_brake": 6.0,
+  "check_accel": true,
+  "posture": "limits",
+  "note": "set by evaluation/run_pair_set_trial.py from outside the runner, in each worker process; the cap, the practice speed and the targets are computed at J = 100; release_log.csv has a row per Drake push, in no fixed order"
+}

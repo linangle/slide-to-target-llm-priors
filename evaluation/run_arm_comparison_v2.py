@@ -45,17 +45,20 @@ def make_observation(result, pusher, rng):
     return Obs(ts, positions, rest, fk, .002, .0005, .0005)
 
 
-def execute(mu, speed, base=None, a_brake=None, check=('q', 'v', 'tau')):
+def execute(mu, speed, base=None, a_brake=None, check=('q', 'v', 'tau'), posture=None):
     """One arm push.  The defaults are the v2/v3 protocol: base at the origin, the arm's 12 m/s^2 brake cap, validity from
     the planned position, speed and feed-forward torque.  base / a_brake move the iiwa and soften the brake (the 16 Nov
     layout trial); add 'a' to `check` to require the planned joint accelerations within the SDF limits too.  The peak
-    acceleration fraction is always reported (maxima['a'])."""
+    acceleration fraction is always reported (maxima['a']).  posture='limits' has the arm choose its start posture for all
+    three limits (arm.POSTURES, 19 Nov); None is the arm's default, the choice by joint speed."""
     from arm import ArmPusher, joint_limit_report
     from push import push_slide
     from arm import LAYOUTS
     options = {'base': LAYOUTS['origin'] if base is None else tuple(base)}   # v2/v3 are defined at the origin, whatever the default layout
     if a_brake is not None:
         options['a_brake_max'] = float(a_brake)
+    if posture is not None:
+        options['posture'] = posture
     pusher = ArmPusher(**options)
     result = push_slide(mu, speed, 100.0, x0=.55, pusher=pusher, keep_traj=True)
     limits = joint_limit_report(pusher.traj)

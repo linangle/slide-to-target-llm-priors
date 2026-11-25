@@ -1,0 +1,71 @@
+Trial runs (evaluation/run_trial.py): loss, braking jerk, board, start gap; landing RMSE in mm
+
+striped_rel_J100: loss sq_rel (the runner's default); J 100; board 24 equal strips (as saved runs); start gap 1 mm; cap 1.019, practice 1.01, targets [0.6, 0.77, 0.94]; complete, 432 rows, invalid 0; scored pushes 0.261-0.912 m/s, acceleration at most 0.869 of the limit
+striped_sqabs_J100: loss sq_abs; J 100; board 24 equal strips (as saved runs); start gap 1 mm; cap 1.019, practice 1.01, targets [0.6, 0.77, 0.94]; complete, 432 rows, invalid 0; scored pushes 0.275-0.913 m/s, acceleration at most 0.869 of the limit
+striped_rel_J500: loss sq_rel (the runner's default); J 500; board 24 equal strips (as saved runs); start gap 1 mm; cap 1.019, practice 1.01, targets [0.6, 0.77, 0.94]; complete, 432 rows, invalid 0; scored pushes 0.269-0.935 m/s, acceleration at most 0.865 of the limit
+striped_sqabs_J500: loss sq_abs; J 500; board 24 equal strips (as saved runs); start gap 1 mm; cap 1.019, practice 1.01, targets [0.6, 0.77, 0.94]; complete, 432 rows, invalid 0; scored pushes 0.285-0.935 m/s, acceleration at most 0.865 of the limit
+onepiece_rel_J100: loss sq_rel (the runner's default); J 100; board one piece; start gap 1 mm; cap 1.019, practice 1.01, targets [0.6, 0.77, 0.94]; complete, 432 rows, invalid 0; scored pushes 0.261-0.911 m/s, acceleration at most 0.869 of the limit
+onepiece_sqabs_J100: loss sq_abs; J 100; board one piece; start gap 1 mm; cap 1.019, practice 1.01, targets [0.6, 0.77, 0.94]; complete, 432 rows, invalid 0; scored pushes 0.275-0.913 m/s, acceleration at most 0.869 of the limit
+onepiece_rel_J500: loss sq_rel (the runner's default); J 500; board one piece; start gap 1 mm; cap 1.019, practice 1.01, targets [0.6, 0.77, 0.94]; complete, 432 rows, invalid 0; scored pushes 0.269-0.935 m/s, acceleration at most 0.865 of the limit
+onepiece_sqabs_J500: loss sq_abs; J 500; board one piece; start gap 1 mm; cap 1.019, practice 1.01, targets [0.6, 0.77, 0.94]; complete, 432 rows, invalid 0; scored pushes 0.285-0.935 m/s, acceleration at most 0.865 of the limit
+onepiece_rel_J100_gap: loss sq_rel (the runner's default); J 100; board one piece; start gap uniform 0.5-3 mm per push, seed 7; planned for 1 mm; cap 1.019, practice 1.01, targets [0.6, 0.77, 0.94]; complete, 432 rows, invalid 0; scored pushes 0.261-0.911 m/s, acceleration at most 0.869 of the limit
+
+striped_rel_J100/results.csv is identical to results/side_base/evaluation/brake6_posture_limits_same_targets/results.csv
+
+Planar landing RMSE, nominal noise (the evaluator's score)
+run                             n=0 generic     n=0 lookup    n=0 llm_raw    n=1 generic     n=1 lookup    n=1 llm_raw    n=2 generic     n=2 lookup    n=2 llm_raw   oracle
+striped_rel_J100                      54.95          50.70          65.18           1.50           1.49           1.49           0.56           0.55           0.56     0.32
+striped_sqabs_J100                    34.60          54.62          67.08           1.50           1.48           1.49           0.56           0.57           0.57     0.32
+striped_rel_J500                      59.09          53.12          68.77           2.12           1.94           1.70           0.95           1.10           1.29     1.42
+striped_sqabs_J500                    37.02          57.93          72.55           2.11           1.90           1.68           0.95           1.02           1.26     1.42
+onepiece_rel_J100                     54.78          51.18          65.59           1.54           1.55           1.54           0.23           0.24           0.24     0.27
+onepiece_sqabs_J100                   34.63          54.67          67.49           1.54           1.54           1.54           0.23           0.24           0.24     0.27
+onepiece_rel_J500                     59.01          53.55          69.09           1.34           1.33           1.32           0.61           0.61           0.59     0.92
+onepiece_sqabs_J500                   37.12          58.83          72.81           1.33           1.33           1.31           0.61           0.61           0.59     0.92
+onepiece_rel_J100_gap                 55.66          51.16          64.84           2.38           2.11           1.71           1.27           1.28           0.67     1.45
+
+D4 (a): miss measured from the rest position on the board, along x, nominal noise
+run                             n=0 generic     n=0 lookup    n=0 llm_raw    n=1 generic     n=1 lookup    n=1 llm_raw    n=2 generic     n=2 lookup    n=2 llm_raw   oracle
+striped_rel_J100                      54.94          50.70          65.18           1.49           1.48           1.48           0.54           0.53           0.54     0.28
+striped_sqabs_J100                    34.60          54.62          67.08           1.49           1.48           1.48           0.54           0.54           0.54     0.28
+striped_rel_J500                      59.09          53.12          68.77           2.11           1.93           1.69           0.93           1.08           1.27     1.40
+striped_sqabs_J500                    37.02          57.93          72.55           2.10           1.89           1.67           0.93           1.00           1.24     1.40
+onepiece_rel_J100                     54.78          51.18          65.59           1.54           1.54           1.54           0.17           0.18           0.18     0.22
+onepiece_sqabs_J100                   34.63          54.67          67.49           1.53           1.53           1.53           0.17           0.18           0.18     0.22
+onepiece_rel_J500                     59.01          53.55          69.09           1.32           1.32           1.31           0.58           0.58           0.56     0.90
+onepiece_sqabs_J500                   37.12          58.83          72.81           1.32           1.31           1.30           0.58           0.58           0.56     0.90
+onepiece_rel_J100_gap                 55.66          51.16          64.84           2.37           2.10           1.70           1.26           1.27           0.65     1.44
+
+D4 (b): miss measured as the slide from the FK release point, nominal noise
+run                             n=0 generic     n=0 lookup    n=0 llm_raw    n=1 generic     n=1 lookup    n=1 llm_raw    n=2 generic     n=2 lookup    n=2 llm_raw   oracle
+striped_rel_J100                      54.92          50.70          65.20           1.47           1.46           1.47           0.55           0.54           0.55     0.26
+striped_sqabs_J100                    34.58          54.63          67.09           1.47           1.46           1.46           0.55           0.55           0.55     0.26
+striped_rel_J500                      59.07          53.12          68.78           2.10           1.92           1.68           0.92           1.07           1.26     1.39
+striped_sqabs_J500                    37.01          57.94          72.55           2.09           1.87           1.65           0.92           0.99           1.23     1.39
+onepiece_rel_J100                     54.75          51.18          65.60           1.52           1.52           1.52           0.17           0.18           0.18     0.20
+onepiece_sqabs_J100                   34.62          54.67          67.50           1.51           1.51           1.51           0.17           0.18           0.18     0.20
+onepiece_rel_J500                     59.00          53.55          69.10           1.31           1.30           1.29           0.58           0.57           0.56     0.88
+onepiece_sqabs_J500                   37.11          58.84          72.81           1.30           1.30           1.28           0.58           0.57           0.56     0.88
+onepiece_rel_J100_gap                 54.75          51.19          65.60           1.52           1.52           1.52           0.17           0.18           0.18     0.20
+
+Difference between the two measures, miss_slide - miss_rest, all rows (mm): mean, SD, largest
+striped_rel_J100             +0.028  0.008  0.040
+striped_sqabs_J100           +0.028  0.008  0.040
+striped_rel_J500             +0.018  0.007  0.031
+striped_sqabs_J500           +0.018  0.007  0.030
+onepiece_rel_J100            +0.028  0.008  0.040
+onepiece_sqabs_J100          +0.028  0.008  0.040
+onepiece_rel_J500            +0.018  0.007  0.031
+onepiece_sqabs_J500          +0.018  0.007  0.030
+onepiece_rel_J100_gap        +0.858  0.756  2.010
+
+Signed mean miss with no practice, rest position, nominal noise (mm): generic / lookup / LLM, by target
+striped_rel_J100             0.6 m: -8.2 / +4.3 / +8.4;  0.77 m: -39.5 / +17.2 / +39.6;  0.94 m: -72.1 / +30.1 / +70.6
+striped_sqabs_J100           0.6 m: -2.6 / +4.9 / +8.2;  0.77 m: -11.3 / +24.3 / +40.3;  0.94 m: -20.3 / +45.2 / +75.6
+striped_rel_J500             0.6 m: -10.0 / +3.5 / +9.0;  0.77 m: -43.6 / +15.4 / +40.5;  0.94 m: -76.9 / +27.1 / +72.9
+striped_sqabs_J500           0.6 m: -3.0 / +5.8 / +9.8;  0.77 m: -13.5 / +26.8 / +44.8;  0.94 m: -20.8 / +47.1 / +80.5
+onepiece_rel_J100            0.6 m: -8.2 / +4.3 / +8.4;  0.77 m: -39.5 / +17.7 / +39.6;  0.94 m: -71.6 / +30.7 / +71.3
+onepiece_sqabs_J100          0.6 m: -2.6 / +4.9 / +8.2;  0.77 m: -11.3 / +24.9 / +41.4;  0.94 m: -19.9 / +45.7 / +75.8
+onepiece_rel_J500            0.6 m: -10.0 / +3.5 / +9.1;  0.77 m: -43.4 / +15.7 / +41.0;  0.94 m: -76.9 / +27.9 / +73.2
+onepiece_sqabs_J500          0.6 m: -3.0 / +5.8 / +9.9;  0.77 m: -12.0 / +27.1 / +45.2;  0.94 m: -20.8 / +48.7 / +80.8
+onepiece_rel_J100_gap        0.6 m: -8.9 / +3.4 / +8.5;  0.77 m: -40.5 / +17.1 / +38.4;  0.94 m: -73.0 / +29.4 / +70.6

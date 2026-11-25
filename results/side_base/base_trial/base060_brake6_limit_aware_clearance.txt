@@ -1,0 +1,57 @@
+link clearances with the limit-aware posture choice (experiments/base_trial.py), one block per commanded speed
+
+base at (0.6, 0.65) m; push at 0.200 m/s, brake cap 6 m/s^2, stroke 22 mm (joint speed 0.24 x limit, joint 4)
+          above z=0, mm  to object, mm  to camera, mm
+link 0               -0            478            862
+link 1              148            502            884
+link 2              270            437            878
+link 3              205            370            922
+link 4              173            231            926
+link 5              153            165            952
+link 6               73             56            949
+link 7               91             53            953
+paddle                3              1            817
+lowest moving link: link 6, 73 mm above the board's plane; nearest to the object: link 7, 53 mm; nearest any link comes to the camera at (1.0, 0.0, 1.0): 817 mm
+base footprint: x 0.464..0.721 m, y 0.529..0.771 m: it clears the board's side edge (y = +0.50 m, board centred on y = -0.10 m) by 29 mm
+
+base at (0.6, 0.65) m; push at 0.500 m/s, brake cap 6 m/s^2, stroke 104 mm (joint speed 0.45 x limit, joint 4)
+          above z=0, mm  to object, mm  to camera, mm
+link 0               -0            478            862
+link 1              148            520            896
+link 2              274            398            841
+link 3              306            380            800
+link 4              221            238            869
+link 5               51             92            834
+link 6               63             60            863
+link 7               91             53            909
+paddle                3              1            817
+lowest moving link: link 5, 51 mm above the board's plane; nearest to the object: link 7, 53 mm; nearest any link comes to the camera at (1.0, 0.0, 1.0): 800 mm
+base footprint: x 0.464..0.721 m, y 0.529..0.771 m: it clears the board's side edge (y = +0.50 m, board centred on y = -0.10 m) by 29 mm
+
+base at (0.6, 0.65) m; push at 0.800 m/s, brake cap 6 m/s^2, stroke 246 mm (joint speed 0.65 x limit, joint 1)
+          above z=0, mm  to object, mm  to camera, mm
+link 0               -0            478            862
+link 1              148            516            891
+link 2              274            375            718
+link 3              327            354            566
+link 4              251            203            628
+link 5               54             94            610
+link 6               64             58            842
+link 7               91             53            854
+paddle                3              1            817
+lowest moving link: link 5, 54 mm above the board's plane; nearest to the object: link 7, 53 mm; nearest any link comes to the camera at (1.0, 0.0, 1.0): 566 mm
+base footprint: x 0.464..0.721 m, y 0.529..0.771 m: it clears the board's side edge (y = +0.50 m, board centred on y = -0.10 m) by 29 mm
+
+base at (0.6, 0.65) m; push at 1.100 m/s, brake cap 6 m/s^2, stroke 448 mm (joint speed 0.92 x limit, joint 1)
+          above z=0, mm  to object, mm  to camera, mm
+link 0               -0            478            862
+link 1              148            516            891
+link 2              274            375            624
+link 3              327            354            551
+link 4              251            203            607
+link 5               54             94            601
+link 6               64             58            812
+link 7               91             53            812
+paddle                3              1            817
+lowest moving link: link 5, 54 mm above the board's plane; nearest to the object: link 7, 53 mm; nearest any link comes to the camera at (1.0, 0.0, 1.0): 551 mm
+base footprint: x 0.464..0.721 m, y 0.529..0.771 m: it clears the board's side edge (y = +0.50 m, board centred on y = -0.10 m) by 29 mm

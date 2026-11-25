@@ -15,6 +15,7 @@ part and add the stated sensor/actuation spread on top (5 Nov decision on Tier B
     python3 experiments/e1_release_error.py              # 35 pushes, ~1 min -> results/side_base/e1_release_error.csv, _summary.txt
     python3 experiments/e1_release_error.py --layout origin --out results/e1/e1_release_error
     python3 experiments/e1_release_error.py --a-brake 4  # the soft brake (only friction below about 0.4 releases)
+    python3 experiments/e1_release_error.py --base-x 0.68 --base-y 0.65 --a-brake 6 --out results/side_base/base_trial/release_error_base068_brake6   # another base (18 Nov trial)
 """
 import argparse, csv, math, os
 from multiprocessing import Pool
@@ -24,7 +25,7 @@ from paths import RESULTS
 MUS = (0.1, 0.14, 0.2, 0.26, 0.3, 0.4, 0.5)
 SPEEDS = (0.3, 0.45, 0.6, 0.8, 1.0)
 J, X0 = 100.0, 0.55
-FIELDS = ["mu", "v_peak", "J", "base_x", "base_y", "a_brake", "v_r_model", "v_sep", "eps_v_pct", "x_r_model", "x_sep", "eps_x_release_mm",
+FIELDS = ["mu", "v_peak", "J", "base_x", "base_y", "a_brake", "posture", "v_r_model", "v_sep", "eps_v_pct", "x_r_model", "x_sep", "eps_x_release_mm",
           "x_rest_model", "x_rest", "landing_error_mm", "slide_err_pct", "fk_release_bias_mm", "lateral_miss_mm", "heading_deg",
           "track_rms_mm", "v_lim_frac", "tau_lim_frac", "a_lim_frac", "separated", "error"]
 
@@ -32,9 +33,9 @@ def run(job):
     from arm import ArmPusher, rest_x
     from physics import release_push_distance, release_speed
     from push import push_slide
-    mu, v, base, a_brake = job
-    pusher = ArmPusher(base=tuple(base), **({} if a_brake is None else {"a_brake_max": float(a_brake)}))
-    row = {"mu": mu, "v_peak": v, "J": J, "base_x": base[0], "base_y": base[1], "a_brake": pusher.a_brake_max, "error": ""}
+    mu, v, base, a_brake, posture = (*job, None)[:5]
+    pusher = ArmPusher(base=tuple(base), **({} if a_brake is None else {"a_brake_max": float(a_brake)}), **({} if posture is None else {"posture": posture}))
+    row = {"mu": mu, "v_peak": v, "J": J, "base_x": base[0], "base_y": base[1], "a_brake": pusher.a_brake_max, "posture": pusher.posture, "error": ""}
     try:
         r = push_slide(mu, v, J, pusher=pusher, x0=X0, keep_traj=False)
     except Exception as ex:
@@ -50,7 +51,8 @@ def run(job):
 
 def summarize(rows):
     ok = [r for r in rows if not r["error"] and r["separated"] and r["v_r_model"] > 0.05]
-    L = [f"arm execution error against the release model, base ({rows[0]['base_x']:g}, {rows[0]['base_y']:g}) m, J {J:g} m/s^3, brake cap {rows[0]['a_brake']:g} m/s^2",
+    L = [f"arm execution error against the release model, base ({rows[0]['base_x']:g}, {rows[0]['base_y']:g}) m, J {J:g} m/s^3, brake cap {rows[0]['a_brake']:g} m/s^2"
+         + (f", start posture chosen by {rows[0]['posture']}" if rows[0].get("posture") not in (None, "", "speed") else ""),
          "eps_v: release speed, % of the model's.  Rows mu, columns commanded peak speed (m/s).  * = over a joint speed or torque limit",
          f"{'mu':>5} | " + " ".join(f"{v:>8g}" for v in SPEEDS)]
     def cell(mu, v, key, fmt):
@@ -81,13 +83,19 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--layout", choices=["origin", "side"], default="side")
     ap.add_argument("--a-brake", type=float, default=None)
+    ap.add_argument("--posture", choices=["speed", "limits"], default=None, help="how the arm chooses its start posture (arm.POSTURES; default: speed)")
+    ap.add_argument("--base-x", type=float, default=None, help="iiwa base position along the push, m (with --base-y: overrides --layout; needs --out)")
+    ap.add_argument("--base-y", type=float, default=None, help="iiwa base offset from the push line along y, m")
     ap.add_argument("--workers", type=int, default=min(4, os.cpu_count() or 1))
     ap.add_argument("--out", default=None, help="path prefix (default results/side_base/e1_release_error, or results/e1/... for the origin)")
     a = ap.parse_args()
     from arm import layout_base
-    base = layout_base(a.layout)
-    out = a.out or str((RESULTS/"side_base" if a.layout == "side" else RESULTS/"e1")/"e1_release_error") + ("" if a.a_brake is None else f"_brake{a.a_brake:g}")
-    jobs = [(mu, v, base, a.a_brake) for mu in MUS for v in SPEEDS]
+    custom = a.base_x is not None or a.base_y is not None
+    if custom and a.out is None:
+        ap.error("--base-x/--base-y need an explicit --out")
+    base = layout_base((a.base_x or 0.0, a.base_y or 0.0, 0.0) if custom else a.layout)
+    out = a.out or str((RESULTS/"side_base" if a.layout == "side" else RESULTS/"e1")/"e1_release_error") + ("" if a.a_brake is None else f"_brake{a.a_brake:g}") + ("" if a.posture is None else f"_posture_{a.posture}")
+    jobs = [(mu, v, base, a.a_brake, a.posture) for mu in MUS for v in SPEEDS]
     with Pool(a.workers) as pool:
         rows = pool.map(run, jobs)
     for r in rows:

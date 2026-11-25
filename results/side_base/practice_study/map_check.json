@@ -1,0 +1,44 @@
+{
+  "Y01": {
+    "points": 97,
+    "u_min": 0.06,
+    "u_max": 1.019,
+    "baseline_vs_release_model_mm": [
+      -0.053,
+      -0.487
+    ],
+    "pushes_with_seam_loss": 32,
+    "seam_loss_rms_mm": 1.276,
+    "seam_loss_worst_mm": -7.532,
+    "seam_loss_worst_at": 1.0,
+    "seam_loss_rms_above_0p6_mm": 1.885
+  },
+  "Y02": {
+    "points": 97,
+    "u_min": 0.06,
+    "u_max": 1.019,
+    "baseline_vs_release_model_mm": [
+      -0.053,
+      -0.487
+    ],
+    "pushes_with_seam_loss": 32,
+    "seam_loss_rms_mm": 1.276,
+    "seam_loss_worst_mm": -7.532,
+    "seam_loss_worst_at": 1.0,
+    "seam_loss_rms_above_0p6_mm": 1.885
+  },
+  "Y03": {
+    "points": 95,
+    "u_min": 0.08,
+    "u_max": 1.019,
+    "baseline_vs_release_model_mm": [
+      -0.051,
+      -0.21
+    ],
+    "pushes_with_seam_loss": 16,
+    "seam_loss_rms_mm": 0.596,
+    "seam_loss_worst_mm": -4.061,
+    "seam_loss_worst_at": 0.94,
+    "seam_loss_rms_above_0p6_mm": 0.878
+  }
+}

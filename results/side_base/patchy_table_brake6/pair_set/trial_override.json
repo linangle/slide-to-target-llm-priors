@@ -1,0 +1,28 @@
+{
+  "a_brake": 6.0,
+  "check_accel": true,
+  "posture": "limits",
+  "peak_cap": 1.019,
+  "pairs": [
+    "L18",
+    "L05",
+    "L03",
+    "L19",
+    "L01",
+    "L04",
+    "L02",
+    "L17",
+    "L16",
+    "L10",
+    "Y03"
+  ],
+  "target_mu": 0.49,
+  "study_options": [
+    "--aimed-pairs",
+    "--set-out",
+    "results/side_base/patchy_table_brake6/pair_set",
+    "--procs",
+    "5"
+  ],
+  "note": "set by evaluation/run_patchy_trial.py from outside patchy_table_study.py; boards (seeds) are the saved study's"
+}

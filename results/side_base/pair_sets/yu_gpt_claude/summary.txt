@@ -1,0 +1,34 @@
+pair set: 3 pairs, friction 0.14-0.26; side base, cap 1.019 m/s, practice 1.01 m/s, targets [0.6, 0.77, 0.94] m; seeds [0, 1, 2]
+LLM: llm_gpt = gpt-5.4-mini-2026-03-17 (llm_cache_published_pilot.json); llm_claude = Claude Haiku (Claude Code subagent, model alias 'haiku', asked 17 Nov 2026) (llm_standin_claude_haiku.json)
+truth files: ground_truth_handbook.csv, ground_truth_published.csv.  On pairs from ground_truth_handbook.csv the lookup method holds the truth: a ceiling, not a competitor.
+
+before any practice, mean over the targets
+pair  object on surface                                 mu  lookup         gpt median [90%]      claude median [90%] | first shot |error|, mm:    generic     lookup    llm_gpt llm_claude
+Y01   stainless steel block on ABS sheet              0.14    0.24      0.28 [0.18, 0.42] x      0.35 [0.20, 0.50] x |                                23.6       31.6       73.0       96.1
+Y02   stainless steel block on acetal (Delrin) sheet  0.14    0.25      0.25 [0.15, 0.35] x      0.20 [0.12, 0.35]   |                                23.6       56.1       58.8       24.6
+Y03   stainless steel block on plywood sheet          0.26    0.22      0.25 [0.15, 0.40]        0.40 [0.25, 0.60]   |                                72.2       36.0       13.3       27.4
+   x: the truth is outside the LLM's stated 90% interval
+
+before any practice, by group: mean |error| mm (RMSE mm; mean |error| as % of the slide asked for)
+group                      pairs                    generic                     lookup                    llm_gpt                 llm_claude                     oracle
+all pairs                      3      39.8 (  54.8;  17.6%)      41.3 (  50.8;  18.3%)      48.4 (  65.1;  21.3%)      49.4 (  71.1;  21.8%)       0.3 (   0.3;   0.1%)
+stainless on sheet (Yu)        3      39.8 (  54.8;  17.6%)      41.3 (  50.8;  18.3%)      48.4 (  65.1;  21.3%)      49.4 (  71.1;  21.8%)       0.3 (   0.3;   0.1%)
+
+the priors against the truth (ln of the prior's median over the true friction)
+                           pairs     mean      RMS    worst     truth inside stated 90% interval
+  all pairs
+  generic (median 0.30)        3    +0.54     0.62    +0.75                                     
+  lookup nominal               3    +0.32     0.47    +0.58                                     
+  llm_gpt                      3    +0.41     0.52    +0.69                               1 of 3
+  llm_claude                   3    +0.57     0.62    +0.92                               2 of 3
+
+llm_gpt against generic, all pairs: closer on 1 of 3 pairs; mean change +8.6 mm, median +35.2 mm
+llm_claude against generic, all pairs: closer on 1 of 3 pairs; mean change +9.5 mm, median +1.0 mm
+
+after practice (nominal noise): mean |error| mm, all pairs; and how far apart the methods' shots land
+slides      generic       lookup      llm_gpt   llm_claude       oracle  shots apart
+     0        39.82        41.26        48.37        49.37         0.26       100.59
+     1         0.98         0.95         1.23         1.01         0.26         0.61
+     2         0.82         0.81         0.81         0.71         0.26         0.24
+
+315 scored shots; 0 at the speed cap (0 before practice); 0 flagged invalid

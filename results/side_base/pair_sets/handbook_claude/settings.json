@@ -1,0 +1,477 @@
+{
+  "version": "pair_set_v1",
+  "pairs": [
+    "L01",
+    "L02",
+    "L03",
+    "L04",
+    "L05",
+    "L06",
+    "L07",
+    "L08",
+    "L09",
+    "L10",
+    "L11",
+    "L12",
+    "L13",
+    "L14",
+    "L15",
+    "L16",
+    "L17",
+    "L18",
+    "L19",
+    "L20",
+    "Y01",
+    "Y02",
+    "Y03"
+  ],
+  "truth_files": [
+    "ground_truth_handbook.csv",
+    "ground_truth_published.csv"
+  ],
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "slides": [
+    0,
+    1,
+    2
+  ],
+  "targets": [
+    0.6,
+    0.735,
+    0.87
+  ],
+  "targets_rule": "arm.target_grid: x0 + 5 cm to the reach of mu = 0.49 (the highest in the set) at 90% of the cap",
+  "x0": 0.55,
+  "peak_cap": 1.019,
+  "practice_peak": 1.01,
+  "jerk": 100.0,
+  "arm": {
+    "layout": "side",
+    "base": [
+      0.6,
+      0.65,
+      0.0
+    ],
+    "brake_cap": 12.0,
+    "checked_limits": [
+      "q",
+      "v",
+      "tau"
+    ],
+    "peak_cap_rule": "arm.limited_peak_speed within v/tau limits, floored to the mm/s",
+    "practice_rule": "decide.practice_speed: on the board for the generic prior's 5% quantile, at most the cap",
+    "targets_rule": "given",
+    "clip_unreachable": false
+  },
+  "grid_points": 2000,
+  "generic_median": 0.2966479394838265,
+  "generic_log_sd": 0.7967392299126166,
+  "noise": "nominal (2 mm frames, 0.5 mm rest and release points)",
+  "loss": "decide.loss_sq_rel (the planner's default)",
+  "llm": {
+    "claude": {
+      "cache": "llm_standin_claude_haiku.json",
+      "model": "Claude Haiku (Claude Code subagent, model alias 'haiku', asked 17 Nov 2026)",
+      "read": "raw approximate lognormal, uncalibrated"
+    }
+  },
+  "llm_answers": {
+    "L01:claude": {
+      "median": 0.45,
+      "low": 0.3,
+      "high": 0.65
+    },
+    "L02:claude": {
+      "median": 0.6,
+      "low": 0.4,
+      "high": 0.8
+    },
+    "L03:claude": {
+      "median": 0.36,
+      "low": 0.2,
+      "high": 0.6
+    },
+    "L04:claude": {
+      "median": 0.4,
+      "low": 0.25,
+      "high": 0.55
+    },
+    "L05:claude": {
+      "median": 0.3,
+      "low": 0.2,
+      "high": 0.42
+    },
+    "L06:claude": {
+      "median": 0.25,
+      "low": 0.15,
+      "high": 0.38
+    },
+    "L07:claude": {
+      "median": 0.35,
+      "low": 0.2,
+      "high": 0.5
+    },
+    "L08:claude": {
+      "median": 0.18,
+      "low": 0.1,
+      "high": 0.28
+    },
+    "L09:claude": {
+      "median": 0.33,
+      "low": 0.18,
+      "high": 0.5
+    },
+    "L10:claude": {
+      "median": 0.36,
+      "low": 0.2,
+      "high": 0.6
+    },
+    "L11:claude": {
+      "median": 0.3,
+      "low": 0.18,
+      "high": 0.45
+    },
+    "L12:claude": {
+      "median": 0.4,
+      "low": 0.25,
+      "high": 0.6
+    },
+    "L13:claude": {
+      "median": 0.25,
+      "low": 0.15,
+      "high": 0.38
+    },
+    "L14:claude": {
+      "median": 0.35,
+      "low": 0.2,
+      "high": 0.5
+    },
+    "L15:claude": {
+      "median": 0.4,
+      "low": 0.25,
+      "high": 0.6
+    },
+    "L16:claude": {
+      "median": 0.35,
+      "low": 0.2,
+      "high": 0.5
+    },
+    "L17:claude": {
+      "median": 0.35,
+      "low": 0.2,
+      "high": 0.5
+    },
+    "L18:claude": {
+      "median": 0.35,
+      "low": 0.22,
+      "high": 0.5
+    },
+    "L19:claude": {
+      "median": 0.45,
+      "low": 0.25,
+      "high": 0.9
+    },
+    "L20:claude": {
+      "median": 0.25,
+      "low": 0.1,
+      "high": 0.5
+    },
+    "Y01:claude": {
+      "median": 0.35,
+      "low": 0.2,
+      "high": 0.5
+    },
+    "Y02:claude": {
+      "median": 0.2,
+      "low": 0.12,
+      "high": 0.35
+    },
+    "Y03:claude": {
+      "median": 0.4,
+      "low": 0.25,
+      "high": 0.6
+    }
+  },
+  "lookup": {
+    "L01": {
+      "mu_tab": 0.42,
+      "s_tab_log": 0.246
+    },
+    "L02": {
+      "mu_tab": 0.47,
+      "s_tab_log": 0.246
+    },
+    "L03": {
+      "mu_tab": 0.36,
+      "s_tab_log": 0.246
+    },
+    "L04": {
+      "mu_tab": 0.44,
+      "s_tab_log": 0.246
+    },
+    "L05": {
+      "mu_tab": 0.35,
+      "s_tab_log": 0.246
+    },
+    "L06": {
+      "mu_tab": 0.25,
+      "s_tab_log": 0.357
+    },
+    "L07": {
+      "mu_tab": 0.27,
+      "s_tab_log": 0.357
+    },
+    "L08": {
+      "mu_tab": 0.14,
+      "s_tab_log": 0.286
+    },
+    "L09": {
+      "mu_tab": 0.21,
+      "s_tab_log": 0.246
+    },
+    "L10": {
+      "mu_tab": 0.29,
+      "s_tab_log": 0.246
+    },
+    "L11": {
+      "mu_tab": 0.3,
+      "s_tab_log": 0.246
+    },
+    "L12": {
+      "mu_tab": 0.25,
+      "s_tab_log": 0.246
+    },
+    "L13": {
+      "mu_tab": 0.22,
+      "s_tab_log": 0.246
+    },
+    "L14": {
+      "mu_tab": 0.23,
+      "s_tab_log": 0.246
+    },
+    "L15": {
+      "mu_tab": 0.15,
+      "s_tab_log": 0.246
+    },
+    "L16": {
+      "mu_tab": 0.49,
+      "s_tab_log": 0.246
+    },
+    "L17": {
+      "mu_tab": 0.48,
+      "s_tab_log": 0.246
+    },
+    "L18": {
+      "mu_tab": 0.32,
+      "s_tab_log": 0.246
+    },
+    "L19": {
+      "mu_tab": 0.4,
+      "s_tab_log": 0.246
+    },
+    "L20": {
+      "mu_tab": 0.18,
+      "s_tab_log": 0.246
+    },
+    "Y01": {
+      "mu_tab": 0.24,
+      "s_tab_log": 0.668
+    },
+    "Y02": {
+      "mu_tab": 0.25,
+      "s_tab_log": 0.357
+    },
+    "Y03": {
+      "mu_tab": 0.22,
+      "s_tab_log": 0.668
+    }
+  },
+  "pair_info": {
+    "L01": {
+      "mu": 0.42,
+      "object": "hard steel block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with a hardened-steel contacting face\nTable surface: A clean, dry flat plate of mild steel\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L02": {
+      "mu": 0.47,
+      "object": "aluminium block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with an aluminium contacting face\nTable surface: A clean, dry flat plate of mild steel\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L03": {
+      "mu": 0.36,
+      "object": "copper block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with a copper contacting face\nTable surface: A clean, dry flat plate of mild steel\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L04": {
+      "mu": 0.44,
+      "object": "brass block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with a brass contacting face\nTable surface: A clean, dry flat plate of mild steel\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L05": {
+      "mu": 0.35,
+      "object": "phenolic laminate block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with a phenolic-laminate (laminated plastic) contacting face\nTable surface: A clean, dry flat plate of mild steel\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L06": {
+      "mu": 0.25,
+      "object": "acetal (POM) block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with an acetal (POM, Delrin) plastic contacting face\nTable surface: A clean, dry flat plate of mild steel\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L07": {
+      "mu": 0.27,
+      "object": "nylon 6/6 block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with a nylon 6/6 plastic contacting face\nTable surface: A clean, dry flat plate of mild steel\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L08": {
+      "mu": 0.14,
+      "object": "UHMW-PE block",
+      "surface": "mild steel plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with a UHMW polyethylene contacting face\nTable surface: A clean, dry flat plate of mild steel\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L09": {
+      "mu": 0.21,
+      "object": "zinc block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with a zinc contacting face\nTable surface: A clean, dry flat plate of cast iron\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L10": {
+      "mu": 0.29,
+      "object": "copper block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with a copper contacting face\nTable surface: A clean, dry flat plate of cast iron\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L11": {
+      "mu": 0.3,
+      "object": "brass block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with a brass contacting face\nTable surface: A clean, dry flat plate of cast iron\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L12": {
+      "mu": 0.25,
+      "object": "magnesium block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with a magnesium contacting face\nTable surface: A clean, dry flat plate of cast iron\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L13": {
+      "mu": 0.22,
+      "object": "bronze block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with a bronze contacting face\nTable surface: A clean, dry flat plate of cast iron\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L14": {
+      "mu": 0.23,
+      "object": "mild steel block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with a mild-steel contacting face\nTable surface: A clean, dry flat plate of cast iron\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L15": {
+      "mu": 0.15,
+      "object": "cast iron block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block with a cast-iron contacting face\nTable surface: A clean, dry flat plate of cast iron\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L16": {
+      "mu": 0.49,
+      "object": "oak block",
+      "surface": "cast iron plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block of oak wood\nTable surface: A clean, dry flat plate of cast iron\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L17": {
+      "mu": 0.48,
+      "object": "oak block, grain parallel",
+      "surface": "oak board",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block of oak wood, sliding along its grain\nTable surface: A clean, dry board of oak, grain along the sliding direction\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L18": {
+      "mu": 0.32,
+      "object": "oak block, grain perpendicular",
+      "surface": "oak board",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block of oak wood, sliding across its grain\nTable surface: A clean, dry board of oak, grain along the sliding direction\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L19": {
+      "mu": 0.4,
+      "object": "glass block",
+      "surface": "glass plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block of glass with a flat bottom\nTable surface: A clean, dry flat plate of glass\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "L20": {
+      "mu": 0.18,
+      "object": "graphite block",
+      "surface": "glass plate",
+      "truth_file": "ground_truth_handbook.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A clean, dry block of graphite (carbon) with a flat bottom\nTable surface: A clean, dry flat plate of glass\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "Y01": {
+      "mu": 0.14,
+      "object": "stainless steel block",
+      "surface": "ABS sheet",
+      "truth_file": "ground_truth_published.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A block with a stainless-steel contacting face\nTable surface: An ABS plastic sheet\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "Y02": {
+      "mu": 0.14,
+      "object": "stainless steel block",
+      "surface": "acetal (Delrin) sheet",
+      "truth_file": "ground_truth_published.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A block with a stainless-steel contacting face\nTable surface: An acetal (Delrin) sheet\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    },
+    "Y03": {
+      "mu": 0.26,
+      "object": "stainless steel block",
+      "surface": "plywood sheet",
+      "truth_file": "ground_truth_published.csv",
+      "prompt": "You estimate the coefficient of kinetic (sliding) friction between an object and a table surface.\nObject: A block with a stainless-steel contacting face\nTable surface: A plywood sheet\nGive your median estimate of the kinetic friction coefficient and a 90% interval, as JSON:\n{\"median\": <number>, \"low\": <number>, \"high\": <number>, \"reasoning\": \"<one paragraph>\"}\n"
+    }
+  },
+  "scored_shots": "Drake pushes; a push that does not release or breaks a planned joint limit is kept and flagged (valid = False)",
+  "sha256": {
+    "run_pair_set.py": "56e65e7516f8a4acecc4744abee61dedbb440f3e7d03110381b3b2be4f55eb22",
+    "run_arm_evaluation.py": "17870f7fabdb1d505ba9904e6abf67c645113a7384035dcbed0e608d7fd72c5d",
+    "run_arm_comparison_v2.py": "3ee713d49b2f874df0de2f46260067ed05dad6db8b9101e6cbf0c2e2b230166e",
+    "demo_published_comparison.py": "abff829eb6a959e3a414e2032ef70aa8d344bcf9a3a4dbd462175d8f595415c0",
+    "llm_prior.py": "858bd509e40d5b452af2f3d3a68af5fe7e49a7bf1df9b17aee69a5a47d6f9811",
+    "belief.py": "b76d1bde130711f426c215f015d8a9622448b35bb57b346e1bfb469091fd1b07",
+    "observe.py": "ce39255dfb94ca418da03099f7d26491f1b826a31cc456cf9d43bf83f84b3086",
+    "decide.py": "9318ea051641c8103214ccb26c9a45bf777e44442ee5719a89feafe215e6e932",
+    "arm.py": "2e37c9656533c61d3289deee22882930fd7c857523218970842cb4acec2db579",
+    "push.py": "b38feb819772916c96dd26debab83be81ed3d658fe7c5e19a52588f9bc0f73bd",
+    "physics.py": "4e0ff5c8e385a7914a57301f636db2f5e5e2eb58b4d3f1c650e9edf253c7476a",
+    "scene.py": "0c772f137f8e9a42b96fdda1c6d8747b7ddb2552c2245a9dd7bdc430f044cd47",
+    "drake_config.py": "eaa97bbf66e840d00a619df452c98afd1a10e4197cbe81f09c20a66648e34443",
+    "sim_config.yaml": "b3717b7334bae1785a2fc6c94740a592511d14467d60f7a526a7b8d9a26fc76c",
+    "friction_lookup.csv": "d00ee8c93524cd0aa688728e85fac6646091e989750bdbe18256da42a7c6723f",
+    "ground_truth_handbook.csv": "62a04b202572a55266912a2181910906908d5936308df562d74f133e921eea1b",
+    "ground_truth_published.csv": "f438d40b54b0423b442d7163dbfe3b33f1aa21896c527fc82eb0c3fc59ac6cbf",
+    "llm_standin_claude_haiku.json": "bca8234e739ba7283074174a07eef08ebe21c4caac1bdb2b22ce6e99988dbfab"
+  }
+}

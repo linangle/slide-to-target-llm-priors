@@ -72,11 +72,26 @@ Without `--v3` the runner now uses the side-base setup, labelled `multi_target_n
 --targets auto (default, with --n-targets): targets derived from the cap (0.60, 0.77, 0.94 m for Y01-Y03)
 --a-brake: cap on the paddle's braking deceleration in m/s^2 (default 12)
 --check-accel: also require the planned joint accelerations within the SDF limits (needs a softer brake, e.g. --a-brake 4)
+--check-release: a push is valid only if the object left the paddle before the paddle stopped (contact force zero before the commanded stop; 21 Nov). Off by default. The standing check only requires the two to be apart at the end, which also holds when the paddle brakes on friction above a_brake / g and carries the object to its stop
 --clip-unreachable: a target beyond the cap is pushed at the cap and scored as a miss
 
 The planner's loss is not a runner option. `python evaluation/run_with_loss.py sq_abs <the same options>` runs the same evaluation
 with another loss from decide.LOSSES and notes it in loss_override.json; the saved v3 checks used the squared miss (sq_abs),
 and the runner's default today is the relative loss (sq_rel).
+
+How informative practice has to be before the prior matters is a separate study, `python evaluation/practice_study.py`
+(results/side_base/practice_study/): it imports this runner's setup, priors and observation model, weakens the practice
+slide (slower practice push, more noise, friction that differs between slides) and scores on a Drake landing map. It does
+not change the runner. Its summary also reports the board's seam losses, which the runner's scored shots include.
+
+Other pairs and other LLMs: `python evaluation/run_pair_set.py --llm name=cache [name=cache ...] --out <folder>` runs the
+same comparison on any truth files in the measured-friction format (default: the 20 handbook pairs of
+data/ground_truth_handbook.csv plus Y01-Y03), one method per LLM cache. `python evaluation/compare_llms.py --llm ...`
+compares the LLMs from their cached answers without a simulation. This runner (run_arm_evaluation.py) stays Y01-Y03 only.
+
+The transition model: `python evaluation/patchy_table_study.py` runs Y01-Y03 on the scene's patchy board (strip friction
+varying by 0-25%), with practice at two speeds and with a belief that is told friction differs between the practice slide
+and the shot; `--aimed` adds practice aimed at the shot's own target (the first shot is the practice slide), and `--aimed-pairs` runs that on the 23-pair set. Every result of this runner is on a uniform board, where the identity transition holds by construction.
 
 results.csv has one more column, accel_limit_fraction (planned joint acceleration over the SDF limit). The side-base
 default needs Drake even for --check-only, because the cap comes from the arm model; --v3 --check-only does not.

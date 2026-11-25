@@ -1,0 +1,49 @@
+{
+  "study": "patchy table: the transition model in Drake",
+  "pairs": [
+    "Y01",
+    "Y02",
+    "Y03"
+  ],
+  "strip_sd": [
+    0.0,
+    0.06,
+    0.12,
+    0.25
+  ],
+  "boards_per_pair": 16,
+  "strip_length_m": 0.0508,
+  "practice_speeds": [
+    1.01,
+    0.7
+  ],
+  "peak_cap": 1.019,
+  "targets": [
+    0.6,
+    0.77,
+    0.94
+  ],
+  "arm": {
+    "layout": "side",
+    "base": [
+      0.6,
+      0.65,
+      0.0
+    ],
+    "brake_cap": 12.0,
+    "checked_limits": [
+      "q",
+      "v",
+      "tau"
+    ],
+    "peak_cap_rule": "arm.limited_peak_speed within v/tau limits, floored to the mm/s",
+    "practice_rule": "decide.practice_speed: on the board for the generic prior's 5% quantile, at most the cap",
+    "targets_rule": "arm.target_grid: x0 + 5 cm to the reach of mu = 0.26 (the highest among Y01/Y02/Y03) at 90% of the cap",
+    "clip_unreachable": false
+  },
+  "noise": "nominal",
+  "grid_points": 2000,
+  "board_model": "scene.strip_targets: mu_i = mu exp(s z_i), z_i ~ N(0, 1), 24 strips of 2 in, one draw per board seed; same board for practice and shots",
+  "loss": "decide.loss_sq_rel (the planner's default)",
+  "shot_friction": "arm.rest_x inverted at the push's commanded speed and its landing"
+}

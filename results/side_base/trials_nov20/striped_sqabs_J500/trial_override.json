@@ -1,0 +1,7 @@
+{
+  "loss": "sq_abs",
+  "jerk": 500.0,
+  "board": "24 equal strips (as saved runs)",
+  "start_gap": "1 mm",
+  "note": "set by evaluation/run_trial.py from outside the runner; a row of release_log.csv per Drake push, practice pushes first per pair after the oracle's preflight pushes"
+}

@@ -53,11 +53,13 @@ def _cam(camera):
     return Camera(position=CAMERAS[camera] if isinstance(camera, str) else tuple(camera))
 
 def make_pusher(arm=None):
-    """The prescribed plate (arm=None, the 5 Nov study), or the iiwa: arm = dict(base=(x, y, z), a_brake=m/s^2 or None)."""
+    """The prescribed plate (arm=None, the 5 Nov study), or the iiwa: arm = dict(base=(x, y, z), a_brake=m/s^2 or None,
+    posture="speed" / "limits" or absent)."""
     if arm is None:
         return Pusher()
     from arm import ArmPusher
-    return ArmPusher(base=tuple(arm["base"]), **({} if arm.get("a_brake") is None else {"a_brake_max": float(arm["a_brake"])}))
+    return ArmPusher(base=tuple(arm["base"]), **({} if arm.get("a_brake") is None else {"a_brake_max": float(arm["a_brake"])}),
+                     **({} if arm.get("posture") is None else {"posture": arm["posture"]}))
 
 def push_cases(cases, arm=None):
     """One push per (mu, v_peak); returns its record with the trajectory and the simulator's effective mu."""
@@ -298,11 +300,20 @@ def main():
                     help="push and replay with the iiwa at this base (arm.LAYOUTS) in the camera's view (ignored with --plate)")
     ap.add_argument("--camera", choices=list(CAMERAS), default=None, help="camera position (scene.CAMERAS); default: full, or original with --plate")
     ap.add_argument("--a-brake", type=float, default=None, help="with --layout: cap on the arm's braking deceleration, m/s^2 (default 12)")
+    ap.add_argument("--posture", choices=["speed", "limits"], default=None, help="how the arm chooses its start posture (arm.POSTURES; default: speed; "
+                    "needs --out and the other four paths)")
+    ap.add_argument("--base-x", type=float, default=None, help="iiwa base position along the push, m (with --base-y: overrides --layout; needs --out and the other four paths)")
+    ap.add_argument("--base-y", type=float, default=None, help="iiwa base offset from the push line along y, m")
     a = ap.parse_args()
     arm = None
+    custom = a.base_x is not None or a.base_y is not None
+    if custom and (a.plate or None in (a.out, a.frames, a.noise, a.summary, a.fig)):
+        ap.error("--base-x/--base-y go with the arm and need --out, --frames, --noise, --summary and --fig")
+    if a.posture is not None and (a.plate or None in (a.out, a.frames, a.noise, a.summary, a.fig)):
+        ap.error("--posture goes with the arm and needs --out, --frames, --noise, --summary and --fig")
     if not a.plate:
         from arm import layout_base
-        arm = {"base": layout_base(a.layout), "a_brake": a.a_brake}
+        arm = {"base": layout_base((a.base_x or 0.0, a.base_y or 0.0, 0.0) if custom else a.layout), "a_brake": a.a_brake, "posture": a.posture}
     camera = a.camera or ("original" if a.plate else "full")
     gate = None if a.plate else FACE_GATE        # the 5 Nov study ran without the height gate
     stem = str(RESULTS/"e0"/"e0_5") if a.plate else str(RESULTS/"side_base"/"e0_5") if a.layout == "side" else str(RESULTS/"e0"/"e0_5_arm_origin")

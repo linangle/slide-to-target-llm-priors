@@ -1,0 +1,91 @@
+practice aimed at the shot's own target, on the boards of the saved run: 3 pairs (Y01/Y02/Y03), 16 boards per pair and strip spread; targets [0.6, 0.77, 0.94] m, nominal noise
+aimed: the method's first shot at the target is observed as its practice slide, the next shot is planned from it; '2 aimed slides' observes that shot as well.
+'1 slide at ...': the saved run's fixed-speed practice (one push shared by all methods and targets).  mean |miss|, mm, as generic / lookup / LLM
+
+strip spread |          no practice  oracle (nominal mu) |        1 slide at 1.01 m/s |         1 slide at 0.7 m/s |              1 aimed slide |             2 aimed slides |  2 aimed slides, last only
+           0 |   39.8 / 41.3 / 48.4                  0.3 |            0.8 / 0.8 / 0.7 |            0.6 / 0.7 / 0.6 |            3.4 / 4.2 / 2.8 |            2.1 / 2.6 / 1.9 |            2.7 / 2.5 / 2.1
+        0.06 |   40.6 / 40.9 / 47.9                  2.7 |            4.0 / 4.0 / 4.0 |            3.5 / 3.5 / 3.5 |            3.9 / 3.8 / 3.8 |            2.4 / 2.6 / 3.0 |            3.0 / 3.1 / 2.9
+        0.12 |   41.5 / 40.4 / 47.3                  5.5 |            8.0 / 7.9 / 7.9 |            5.9 / 5.8 / 5.8 |            5.1 / 5.6 / 6.0 |            3.0 / 3.9 / 4.5 |            4.0 / 3.7 / 3.9
+        0.25 |   44.2 / 39.0 / 45.9                 11.9 |         16.5 / 16.6 / 16.6 |         11.8 / 11.8 / 11.7 |          9.4 / 10.0 / 11.0 |            5.5 / 7.3 / 8.4 |            7.3 / 6.2 / 6.4
+
+by target (the three methods together): a near target means a short practice slide
+           0   0.6 m |                  8.9                  0.1 |                        0.1 |                        0.2 |                        4.7 |                        3.3 |                        3.0
+           0  0.77 m |                 42.9                  0.2 |                        0.6 |                        0.4 |                        2.6 |                        1.8 |                        2.7
+           0  0.94 m |                 77.7                  0.5 |                        1.5 |                        1.4 |                        3.1 |                        1.6 |                        1.7
+        0.06   0.6 m |                  8.8                  0.7 |                        0.9 |                        1.0 |                        3.1 |                        2.2 |                        3.0
+        0.06  0.77 m |                 43.1                  2.8 |                        4.4 |                        3.8 |                        3.7 |                        2.7 |                        2.9
+        0.06  0.94 m |                 77.5                  4.7 |                        6.7 |                        5.8 |                        4.6 |                        3.2 |                        3.2
+        0.12   0.6 m |                  8.7                  1.4 |                        1.8 |                        1.9 |                        3.1 |                        2.2 |                        3.0
+        0.12  0.77 m |                 43.3                  5.4 |                        9.1 |                        6.4 |                        5.4 |                        3.8 |                        3.6
+        0.12  0.94 m |                 77.3                  9.8 |                       12.8 |                        9.0 |                        8.3 |                        5.5 |                        5.0
+        0.25   0.6 m |                  8.6                  2.9 |                        3.7 |                        4.0 |                        3.5 |                        2.5 |                        3.2
+        0.25  0.77 m |                 43.9                 11.4 |                       19.0 |                       12.2 |                        9.7 |                        7.3 |                        6.5
+        0.25  0.94 m |                 76.6                 21.5 |                       27.0 |                       19.1 |                       17.1 |                       11.4 |                       10.3
+
+the transition model: ln(friction the shot met / the belief's median before it), generic prior: mean, SD.  The identity transition says 0
+strip spread |        1 slide at 1.01 m/s |         1 slide at 0.7 m/s |              1 aimed slide |             2 aimed slides |  2 aimed slides, last only
+           0 |              -0.004, 0.008 |              -0.001, 0.007 |              -0.018, 0.058 |              +0.008, 0.082 |              +0.003, 0.086
+        0.06 |              +0.005, 0.047 |              -0.011, 0.049 |              -0.009, 0.155 |              +0.010, 0.086 |              -0.002, 0.101
+        0.12 |              +0.010, 0.093 |              -0.013, 0.088 |              -0.017, 0.158 |              +0.009, 0.088 |              -0.001, 0.112
+        0.25 |              +0.020, 0.197 |              -0.025, 0.177 |              -0.029, 0.186 |              +0.022, 0.119 |              +0.017, 0.141
+
+the same by target, SD only.  At the near target the aimed slide is a few centimetres long and says little, so the SD there is the estimate's noise, not the board
+           0   0.6 m |                      0.007 |                      0.008 |                      0.096 |                      0.129 |                      0.136
+           0  0.77 m |                      0.009 |                      0.003 |                      0.027 |                      0.026 |                      0.041
+           0  0.94 m |                      0.008 |                      0.008 |                      0.007 |                      0.008 |                      0.014
+        0.06   0.6 m |                      0.051 |                      0.058 |                      0.262 |                      0.144 |                      0.169
+        0.06  0.77 m |                      0.048 |                      0.043 |                      0.050 |                      0.027 |                      0.038
+        0.06  0.94 m |                      0.040 |                      0.042 |                      0.036 |                      0.016 |                      0.021
+        0.12   0.6 m |                      0.101 |                      0.110 |                      0.259 |                      0.147 |                      0.186
+        0.12  0.77 m |                      0.099 |                      0.072 |                      0.060 |                      0.029 |                      0.044
+        0.12  0.94 m |                      0.076 |                      0.073 |                      0.061 |                      0.025 |                      0.032
+        0.25   0.6 m |                      0.216 |                      0.227 |                      0.266 |                      0.188 |                      0.215
+        0.25  0.77 m |                      0.210 |                      0.143 |                      0.111 |                      0.061 |                      0.088
+        0.25  0.94 m |                      0.157 |                      0.143 |                      0.137 |                      0.056 |                      0.071
+
+paired by board: difference in mean |miss|, mm, +/- its standard error over boards (negative: the first is better)
+strip spread                       rule |  minus 1 slide at 1.01 m/s   minus 1 slide at 0.7 m/s  minus nominal-mu plan |  lookup minus generic  LLM minus generic
+           0              1 aimed slide |               +2.7 +/- 0.1               +2.8 +/- 0.7           +3.2 +/- 0.4 |          +0.8 +/- 1.2       -0.6 +/- 0.7
+           0             2 aimed slides |               +1.5 +/- 0.4               +1.6 +/- 1.1           +2.0 +/- 0.7 |          +0.6 +/- 0.7       -0.1 +/- 1.0
+           0  2 aimed slides, last only |               +1.7 +/- 0.4               +1.8 +/- 1.0           +2.2 +/- 0.6 |          -0.1 +/- 1.8       -0.6 +/- 1.3
+        0.06              1 aimed slide |               -0.2 +/- 0.3               +0.3 +/- 0.3           +1.1 +/- 0.3 |          -0.2 +/- 0.4       -0.1 +/- 0.5
+        0.06             2 aimed slides |               -1.3 +/- 0.3               -0.8 +/- 0.3           -0.0 +/- 0.2 |          +0.2 +/- 0.2       +0.6 +/- 0.3
+        0.06  2 aimed slides, last only |               -1.0 +/- 0.3               -0.5 +/- 0.3           +0.3 +/- 0.2 |          +0.0 +/- 0.3       -0.1 +/- 0.2
+        0.12              1 aimed slide |               -2.4 +/- 0.6               -0.2 +/- 0.4           +0.1 +/- 0.5 |          +0.5 +/- 0.7       +0.8 +/- 0.8
+        0.12             2 aimed slides |               -4.1 +/- 0.5               -2.0 +/- 0.5           -1.7 +/- 0.5 |          +1.0 +/- 0.4       +1.5 +/- 0.4
+        0.12  2 aimed slides, last only |               -4.1 +/- 0.6               -1.9 +/- 0.5           -1.7 +/- 0.5 |          -0.2 +/- 0.3       -0.1 +/- 0.3
+        0.25              1 aimed slide |               -6.4 +/- 1.1               -1.7 +/- 0.7           -1.8 +/- 0.9 |          +0.6 +/- 1.4       +1.7 +/- 1.6
+        0.25             2 aimed slides |               -9.5 +/- 1.0               -4.7 +/- 0.7           -4.8 +/- 0.9 |          +1.7 +/- 0.6       +2.8 +/- 0.7
+        0.25  2 aimed slides, last only |               -9.9 +/- 1.1               -5.1 +/- 0.7           -5.2 +/- 0.9 |          -1.1 +/- 0.5       -1.0 +/- 0.4
+
+by pair (generic / lookup / LLM): after aimed practice the methods differ
+spread, pair |        1 slide at 1.01 m/s |         1 slide at 0.7 m/s |              1 aimed slide |             2 aimed slides |  2 aimed slides, last only
+           0     Y01 |            0.5 / 0.5 / 0.5 |            0.5 / 0.4 / 0.3 |            3.0 / 4.2 / 2.8 |            0.8 / 2.7 / 1.9 |            1.0 / 4.1 / 2.3
+           0     Y02 |            0.6 / 0.5 / 0.5 |            1.4 / 1.6 / 1.5 |            4.1 / 2.7 / 2.2 |            0.9 / 1.4 / 1.6 |            1.6 / 1.0 / 1.6
+           0     Y03 |            1.2 / 1.2 / 1.2 |            0.0 / 0.1 / 0.1 |            3.1 / 5.7 / 3.5 |            4.4 / 3.8 / 2.4 |            5.4 / 2.5 / 2.4
+        0.06     Y01 |            5.1 / 5.1 / 5.2 |            3.3 / 3.2 / 3.2 |            2.7 / 3.7 / 4.2 |            2.3 / 3.0 / 3.6 |            3.4 / 3.4 / 3.0
+        0.06     Y02 |            4.1 / 4.1 / 4.1 |            3.1 / 3.2 / 3.1 |            3.4 / 3.9 / 4.6 |            2.3 / 2.6 / 3.2 |            2.7 / 2.9 / 2.7
+        0.06     Y03 |            2.7 / 2.7 / 2.7 |            4.2 / 4.2 / 4.2 |            5.7 / 3.7 / 2.6 |            2.6 / 2.3 / 2.3 |            3.1 / 2.9 / 3.1
+        0.12     Y01 |         11.0 / 10.9 / 10.9 |            5.6 / 5.6 / 5.4 |            3.4 / 6.6 / 7.5 |            3.2 / 4.8 / 6.1 |            4.6 / 3.9 / 4.5
+        0.12     Y02 |            8.2 / 8.1 / 8.1 |            5.0 / 4.9 / 5.0 |            3.8 / 6.2 / 7.2 |            2.8 / 4.3 / 4.8 |            3.8 / 4.0 / 3.6
+        0.12     Y03 |            4.7 / 4.7 / 4.7 |            7.0 / 6.9 / 6.9 |            8.2 / 4.1 / 3.2 |            2.9 / 2.8 / 2.6 |            3.5 / 3.3 / 3.5
+        0.25     Y01 |         23.0 / 23.0 / 23.1 |         11.8 / 11.8 / 11.8 |          6.2 / 11.7 / 15.1 |           5.8 / 8.9 / 11.6 |            8.6 / 7.1 / 6.9
+        0.25     Y02 |         16.8 / 16.9 / 16.9 |          10.0 / 10.0 / 9.9 |          5.8 / 12.5 / 13.1 |            5.3 / 8.8 / 9.2 |            7.4 / 6.3 / 6.6
+        0.25     Y03 |            9.8 / 9.8 / 9.8 |         13.6 / 13.7 / 13.4 |           16.1 / 5.7 / 4.9 |            5.5 / 4.1 / 4.3 |            6.0 / 5.2 / 5.8
+
+is the belief honest?  share of shots whose friction lies inside the belief's 90% interval (generic prior)
+strip spread |        1 slide at 1.01 m/s |         1 slide at 0.7 m/s |              1 aimed slide |             2 aimed slides |  2 aimed slides, last only
+           0 |                       100% |                       100% |                        78% |                       100% |                        89%
+        0.06 |                        19% |                        58% |                        83% |                        84% |                        85%
+        0.12 |                        12% |                        38% |                        78% |                        77% |                        70%
+        0.25 |                         8% |                        21% |                        58% |                        57% |                        57%
+
+how far apart the three methods' shots land, mm (mean over boards and targets)
+strip spread |        1 slide at 1.01 m/s |         1 slide at 0.7 m/s |              1 aimed slide |             2 aimed slides |  2 aimed slides, last only
+           0 |                        0.1 |                        0.3 |                        4.9 |                        3.7 |                        5.0
+        0.06 |                        0.2 |                        0.5 |                        7.6 |                        4.5 |                        5.3
+        0.12 |                        0.2 |                        0.6 |                       10.5 |                        5.8 |                        5.6
+        0.25 |                        0.1 |                        0.6 |                       19.0 |                        9.5 |                        8.6
+
+check: 1323 of 1323 first shots land where the saved run's no-practice shots landed
+5292 shots (3969 after practice), 0 flagged invalid, 0 planned with a practice slide too short to observe

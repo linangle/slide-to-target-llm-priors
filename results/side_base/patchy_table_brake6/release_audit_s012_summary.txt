@@ -1,0 +1,16 @@
+Release audit of results/side_base/patchy_table_brake6/pair_set/aimed.csv
+replayed pushes: results/side_base/patchy_table_brake6/release_audit_s012.csv; arm options {'base': (0.6, 0.65, 0.0), 'a_brake': 6.0, 'check': ('q', 'v', 'tau', 'a'), 'posture': 'limits'}
+released = the paddle-object contact force reached zero before the commanded stop (run_arm_evaluation.released)
+
+1273 distinct pushes behind 1368 saved rows; the replay lands within 0.014 mm of the saved rest position on every row
+
+strip SD  pushes  not released   rows  saved valid  saved valid, not released  saved invalid, released  saved invalid, not released
+    0.12    1273             0   1368         1368                          0                        0                            0
+
+how far apart the two classes are (contact force zero relative to the commanded stop, ms; object speed at that moment, m/s)
+  released (1273): force zero -144 to -18 ms; speed 0.110 to 0.845
+
+mean |miss| mm: saved valid rows -> the same without the rows that never released: generic / lookup / llm_claude / generic@claude
+  s = 0.12, none           : 78.2 / 3.3 / 14.4 / 25.6  ->  78.2 / 3.3 / 14.4 / 25.6
+  s = 0.12, 1 aimed slide  : 12.4 / 2.3 / 3.1 / 5.2  ->  12.4 / 2.3 / 3.1 / 5.2
+  s = 0.12, 2 aimed slides : 8.6 / 1.9 / 2.3 / 3.6  ->  8.6 / 1.9 / 2.3 / 3.6

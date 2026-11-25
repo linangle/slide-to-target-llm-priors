@@ -25,11 +25,11 @@ from pydrake.all import AddMultibodyPlantSceneGraph, Box, DiagramBuilder, Mesh, 
 from physics import BOARD_X_MAX, BOARD_X_MIN, OBJECT_SIZE
 from scene import BOARD_Y, Camera, Table, add_arm, board_y, layout_of
 from push import profile
-from arm import A_BRAKE, ArmModel, ArmPusher, layout_base, limited_peak_speed, link7_pose
+from arm import A_BRAKE, POSTURE, ArmModel, ArmPusher, layout_base, limited_peak_speed, link7_pose
 
-def plan_path(base, v_peak, J=100.0, a_brake=A_BRAKE, x0=0.55):
+def plan_path(base, v_peak, J=100.0, a_brake=A_BRAKE, x0=0.55, posture=POSTURE):
     """Joint path of the push ArmPusher would make: (s, q(s)) over the stroke, and the pusher with its plan."""
-    pu = ArmPusher(base=tuple(base), a_brake_max=a_brake)
+    pu = ArmPusher(base=tuple(base), a_brake_max=a_brake, posture=posture)
     pu.x_touch0, pu.model = x0 - OBJECT_SIZE[0]/2 - pu.gap, ArmModel(tuple(base))
     pu.X0 = link7_pose(pu.x_touch0, 0.0, 0.0, pu.clearance)
     pu.make_plan(profile(v_peak, J, a_max=a_brake))
@@ -61,9 +61,9 @@ def _box_points(centre, size, n=5):
     pts = [(a, b, c) for a in g for b in g for c in g if max(abs(a), abs(b), abs(c)) == 0.5]
     return np.asarray(centre, float) + np.array(pts)*np.asarray(size, float)
 
-def clearance(base, v_peak, J=100.0, a_brake=A_BRAKE, x0=0.55, step=5, camera=None, board_centre=None):
+def clearance(base, v_peak, J=100.0, a_brake=A_BRAKE, x0=0.55, step=5, camera=None, board_centre=None, posture=POSTURE):
     """Least clearances of each link along the planned push: dict(links -> {plane, object, camera}, base footprint, plan)."""
-    s, q, pu = plan_path(base, v_peak, J, a_brake, x0)
+    s, q, pu = plan_path(base, v_peak, J, a_brake, x0, posture)
     cam = np.asarray((camera or Camera()).position, float)
     plant, ctx, iiwa, parts = link_hulls(base)
     names = list(dict.fromkeys(name for name, *_ in parts))
@@ -97,7 +97,8 @@ def clearance(base, v_peak, J=100.0, a_brake=A_BRAKE, x0=0.55, step=5, camera=No
 def report(c, v_peak, a_brake):
     b = c["base"]
     L = [f"base at ({b[0]:g}, {b[1]:g}) m; push at {v_peak:.3f} m/s, brake cap {a_brake:g} m/s^2, stroke {c['stroke']*1e3:.0f} mm "
-         f"(joint speed {c['plan']['qd_ratio']:.2f} x limit, joint {c['plan']['qd_ratio_joint']})",
+         f"(joint speed {c['plan']['qd_ratio']:.2f} x limit, joint {c['plan']['qd_ratio_joint']})"
+         + (f"; start posture chosen by {c['plan']['posture']}" if c["plan"].get("posture", "speed") != "speed" else ""),
          f"{'':8}{'above z=0, mm':>15}{'to object, mm':>15}{'to camera, mm':>15}"]
     for name, d in c["links"].items():
         L.append(f"{name:8}{d['plane']*1e3:>15.0f}{d['object']*1e3:>15.0f}{d['camera']*1e3:>15.0f}")
@@ -118,15 +119,16 @@ def main():
     ap.add_argument("--v", type=float, default=None, help="peak speed, m/s (default: the layout's joint-speed bound)")
     ap.add_argument("--J", type=float, default=100.0)
     ap.add_argument("--a-brake", type=float, default=A_BRAKE)
+    ap.add_argument("--posture", choices=["speed", "limits"], default=POSTURE, help="how the arm chooses its start posture (arm.POSTURES)")
     ap.add_argument("--board-y", type=float, default=None, help="y of the board's centre line (default: the layout's, scene.BOARD_Y)")
     ap.add_argument("--camera", choices=["original", "full"], default="full", help="camera position to measure against (scene.CAMERAS)")
     ap.add_argument("--out", default=None, help="also write the report to this file")
     a = ap.parse_args()
     from arm import BASE
     base = (a.base_x, a.base_y, 0.0) if a.base_x is not None else (layout_base(a.layout) if a.layout else BASE)
-    v = a.v if a.v is not None else limited_peak_speed(a.J, base=tuple(base), a_max=a.a_brake)
+    v = a.v if a.v is not None else limited_peak_speed(a.J, base=tuple(base), a_max=a.a_brake, posture=a.posture)
     from scene import CAMERAS
-    text = report(clearance(base, v, a.J, a.a_brake, camera=Camera(position=CAMERAS[a.camera]), board_centre=a.board_y), v, a.a_brake)
+    text = report(clearance(base, v, a.J, a.a_brake, camera=Camera(position=CAMERAS[a.camera]), board_centre=a.board_y, posture=a.posture), v, a.a_brake)
     print(text)
     if a.out:
         open(a.out, "w").write(text + "\n")

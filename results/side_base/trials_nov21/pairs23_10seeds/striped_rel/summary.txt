@@ -1,0 +1,62 @@
+pair set: 23 pairs, friction 0.14-0.49; side base, cap 1.158 m/s, practice 1.01 m/s, targets [0.6, 0.78, 0.96] m; seeds [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+LLM: llm_claude = Claude Haiku (Claude Code subagent, model alias 'haiku', asked 17 Nov 2026) (llm_standin_claude_haiku.json)
+truth files: ground_truth_handbook.csv, ground_truth_published.csv.  On pairs from ground_truth_handbook.csv the lookup method holds the truth: a ceiling, not a competitor.
+
+before any practice, mean over the targets
+pair  object on surface                                 mu  lookup      claude median [90%] | first shot |error|, mm:    generic     lookup llm_claude
+L01   hard steel block on mild steel plate            0.42    0.42      0.45 [0.30, 0.65]   |                                95.8        4.8        1.1
+L02   aluminium block on mild steel plate             0.47    0.47      0.60 [0.40, 0.80]   |                                98.7        4.3        9.4
+L03   copper block on mild steel plate                0.36    0.36      0.36 [0.20, 0.60]   |                                90.7        5.7        9.2
+L04   brass block on mild steel plate                 0.44    0.44      0.40 [0.25, 0.55]   |                                97.0        4.6        8.7
+L05   phenolic laminate block on mild steel plate     0.35    0.35      0.30 [0.20, 0.42]   |                                89.6        5.3       15.6
+L06   acetal (POM) block on mild steel plate          0.25    0.25      0.25 [0.15, 0.38]   |                                73.5       10.2        9.6
+L07   nylon 6/6 block on mild steel plate             0.27    0.27      0.35 [0.20, 0.50]   |                                77.9       11.5       13.9
+L08   UHMW-PE block on mild steel plate               0.14    0.14      0.18 [0.10, 0.28]   |                                25.8        2.5       13.5
+L09   zinc block on cast iron plate                   0.21    0.21      0.33 [0.18, 0.50]   |                                61.9        4.9       32.3
+L10   copper block on cast iron plate                 0.29    0.29      0.36 [0.20, 0.60]   |                                81.6        5.4        6.8
+L11   brass block on cast iron plate                  0.30    0.30      0.30 [0.18, 0.45]   |                                83.4        5.4        7.8
+L12   magnesium block on cast iron plate              0.25    0.25      0.40 [0.25, 0.60]   |                                73.5        5.6       32.7
+L13   bronze block on cast iron plate                 0.22    0.22      0.25 [0.15, 0.38]   |                                65.3        4.8        1.5
+L14   mild steel block on cast iron plate             0.23    0.23      0.35 [0.20, 0.50]   |                                68.4        5.0       29.8
+L15   cast iron block on cast iron plate              0.15    0.15      0.40 [0.25, 0.60] x |                                32.5        2.7      102.5
+L16   oak block on cast iron plate                    0.49    0.49      0.35 [0.20, 0.50]   |                                99.6        4.1       23.5
+L17   oak block, grain parallel on oak board          0.48    0.48      0.35 [0.20, 0.50]   |                                99.2        4.2       22.7
+L18   oak block, grain perpendicular on oak board     0.32    0.32      0.35 [0.22, 0.50]   |                                86.2        5.5        1.4
+L19   glass block on glass plate                      0.40    0.40      0.45 [0.25, 0.90]   |                                94.2        4.9        2.9
+L20   graphite block on glass plate                   0.18    0.18      0.25 [0.10, 0.50]   |                                50.0        3.8        1.1
+Y01   stainless steel block on ABS sheet              0.14    0.24      0.35 [0.20, 0.50] x |                                25.8       33.2      101.1
+Y02   stainless steel block on acetal (Delrin) sheet  0.14    0.25      0.20 [0.12, 0.35]   |                                25.8       58.6       26.4
+Y03   stainless steel block on plywood sheet          0.26    0.22      0.40 [0.25, 0.60]   |                                75.8       37.8       28.7
+   x: the truth is outside the LLM's stated 90% interval
+
+before any practice, by group: mean |error| mm (RMSE mm; mean |error| as % of the slide asked for)
+group                      pairs                    generic                     lookup                 llm_claude                     oracle
+all pairs                     23      72.7 (  92.0;  30.5%)      10.2 (  20.4;   4.0%)      21.8 (  41.5;   9.1%)       0.4 (   1.1;   0.2%)
+handbook pairs                20      77.2 (  96.0;  32.4%)       5.3 (   7.1;   1.9%)      17.3 (  33.8;   7.1%)       0.4 (   1.1;   0.2%)
+metal on metal                11      77.2 (  95.3;  32.4%)       4.8 (   6.2;   1.7%)      22.0 (  42.8;   9.1%)       0.4 (   1.1;   0.2%)
+plastic on steel               4      66.7 (  85.1;  28.1%)       7.4 (  10.3;   2.7%)      13.2 (  16.0;   5.5%)       0.7 (   1.7;   0.2%)
+wood                           3      95.0 ( 114.4;  39.7%)       4.6 (   6.0;   1.5%)      15.9 (  23.4;   6.1%)       0.1 (   0.2;   0.1%)
+glass plate                    2      72.1 (  90.5;  30.3%)       4.4 (   5.5;   1.6%)       2.0 (   2.8;   0.9%)       0.4 (   0.6;   0.2%)
+stainless on sheet (Yu)        3      42.5 (  58.3;  17.8%)      43.2 (  53.4;  18.3%)      52.1 (  75.0;  22.0%)       0.4 (   0.5;   0.2%)
+
+the priors against the truth (ln of the prior's median over the true friction)
+                           pairs     mean      RMS    worst     truth inside stated 90% interval
+  all pairs
+  generic (median 0.30)       23    +0.09     0.41    +0.75                                     
+  lookup nominal              23    +0.04     0.17    +0.58                                     
+  llm_claude                  23    +0.21     0.38    +0.98                             21 of 23
+  handbook pairs
+  generic (median 0.30)       20    +0.02     0.37    +0.75                                     
+  lookup nominal              20    +0.00     0.00    +0.00                                     
+  llm_claude                  20    +0.16     0.33    +0.98                             19 of 20
+
+llm_claude against generic, all pairs: closer on 20 of 23 pairs; mean change -50.9 mm, median -64.0 mm
+llm_claude against generic, handbook pairs: closer on 19 of 20 pairs; mean change -59.9 mm, median -74.4 mm
+
+after practice (nominal noise): mean |error| mm, all pairs; and how far apart the methods' shots land
+slides      generic       lookup   llm_claude       oracle  shots apart
+     0        72.71        10.21        21.83         0.41        89.72
+     1         1.17         1.15         1.14         0.41         0.21
+     2         0.80         0.80         0.80         0.41         0.13
+
+5796 scored shots; 0 at the speed cap (0 before practice); 0 flagged invalid

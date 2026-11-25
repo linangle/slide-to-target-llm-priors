@@ -32,7 +32,7 @@ target x = 0.750 m, true mu = 0.3, planned with mu = 0.3, J = 100 m/s^3 -> peak 
 
 Below them is `push.py`'s usual report: the release read three ways, slide versus `v²/(2μg)`, and tracking. After that come the joint-limit lines (see *Limits*) and the controller's plan.
 
-Flags: `--target`, `--mu` (the simulator's true friction), `--mu-est` (what the planner believes), `--v` (peak speed when there is no target), `--J` (braking jerk), `--a-push`, `--x0` (object start), `--shape`, `--plate`, `--meshcat`, `--reach`, `--base-x` / `--base-y` (where the iiwa's base stands), `--a-max` (brake cap).
+Flags: `--target`, `--mu` (the simulator's true friction), `--mu-est` (what the planner believes), `--v` (peak speed when there is no target), `--J` (braking jerk), `--a-push`, `--x0` (object start), `--shape`, `--plate`, `--meshcat`, `--reach`, `--base-x` / `--base-y` (where the iiwa's base stands), `--a-max` (brake cap), `--posture` (how the start posture is chosen: `speed`, the default, or `limits`).
 
 ## How it works
 
@@ -70,7 +70,7 @@ So `plan_peak_speed` on a belief is `decide.choose_speed(belief, Release(J), poi
 
 - `push.profile(u, J, a_max=12)` gives the paddle speed over time: accelerate at 2 m/s², then brake with jerk J down to a 12 m/s² cap.
 - The paddle face has to follow that profile along +x. The face stays square to the push, its lower edge stays 3 mm above the table, and it stays centred on the object.
-- Inverse kinematics from 42 seeds gives the candidate start postures (8 distinct ones at the default start). Each is integrated along the whole line. The planner keeps the one with the lowest peak joint speed that stays inside the joint limits and away from singularities.
+- Inverse kinematics from 42 seeds gives the candidate start postures (8 distinct ones at the default start). Each is integrated along the whole line. The planner keeps the one with the lowest peak joint speed that stays inside the joint limits and away from singularities. With `posture="limits"` (19 Nov, off by default) it plans the push with each of them and keeps the one whose worst ratio of joint speed, torque and acceleration to its limit is lowest; the posture then differs between slow and fast pushes.
 - The path `q(s)` is a spline over the paddle's displacement. The profile turns it into `q(t)`, `q̇(t)`, `q̈(t)`.
 - Inverse dynamics (gravity, Coriolis, inertia including the rotors) gives the feed-forward torque for each joint.
 
@@ -158,6 +158,7 @@ The arm is in the camera's view at the side base, always behind the paddle face.
 - The cap has to stay above μg, or the object never leaves the paddle. So a soft brake only works when the friction is known to be low enough.
 - With the default 12 m/s² every push so far has been over the acceleration limits, at either base (E1 at the side base: 5 of 73 within; with a 6 m/s² cap: 65 of 73).
 - A softer brake does not change the release, so accuracy is the same (E1 with a 6 m/s² cap: same misses to 0.01 mm).
+- The table is for the default posture choice. With `--posture limits` the 6 m/s² row at the side base becomes 1.16 m/s (every speed from 0.15 to 1.14 m/s checked on a 0.02–0.05 m/s grid), and E1 has 73 of 73 pushes within all three limits (19 Nov, `results/side_base/base_trial/`).
 
 ## Validation runs: repeatability and targeting (`e1_arm_validation.py`)
 
@@ -184,5 +185,6 @@ Every row records `v_lim_frac`, the peak joint speed divided by the limit. Only 
 - Gains: `ArmPusher(kp=..., zeta=...)`
 - Brake cap: `ArmPusher(a_brake_max=...)`
 - Start posture search: `ArmPusher(posture_seed=...)`
+- Start posture choice: `ArmPusher(posture="speed")` (default) or `"limits"`. With `a_brake_max=6.0` and `"limits"` every push from 0.15 to 1.14 m/s at the side base is inside speed, torque and acceleration limits (`results/side_base/base_trial/`)
 - Loss for a belief: `plan_peak_speed(..., loss=decide.loss_sq_abs)`
 - Speed cap: `plan_peak_speed(..., u_max=limited_peak_speed(J, x0))`

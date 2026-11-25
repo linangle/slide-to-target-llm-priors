@@ -45,12 +45,13 @@ N_C = 8
 FIELDS = ["part", "case", "pusher", "shape", "mu", "v_peak", "J", "x_target", "gap_mm", "lateral_mm", "mass",
           "v_r_model", "v_sep", "v_err_pct", "d_err_pct", "psi_deg", "yaw_rest_deg", "x_rest", "y_rest", "miss_mm",
           "track_rms_mm", "track_max_mm", "v_lim_frac", "tau_lim_frac", "joint_v_worst", "separated", "point_contacts", "wall_s",
-          "a_lim_frac", "base_x", "base_y", "a_brake"]      # added 16 Nov: planned joint acceleration / SDF limit, and the arm setup
+          "a_lim_frac", "base_x", "base_y", "a_brake",      # added 16 Nov: planned joint acceleration / SDF limit, and the arm setup
+          "posture"]                                        # added 19 Nov: how the arm chose its start posture (arm.POSTURES)
 
 # ----------------------------------------------------------------------------- the jobs
 
-def jobs(quick=False, base=None, a_brake=None):
-    """The job list; base defaults to the default layout's (arm.BASE)."""
+def jobs(quick=False, base=None, a_brake=None, posture=None):
+    """The job list; base defaults to the default layout's (arm.BASE), a_brake and posture to the arm's (12 m/s^2, "speed")."""
     if base is None:
         from arm import BASE as base
     out = []
@@ -67,7 +68,7 @@ def jobs(quick=False, base=None, a_brake=None):
                             gap=float(rng.uniform(0.0005, 0.003)), lateral=float(rng.uniform(-0.003, 0.003)),
                             mass=float(0.5*rng.uniform(0.9, 1.1))))
     for j in out:
-        j["base"], j["a_brake"] = tuple(base), a_brake
+        j["base"], j["a_brake"], j["posture"] = tuple(base), a_brake, posture
     return out
 
 def run(job):
@@ -84,6 +85,8 @@ def run(job):
     base = tuple(job.get("base", BASE))
     v = job["v_peak"] if "v_peak" in job else plan_peak_speed(x_t, mu, J, base=base)     # planned with the nominal 1 mm gap
     arm_options = {} if job.get("a_brake") is None else {"a_brake_max": float(job["a_brake"])}      # default: the arm's 12 m/s^2
+    if job.get("posture") is not None:
+        arm_options["posture"] = job["posture"]                                                        # default: the arm's "speed"
     pusher = ArmPusher(gap=gap, lateral=lateral, base=base, **arm_options) if job["pusher"] == "arm" else Pusher(lateral=lateral)
     r = push_slide(mu, v, J, obj=obj, pusher=pusher, keep_traj=False)
     row = {k: job.get(k, "") for k in ("part", "case", "pusher", "shape", "mu", "J")}
@@ -95,9 +98,9 @@ def run(job):
                point_contacts=r["n_point_contacts"], wall_s=time.time() - t0)
     if job["pusher"] == "arm":      # the plan's peak joint-speed and torque ratios to the iiwa's limits (arm.ArmPusher.summary)
         row.update(v_lim_frac=r["arm_plan_qd_ratio"], tau_lim_frac=r["arm_plan_tau_ratio"], joint_v_worst=r["arm_plan_qd_joint"],
-                   a_lim_frac=r["arm_plan_qdd_ratio"], base_x=base[0], base_y=base[1], a_brake=pusher.a_brake_max)
+                   a_lim_frac=r["arm_plan_qdd_ratio"], base_x=base[0], base_y=base[1], a_brake=pusher.a_brake_max, posture=pusher.posture)
     else:
-        row.update(v_lim_frac=float("nan"), tau_lim_frac=float("nan"), joint_v_worst="", a_lim_frac=float("nan"), base_x="", base_y="", a_brake="")
+        row.update(v_lim_frac=float("nan"), tau_lim_frac=float("nan"), joint_v_worst="", a_lim_frac=float("nan"), base_x="", base_y="", a_brake="", posture="")
     return row
 
 # ----------------------------------------------------------------------------- summary
@@ -179,7 +182,8 @@ def summarize(rows):
             L.append(f"Acceleration (planned joint acceleration / the SDF's drake:acceleration limit; not enforced by the simulator): "
                      f"{a.min():.2f}..{a.max():.2f}, within the limit in {int((a <= 1.0).sum())} of {len(acc)} arm pushes; "
                      f"{n_all} of {len(acc)} are within speed, torque and acceleration limits together.  "
-                     f"Setup: base ({acc[0]['base_x']:g}, {acc[0]['base_y']:g}) m, brake cap {acc[0]['a_brake']:g} m/s^2.")
+                     f"Setup: base ({acc[0]['base_x']:g}, {acc[0]['base_y']:g}) m, brake cap {acc[0]['a_brake']:g} m/s^2"
+                     + (f", start posture chosen by {acc[0]['posture']}." if acc[0].get("posture") not in (None, "", "speed") else "."))
     return "\n".join(L)
 
 def _miss_stats(rows, ind):
@@ -237,18 +241,19 @@ def main():
     ap.add_argument("--base-x", type=float, default=None, help="iiwa base position along the push, m (with --base-y: overrides --layout; needs --out)")
     ap.add_argument("--base-y", type=float, default=None, help="iiwa base offset from the push line along y, m")
     ap.add_argument("--a-brake", type=float, default=None, help="cap on the arm's braking deceleration, m/s^2 (default: the arm's 12)")
+    ap.add_argument("--posture", choices=["speed", "limits"], default=None, help="how the arm chooses its start posture (arm.POSTURES; default: speed)")
     ap.add_argument("--summarize", default=None, help="reprint the summary (and plot) from a saved results CSV")
     a = ap.parse_args()
     custom = a.base_x is not None or a.base_y is not None
     if a.out is None and not a.summarize:
         if custom:
             ap.error("--base-x/--base-y need an explicit --out")
-        a.out = str((RESULTS/"side_base"/"e1_arm") if a.layout == "side" else (RESULTS/"e1"/"e1_arm")) + ("" if a.a_brake is None else f"_brake{a.a_brake:g}")
+        a.out = str((RESULTS/"side_base"/"e1_arm") if a.layout == "side" else (RESULTS/"e1"/"e1_arm")) + ("" if a.a_brake is None else f"_brake{a.a_brake:g}") + ("" if a.posture is None else f"_posture_{a.posture}")
     if a.summarize:
         rows = load(a.summarize)
     else:
         from arm import layout_base
-        js = jobs(a.quick, (a.base_x or 0.0, a.base_y or 0.0, 0.0) if custom else layout_base(a.layout), a.a_brake)
+        js = jobs(a.quick, (a.base_x or 0.0, a.base_y or 0.0, 0.0) if custom else layout_base(a.layout), a.a_brake, a.posture)
         print(f"{len(js)} pushes on {a.workers} workers ...", flush=True)
         t0 = time.time()
         with Pool(a.workers) as pool:

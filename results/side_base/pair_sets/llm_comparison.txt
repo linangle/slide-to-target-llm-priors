@@ -1,0 +1,68 @@
+23 pairs, friction 0.14-0.49; first shots at targets [0.6, 0.735, 0.87] m, cap 1.019 m/s, scored with the release model
+LLMs: claude = Claude Haiku (Claude Code subagent, model alias 'haiku', asked 17 Nov 2026) (23 pairs answered); gpt = gpt-5.4-mini-2026-03-17 (3 pairs answered)
+
+pair  object on surface                               mu  lookup     claude: median [90%]        gpt: median [90%]
+L01   hard steel block on mild steel plate          0.42    0.42      0.45 [0.30, 0.65]                          -
+L02   aluminium block on mild steel plate           0.47    0.47      0.60 [0.40, 0.80]                          -
+L03   copper block on mild steel plate              0.36    0.36      0.36 [0.20, 0.60]                          -
+L04   brass block on mild steel plate               0.44    0.44      0.40 [0.25, 0.55]                          -
+L05   phenolic laminate block on mild steel plate   0.35    0.35      0.30 [0.20, 0.42]                          -
+L06   acetal (POM) block on mild steel plate        0.25    0.25      0.25 [0.15, 0.38]                          -
+L07   nylon 6/6 block on mild steel plate           0.27    0.27      0.35 [0.20, 0.50]                          -
+L08   UHMW-PE block on mild steel plate             0.14    0.14      0.18 [0.10, 0.28]                          -
+L09   zinc block on cast iron plate                 0.21    0.21      0.33 [0.18, 0.50]                          -
+L10   copper block on cast iron plate               0.29    0.29      0.36 [0.20, 0.60]                          -
+L11   brass block on cast iron plate                0.30    0.30      0.30 [0.18, 0.45]                          -
+L12   magnesium block on cast iron plate            0.25    0.25      0.40 [0.25, 0.60]                          -
+L13   bronze block on cast iron plate               0.22    0.22      0.25 [0.15, 0.38]                          -
+L14   mild steel block on cast iron plate           0.23    0.23      0.35 [0.20, 0.50]                          -
+L15   cast iron block on cast iron plate            0.15    0.15      0.40 [0.25, 0.60] x                        -
+L16   oak block on cast iron plate                  0.49    0.49      0.35 [0.20, 0.50]                          -
+L17   oak block, grain parallel on oak board        0.48    0.48      0.35 [0.20, 0.50]                          -
+L18   oak block, grain perpendicular on oak board   0.32    0.32      0.35 [0.22, 0.50]                          -
+L19   glass block on glass plate                    0.40    0.40      0.45 [0.25, 0.90]                          -
+L20   graphite block on glass plate                 0.18    0.18      0.25 [0.10, 0.50]                          -
+Y01   stainless steel block on ABS sheet            0.14    0.24      0.35 [0.20, 0.50] x      0.28 [0.18, 0.42] x
+Y02   stainless steel block on acetal (Delrin) she  0.14    0.25      0.20 [0.12, 0.35]        0.25 [0.15, 0.35] x
+Y03   stainless steel block on plywood sheet        0.26    0.22      0.40 [0.25, 0.60]        0.25 [0.15, 0.40]  
+   x: the truth is outside the stated 90% interval
+
+against the truth.  bias, RMS, worst: ln(median / true friction).  width: ln(high / low) of the 90% interval (generic and lookup: of the prior used)
+generic@<llm>: the generic prior's median (0.30) with that LLM's interval width, pair by pair: as confident as the LLM, knowing nothing about the pair.
+   An LLM's knowledge of the pair is the gap between its row and this one; the gap from 'generic' to this one is only the generic prior being wide.
+  all pairs each source covers
+                 pairs    bias    RMS   worst  truth in 90%  width  first shot, mm
+generic             23   +0.09   0.41   +0.75      23 of 23   2.62            57.5
+lookup              23   +0.04   0.17   +0.58      22 of 23   0.90             7.8
+claude              23   +0.21   0.38   +0.98      21 of 23   0.96            17.4
+gpt                  3   +0.41   0.52   +0.69        1 of 3   0.89            40.6
+generic@claude      23   +0.09   0.41   +0.75      16 of 23   0.96            22.8
+generic@gpt          3   +0.54   0.62   +0.75        1 of 3   0.89            45.0
+
+  handbook pairs (the lookup row holds the truth; an LLM may recall the same handbooks)
+                 pairs    bias    RMS   worst  truth in 90%  width  first shot, mm
+generic             20   +0.02   0.37   +0.75      20 of 20   2.62            61.1
+lookup              20   +0.00   0.00   +0.00      20 of 20   0.81             3.7
+claude              20   +0.16   0.33   +0.98      19 of 20   0.96            13.8
+generic@claude      20   +0.02   0.37   +0.75      15 of 20   0.96            19.7
+
+  other pairs
+                 pairs    bias    RMS   worst  truth in 90%  width  first shot, mm
+generic              3   +0.54   0.62   +0.75        3 of 3   2.62            33.0
+lookup               3   +0.32   0.47   +0.58        2 of 3   1.48            34.8
+claude               3   +0.57   0.62   +0.92        2 of 3   0.95            41.8
+gpt                  3   +0.41   0.52   +0.69        1 of 3   0.89            40.6
+generic@claude       3   +0.54   0.62   +0.75        1 of 3   0.95            43.6
+generic@gpt          3   +0.54   0.62   +0.75        1 of 3   0.89            45.0
+
+  the 3 pairs every LLM answered (Y01, Y02, Y03)
+                 pairs    bias    RMS   worst  truth in 90%  width  first shot, mm
+generic              3   +0.54   0.62   +0.75        3 of 3   2.62            33.0
+lookup               3   +0.32   0.47   +0.58        2 of 3   1.48            34.8
+claude               3   +0.57   0.62   +0.92        2 of 3   0.95            41.8
+gpt                  3   +0.41   0.52   +0.69        1 of 3   0.89            40.6
+generic@claude       3   +0.54   0.62   +0.75        1 of 3   0.95            43.6
+generic@gpt          3   +0.54   0.62   +0.75        1 of 3   0.89            45.0
+
+claude and gpt, 3 pairs both answered: medians differ by ln ratio mean +0.16, RMS 0.33, correlation of ln medians 0.33; claude nearer the truth on 1, gpt on 2, tied 0; first-shot miss claude minus gpt: mean +1.1 mm, claude smaller on 1 of 3
+   correlation of ln median with ln true friction: claude 0.65, gpt -0.50

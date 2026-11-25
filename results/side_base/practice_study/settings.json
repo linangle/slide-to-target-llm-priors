@@ -1,0 +1,77 @@
+{
+  "study": "practice informativeness",
+  "arm": {
+    "layout": "side",
+    "base": [
+      0.6,
+      0.65,
+      0.0
+    ],
+    "brake_cap": 12.0,
+    "checked_limits": [
+      "q",
+      "v",
+      "tau"
+    ],
+    "peak_cap_rule": "arm.limited_peak_speed within v/tau limits, floored to the mm/s",
+    "practice_rule": "decide.practice_speed: on the board for the generic prior's 5% quantile, at most the cap",
+    "targets_rule": "arm.target_grid: x0 + 5 cm to the reach of mu = 0.26 (the highest among Y01/Y02/Y03) at 90% of the cap",
+    "clip_unreachable": false
+  },
+  "peak_cap": 1.019,
+  "default_practice_peak": 1.01,
+  "targets": [
+    0.6,
+    0.77,
+    0.94
+  ],
+  "practice_speeds": [
+    0.15,
+    0.2,
+    0.3,
+    0.45,
+    0.6,
+    0.8,
+    1.01
+  ],
+  "noise_multiples": [
+    0.5,
+    1.0,
+    2.0,
+    4.0,
+    8.0,
+    16.0
+  ],
+  "slides": [
+    1,
+    2,
+    3
+  ],
+  "methods": [
+    "generic",
+    "lookup",
+    "llm_raw"
+  ],
+  "transfer_sd": [
+    0.0,
+    0.03,
+    0.06,
+    0.12,
+    0.25
+  ],
+  "nominal_sd": [
+    0.002,
+    0.0005,
+    0.0005
+  ],
+  "x0": 0.55,
+  "jerk": 100.0,
+  "fps": 60,
+  "map_step": 0.01,
+  "map_min": 0.06,
+  "generic_median": 0.2966479394838265,
+  "generic_log_sd": 0.7967392299126166,
+  "loss": "decide.loss_sq_rel (the planner's default)",
+  "scored_shots": "linear interpolation of the Drake landing map (landing_map.csv); see map_check.json and verify.csv",
+  "transfer_world": "release model (physics.py), not Drake; nominal noise; default practice speed"
+}
