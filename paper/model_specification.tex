@@ -20,7 +20,7 @@
 
 \title{Slide-to-Target: model specification\\[2pt]\large reference note v1}
 \author{Slide-to-Target team, MIT 6.4210}
-\date{31 October 2026}
+\date{31 October 2026; Section~\ref{sec:status-nov} added 17 November}
 
 \begin{document}
 \maketitle
@@ -147,6 +147,10 @@ along-axis distance only by $\psi^2/2$ and adds a lateral miss of $\psi d$.
 \end{equation}
 Yu et al.\ measured plywood friction falling from 0.28 to 0.24 over 100 passes, about 0.15\% per pass, which is
 negligible over five slides, and the object is reset between slides.  This is a decision, not an omission.
+
+\emph{Added 17 Nov.}  The identity is about time.  It also assumes friction is the same along the board, since the
+practice slide and the scored shot cross different stretches of it; that part was tested in Drake and does not hold on a
+board whose friction varies from place to place (Section~\ref{sec:status-nov}, ``The transition model, tested'').
 
 \section{Observation models}
 \label{sec:observation}
@@ -334,6 +338,158 @@ is therefore 10--20$\times$ pessimistic; the measured values are lower bounds (e
 Decision 8 is not settled by $\mu$'s precision (model C: 0.42\% at 30 Hz and 0.25\% at 120 Hz on the shortest slide) but by what
 else the frames must resolve.  The team chose 60 Hz on 5 Nov (\code{observe.CAMERA\_FPS}); the
 error-budget table of Section~\ref{sec:observation} is at that rate.
+
+\section{Status, 6--17 Nov: the arm, the comparison, and what the results say about the model}
+\label{sec:status-nov}
+Sections~\ref{sec:state}--\ref{sec:ladder} were written before the arm pushed and before the method comparison ran.
+This section records what changed and what was found; the README and \code{results/side\_base/README.md} have the
+tables.  All numbers are from the simulator.
+
+\paragraph{The arm (6 and 16 Nov).}  \code{arm.ArmPusher} replaces the prescribed plate.  The push is a straight line, so
+the paddle pose fixes link 7's pose and leaves one redundant joint; the start posture is the multi-start IK solution whose
+path, integrated with the minimum-norm joint tangent, has the smallest peak joint-speed ratio inside the joint limits.
+Each joint runs Drake's implicit PD on the desired trajectory with the arm's inverse dynamics as feed-forward torque.  The
+brake ramps at jerk $J$ to a cap (12 m/s$^2$ by default) and holds it; the release model is unchanged while the cap
+exceeds $\mu g$.  At $\mu=0.3$, 0.8 m/s, $J=100$ the object leaves at $+0.11\%$ of~\eqref{eq:vr} and slides to within
+$-0.20\%$ of $v_r^2/2\mu g$.  Over $\mu\in[0.1,0.5]$ and 0.3--1.0 m/s the release speed is within $-0.02$ to $+1.23\%$ of
+the model (\code{experiments/e1\_release\_error.py}).  With the base on the push line joint 4 limits the push to 0.49 m/s;
+with the base beside the board at $(0.6, 0.65)$ m (the default since 16 Nov, \code{scene.LAYOUTS}) joint 1 sweeps the
+paddle and the bound is 1.02 m/s inside the joint speed and torque limits.  The joint acceleration limits are met only
+with a softer brake (4 m/s$^2$, which releases $\mu<0.4$).
+
+\paragraph{Point targets (16 Nov).}  The decision rule of Section~\ref{sec:decision} is stated for a slide $\dstar$ from the
+release point.  A target \emph{point} $x^\star$ on the board is the same rule with a slide that moves with the speed,
+\begin{equation}
+\dstar(u,\mu)=x^\star-x_r(u,\mu),\qquad x_r=x_0-\text{gap}+\text{(push travel to release)},
+\end{equation}
+because a faster push carries the object further before it lets go (\code{decide.point\_target},
+\code{arm.plan\_peak\_speed}).  The speed bound and the targets are computed from the layout, not hand-set: the bound is the
+fastest push inside the checked joint limits, and the targets run from $x_0+5$ cm to what the highest-friction pair reaches
+at 90\% of the bound (\code{arm.limited\_peak\_speed}, \code{arm.target\_grid}).
+
+\paragraph{The simplest version (the instructor's starting point).}  Friction the only unknown, no measurement noise,
+pairs Y01--Y03, three targets.  Before any practice the generic, lookup and LLM priors miss by 39.8, 41.3 and 48.4 mm
+on average.  After one practice slide all three miss by 0.15--0.16 mm, the same as a plan made with the true friction
+(0.26 mm).  It is straightforward, as predicted.
+
+\paragraph{How much a practice slide says (17 Nov).}  One slide at the practice speed (1.01 m/s) gives $\ln\mu$ to 0.006
+on its own at the nominal noise of Section~\ref{sec:observation}; the priors' standard deviations are 0.80 (generic),
+0.33--0.51 (lookup) and 0.26--0.30 (LLM).  In slides, the LLM prior is worth about $(0.006/0.26)^2\approx 1/2000$ of
+one.  \code{evaluation/practice\_study.py} weakens the slide (practice speed 0.15--1.01 m/s, noise 0.5--16 times
+nominal): the methods' shots land more than 1 mm apart only once a slide alone leaves $\ln\mu$ uncertain by about 0.035,
+which needs a practice push of 0.45 m/s or slower, or 8 times the nominal noise.  The camera as measured in E0-5 is about
+12 times better than nominal.  The comparison between priors therefore lives in the shot made before any practice.
+
+\paragraph{The board's seams (17 Nov).}  \code{push\_slide}'s uniform table is 24 equal-friction strips.  As the object
+crosses a seam the contact patch vanishes for one time step and the deceleration spikes; about a third of pushes on
+$\mu=0.14$ land short, by 1.3 mm RMS and at most 7.5 mm, and which pushes are hit changes with the speed to 0.01 m/s.  On a
+one-piece board the landing is within 0.5 mm of the release model.  This is a simulator artefact, not friction; it is all
+of the largest landing errors recorded so far.  Not changed, pending a team decision.
+
+\paragraph{More pairs and more than one LLM (17 Nov).}  Until the rig data exists, the 20 handbook pairs of the lookup
+table (metals, engineering plastics, oak, glass, graphite; $\mu$ 0.14--0.49) are a second truth set
+(\code{data/ground\_truth\_handbook.csv}); the lookup baseline holds the answer on them, and an LLM may recall the same
+handbooks.  First shot, mean miss: generic 61.3 mm, lookup 3.9 mm, LLM 13.7 mm (a Claude Haiku stand-in; GPT is cached for
+Y01--Y03 only).  Most of that gain is not knowledge of the pair.  The generic prior's median is about as close to the truth
+as the LLM's (RMS error of $\ln\mu$ 0.37 against 0.33); it is its width, 0.08--1.1, that makes the planner push short.  A
+generic prior with the LLM's own interval width, pair by pair, misses by 19.7 mm (\code{evaluation/compare\_llms.py}), so
+the steps are 61 mm (wide generic), 20 mm (equally confident generic), 14 mm (LLM).  On Y01--Y03, which no table lists,
+neither LLM beats the generic prior.  After one practice slide all methods agree to 0.15 mm on all 23 pairs.
+
+\paragraph{The transition model, tested (17 Nov).}  \code{evaluation/patchy\_table\_study.py} runs the comparison on the
+scene's patchy board: 24 strips of 2 in with friction $\mu_i=\mu\,e^{s z_i}$, $z_i\sim\mathcal N(0,1)$, one draw per board,
+the same board for the practice slide and the scored shots; pairs Y01--Y03, 16 boards per pair and spread, nominal noise.
+Let $\mu_{\text{shot}}$ be the uniform friction under which the scored push would have landed where it did
+(\eqref{eq:vr} and the free slide, inverted) and $\hat\mu$ the estimate from the practice slide.  The identity transition
+says $\ln(\mu_{\text{shot}}/\hat\mu)=0$ to within the posterior's width, about 0.009.
+\begin{center}\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+strip spread $s$ & 0 & 0.06 & 0.12 & 0.25\\
+\midrule
+SD of $\ln(\mu_{\text{shot}}/\hat\mu)$, practice at 1.01 m/s & 0.008 & 0.047 & 0.093 & 0.197\\
+shots inside the belief's 90\% interval & 100\% & 19\% & 12\% & 8\%\\
+mean miss, one practice slide at 1.01 m/s (mm) & 0.8 & 4.0 & 8.0 & 16.5\\
+mean miss, one practice slide at 0.7 m/s (mm) & 0.6 & 3.5 & 5.9 & 11.8\\
+mean miss, plan with the nominal $\mu$ (mm) & 0.3 & 2.7 & 5.5 & 11.9\\
+mean miss, no practice, generic prior (mm) & 39.8 & 40.6 & 41.5 & 44.2\\
+\bottomrule
+\end{tabular}
+\end{center}
+The practice estimate and the friction the shot meets differ by about $0.8\,s$, so the belief after practice is
+overconfident by an order of magnitude at the spreads of Yu et al.\ (their spatial SD over the mean: about 0.09 for plywood, 0.11 for acetal and 0.12 for ABS; 0.22 for polyurethane, which is not simulated.  \emph{Corrected 25 Nov:} this read ``0.11--0.25'', from a 0.25 in \code{ground\_truth\_published.csv} that was polyurethane's SD entered on the plywood row (fixed to 0.09 the same day); $s=0.25$ is about twice the largest spread of the simulated surfaces).  Practice still removes most of the
+miss, but the floor is the board, not the sensor.  Where the practice slide runs matters: at 1.01 m/s it crosses
+$x=0.83$--$1.19$ m while the shots cross $0.57$--$0.94$ m, and the result is worse than a plan made with the pair's nominal
+friction; a practice slide at 0.7 m/s, on the stretch the shots use, matches the nominal plan.  This qualifies the rule of
+Section~\ref{sec:decision} that practice runs at the maximum feasible speed, which was derived for uniform friction.
+The three methods still make the same shot.
+
+A transition with spread, $\theta_{\text{slide}}=\theta_{\text{pair}}+\eta$, $\eta\sim\mathcal N(0,\sigma^2)$ for the
+practice slide and again for the shot (\code{practice\_study.update\_with\_transfer}; $\sigma$ set so that the
+practice-to-shot spread is the measured one), makes the belief honest: 88--92\% of shots fall inside its 90\% interval.
+It does not improve the shot (7.8--7.9 mm against 8.0 mm at $s=0.12$), because a wider belief cannot say which way the
+shot's stretch differs from the practice stretch.  Told too large a spread it lets the priors back in and the miss grows.
+The identity transition is therefore kept for planning; what it gets wrong is the stated uncertainty, and what would reduce
+the miss is practising on the stretch the shot will cross.
+
+\paragraph{Practice aimed at the target (17 Nov).}  That last statement is tested by
+\code{patchy\_table\_study.py --aimed} on the same boards: the practice push is the method's own first shot at the target,
+observed as a practice slide; the next shot at that target is planned from it, and a third from both slides (identity
+transition) or from the second alone.
+\begin{center}\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+strip spread $s$ & 0 & 0.06 & 0.12 & 0.25\\
+\midrule
+one aimed slide, generic / lookup / LLM (mm) & 3.4 / 4.2 / 2.8 & 3.9 / 3.8 / 3.8 & 5.1 / 5.6 / 6.0 & 9.4 / 10.0 / 11.0\\
+two aimed slides (mm) & 2.1 / 2.6 / 1.9 & 2.4 / 2.6 / 3.0 & 3.0 / 3.9 / 4.5 & 5.5 / 7.3 / 8.4\\
+two aimed slides, latest only (mm) & 2.7 / 2.5 / 2.1 & 3.0 / 3.1 / 2.9 & 4.0 / 3.7 / 3.9 & 7.3 / 6.2 / 6.4\\
+fixed practice at 0.7 m/s (mm) & 0.6 & 3.5 & 5.9 & 11.8\\
+plan with the nominal $\mu$ (mm) & 0.3 & 2.7 & 5.5 & 11.9\\
+shots inside the 90\% interval, one aimed slide & 78\% & 83\% & 78\% & 58\%\\
+\bottomrule
+\end{tabular}
+\end{center}
+One aimed slide equals the slower fixed slide ($-0.2\pm0.4$ mm at $s=0.12$, paired by board).  Two aimed slides are the
+first rule to beat the plan made with the pair's nominal friction, by $1.7\pm0.5$ mm at $s=0.12$ and $4.8\pm0.9$ mm at
+$s=0.25$: the second slide ends within millimetres of the target and crosses the strips the shot will cross.  At the 0.77
+and 0.94 m targets the SD of $\ln(\mu_{\text{shot}}/\hat\mu)$ at $s=0.12$ falls from 0.099 and 0.076 (practice at 1.01 m/s)
+to 0.029 and 0.025, about $s/4$ in place of $0.8\,s$.  The price is information: a slide aimed at the 0.60 m target is a
+few centimetres long and leaves a posterior SD of about 0.27 in $\ln\mu$, and on the uniform board the aimed rule misses
+by 2--4 mm where a fixed practice slide gives 0.8 mm.  So Section~\ref{sec:decision}'s rule (practise fast) and this one
+(practise where the shot goes) trade information against relevance, and which wins depends on $s$.
+
+With the less informative slide the prior matters after practice: the three methods' shots land 5--19 mm apart.  With one
+aimed slide at $s=0.12$ the miss is 3.4 / 6.6 / 7.5 mm on Y01 ($\mu=0.14$; lookup and LLM medians 0.26 and 0.28 with
+narrower intervals) and 8.2 / 4.1 / 3.2 mm on Y03 ($\mu=0.26$; medians 0.25).  Over the three pairs, with two slides under
+the identity transition, the LLM method is worse than the generic prior by $1.5\pm0.4$ mm ($s=0.12$) and $2.8\pm0.7$ mm
+($s=0.25$).  Planning from the latest slide alone removes the difference ($-0.1\pm0.3$ mm), since the first slide, taken
+far from the target, is the one that carries the prior's error.  Not compared: two slides at a fixed speed.
+
+\paragraph{The aimed rule on 23 pairs (17 Nov).}  \code{patchy\_table\_study.py --aimed-pairs} repeats this on the 20
+handbook pairs and Y01--Y03 (8 boards per pair and spread, targets 0.60, 0.735 and 0.87 m, 22{,}287 Drake shots), with the
+Claude Haiku stand-in as the LLM and a control: the generic median with the LLM's interval width, pair by pair.
+\begin{center}\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+strip spread $s$ & 0 & 0.12 & 0.25\\
+\midrule
+no practice, generic / lookup / LLM / control (mm) & 57.7 / 7.9 / 17.3 / 22.6 & 57.7 / 8.6 / 17.5 / 22.6 & 58.0 / 11.0 / 18.4 / 23.2\\
+one aimed slide (mm) & 6.3 / 2.6 / 2.2 / 2.9 & 7.3 / 3.0 / 3.8 / 4.1 & 10.1 / 4.4 / 5.5 / 6.1\\
+two aimed slides (mm) & 4.6 / 1.8 / 1.6 / 2.4 & 4.4 / 2.4 / 3.0 / 3.1 & 6.0 / 3.8 / 4.6 / 4.8\\
+fixed practice at 1.01 m/s, generic (mm) & 0.9 & 5.2 & 10.1\\
+plan with the nominal $\mu$ (mm) & 0.2 & 3.6 & 7.3\\
+\bottomrule
+\end{tabular}
+\end{center}
+Paired over pairs, after one aimed slide at $s=0.12$ the lookup is better than the generic prior by $4.3\pm0.8$ mm and the
+LLM by $3.6\pm0.8$ mm, but the control is better by $3.2\pm0.7$ mm: the LLM adds $0.4\pm0.3$ mm to the control and the
+lookup, which on the handbook pairs holds the simulator's friction, $1.1\pm0.3$ mm.  Most of the gain is the prior's
+width.  The set's frictions (0.14--0.49) straddle the generic median, which is almost as near a pair's friction as the
+LLM's answer (mean $|\ln(\text{median}/\mu)|$ 0.34 against 0.29).  The wide prior loses at the 0.60 m target, where the
+aimed slide leaves it a posterior SD of 0.50 in $\ln\mu$ (0.20 for the others) and a miss of 8.8 mm against 1.6--2.5 mm; at
+the farther targets after two slides the methods are level.  With a confident prior, one aimed slide beats fixed-speed
+practice on a patchy board and is level with the nominal-friction plan; on the uniform board fixed practice stays better.
 
 \appendix
 \section{sim\_config.yaml}
